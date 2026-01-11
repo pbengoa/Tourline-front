@@ -6,3 +6,11 @@ export type {
   RootStackScreenProps,
   MainTabScreenProps,
 } from './navigation';
+
+export type {
+  Guide,
+  Tour,
+  Category,
+  SortOption,
+  SearchFilters,
+} from './guide';

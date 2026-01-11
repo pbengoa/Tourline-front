@@ -17,7 +17,7 @@ export type AuthStackParamList = {
 export type RootStackParamList = {
   Main: NavigatorScreenParams<MainTabParamList>;
   Details: { id: string; title?: string };
-  // Add more root stack screens here
+  GuideDetail: { guideId: string };
 };
 
 /**
