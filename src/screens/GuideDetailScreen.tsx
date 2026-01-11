@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,24 +7,85 @@ import {
   ScrollView,
   TouchableOpacity,
   FlatList,
+  Modal,
+  TextInput,
+  Alert,
+  Share,
+  Dimensions,
 } from 'react-native';
 import { Colors, Spacing, Typography } from '../theme';
-import { TourCard } from '../components';
+import { TourCard, Button } from '../components';
 import { MOCK_GUIDES, MOCK_TOURS } from '../constants/mockData';
 import type { RootStackScreenProps } from '../types';
 
 type Props = RootStackScreenProps<'GuideDetail'>;
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// Mock reviews data
+const MOCK_REVIEWS = [
+  {
+    id: '1',
+    userName: 'Juan Martínez',
+    rating: 5,
+    date: '2025-12-28',
+    text: 'Excelente guía, muy conocedor de la historia local. El tour superó mis expectativas. ¡Totalmente recomendado!',
+    tourName: 'Madrid de los Austrias',
+  },
+  {
+    id: '2',
+    userName: 'Ana López',
+    rating: 5,
+    date: '2025-12-15',
+    text: 'Una experiencia inolvidable. Nos llevó a lugares que nunca habríamos descubierto por nuestra cuenta. Muy profesional y amable.',
+    tourName: 'Museo del Prado: Obras Maestras',
+  },
+  {
+    id: '3',
+    userName: 'Carlos Ruiz',
+    rating: 4,
+    date: '2025-11-20',
+    text: 'Muy buen tour, el guía conoce muy bien la ciudad. Solo le faltó un poco más de tiempo en algunos puntos de interés.',
+    tourName: 'Madrid de los Austrias',
+  },
+];
+
+// Mock gallery images (represented as colors/icons for now)
+const MOCK_GALLERY = [
+  { id: '1', icon: '🏛️', title: 'Plaza Mayor' },
+  { id: '2', icon: '🎨', title: 'Museo del Prado' },
+  { id: '3', icon: '👑', title: 'Palacio Real' },
+  { id: '4', icon: '🌳', title: 'Retiro' },
+  { id: '5', icon: '⛪', title: 'Catedral' },
+  { id: '6', icon: '🍷', title: 'Tapas Tour' },
+];
 
 export const GuideDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const { guideId } = route.params;
   const guide = MOCK_GUIDES.find((g) => g.id === guideId);
   const guideTours = MOCK_TOURS.filter((tour) => tour.guideId === guideId);
 
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [showAllReviews, setShowAllReviews] = useState(false);
+  const [contactMessage, setContactMessage] = useState('');
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [sendingMessage, setSendingMessage] = useState(false);
+
   if (!guide) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Guía no encontrado</Text>
+          <Text style={styles.errorIcon}>😕</Text>
+          <Text style={styles.errorTitle}>Guía no encontrado</Text>
+          <Text style={styles.errorText}>
+            El perfil que buscas no está disponible
+          </Text>
+          <Button
+            title="Volver"
+            onPress={() => navigation.goBack()}
+            style={styles.errorButton}
+          />
         </View>
       </SafeAreaView>
     );
@@ -39,21 +100,254 @@ export const GuideDetailScreen: React.FC<Props> = ({ route, navigation }) => {
       .slice(0, 2);
   };
 
+  const getRelativeDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return 'Hoy';
+    if (diffDays === 1) return 'Ayer';
+    if (diffDays < 7) return `Hace ${diffDays} días`;
+    if (diffDays < 30) return `Hace ${Math.floor(diffDays / 7)} semanas`;
+    if (diffDays < 365) return `Hace ${Math.floor(diffDays / 30)} meses`;
+    return `Hace ${Math.floor(diffDays / 365)} años`;
+  };
+
+  const getRatingBreakdown = () => {
+    // Mock rating breakdown
+    return {
+      5: 75,
+      4: 18,
+      3: 5,
+      2: 2,
+      1: 0,
+    };
+  };
+
   const handleTourPress = (tourId: string, title: string) => {
     navigation.navigate('Details', { id: tourId, title });
   };
 
-  const handleContactPress = () => {
-    // TODO: Implement contact functionality
+  const handleFavoritePress = () => {
+    setIsFavorite(!isFavorite);
+    // TODO: Save to favorites
+  };
+
+  const handleSharePress = async () => {
+    try {
+      await Share.share({
+        message: `¡Mira el perfil de ${guide.name} en Tourline! Un guía increíble en ${guide.location}. ⭐ ${guide.rating} (${guide.reviewCount} reseñas)`,
+        title: `${guide.name} - Guía en Tourline`,
+      });
+    } catch (error) {
+      console.error('Error sharing:', error);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!contactMessage.trim()) {
+      Alert.alert('Error', 'Por favor escribe un mensaje');
+      return;
+    }
+
+    setSendingMessage(true);
+    try {
+      // TODO: Implement actual message sending
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      Alert.alert(
+        'Mensaje enviado',
+        `Tu mensaje ha sido enviado a ${guide.name}. Te responderá pronto.`,
+        [{ text: 'OK', onPress: () => setShowContactModal(false) }]
+      );
+      setContactMessage('');
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo enviar el mensaje');
+    } finally {
+      setSendingMessage(false);
+    }
   };
 
   const handleBookPress = () => {
-    // TODO: Implement booking functionality
+    // TODO: Implement booking flow
+    Alert.alert(
+      'Reservar con ' + guide.name.split(' ')[0],
+      '¿Deseas solicitar una reserva?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Continuar',
+          onPress: () => {
+            Alert.alert('Próximamente', 'La función de reserva estará disponible pronto');
+          },
+        },
+      ]
+    );
   };
+
+  const renderStars = (rating: number) => {
+    return '⭐'.repeat(Math.floor(rating)) + (rating % 1 >= 0.5 ? '½' : '');
+  };
+
+  const ratingBreakdown = getRatingBreakdown();
+
+  const renderContactModal = () => (
+    <Modal
+      visible={showContactModal}
+      animationType="slide"
+      presentationStyle="pageSheet"
+    >
+      <SafeAreaView style={styles.modalContainer}>
+        <View style={styles.modalHeader}>
+          <TouchableOpacity onPress={() => setShowContactModal(false)}>
+            <Text style={styles.modalClose}>✕</Text>
+          </TouchableOpacity>
+          <Text style={styles.modalTitle}>Contactar</Text>
+          <View style={{ width: 24 }} />
+        </View>
+
+        <ScrollView style={styles.modalContent}>
+          {/* Guide preview */}
+          <View style={styles.contactGuidePreview}>
+            <View style={styles.contactAvatar}>
+              <Text style={styles.contactAvatarText}>{getInitials(guide.name)}</Text>
+            </View>
+            <View style={styles.contactGuideInfo}>
+              <Text style={styles.contactGuideName}>{guide.name}</Text>
+              <Text style={styles.contactGuideLocation}>📍 {guide.location}</Text>
+              <View style={styles.responseTime}>
+                <Text style={styles.responseIcon}>⚡</Text>
+                <Text style={styles.responseText}>Responde en menos de 1 hora</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Quick questions */}
+          <View style={styles.quickQuestions}>
+            <Text style={styles.quickQuestionsTitle}>Preguntas frecuentes</Text>
+            {[
+              '¿Tienes disponibilidad esta semana?',
+              '¿Puedes hacer un tour privado?',
+              '¿Cuál es tu política de cancelación?',
+            ].map((question, index) => (
+              <TouchableOpacity
+                key={index}
+                style={styles.quickQuestion}
+                onPress={() => setContactMessage(question)}
+              >
+                <Text style={styles.quickQuestionText}>{question}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Message input */}
+          <View style={styles.messageSection}>
+            <Text style={styles.messageSectionTitle}>Tu mensaje</Text>
+            <TextInput
+              style={styles.messageInput}
+              placeholder="Escribe tu mensaje aquí..."
+              placeholderTextColor={Colors.textTertiary}
+              value={contactMessage}
+              onChangeText={setContactMessage}
+              multiline
+              numberOfLines={5}
+              textAlignVertical="top"
+            />
+          </View>
+        </ScrollView>
+
+        <View style={styles.modalFooter}>
+          <Button
+            title="Enviar mensaje"
+            onPress={handleSendMessage}
+            loading={sendingMessage}
+            fullWidth
+          />
+        </View>
+      </SafeAreaView>
+    </Modal>
+  );
+
+  const renderReviewsModal = () => (
+    <Modal visible={showAllReviews} animationType="slide" presentationStyle="pageSheet">
+      <SafeAreaView style={styles.modalContainer}>
+        <View style={styles.modalHeader}>
+          <TouchableOpacity onPress={() => setShowAllReviews(false)}>
+            <Text style={styles.modalClose}>✕</Text>
+          </TouchableOpacity>
+          <Text style={styles.modalTitle}>Reseñas</Text>
+          <View style={{ width: 24 }} />
+        </View>
+
+        <ScrollView style={styles.modalContent}>
+          {/* Rating summary */}
+          <View style={styles.ratingSummary}>
+            <View style={styles.ratingSummaryLeft}>
+              <Text style={styles.ratingBig}>{guide.rating}</Text>
+              <Text style={styles.ratingStarsBig}>{renderStars(guide.rating)}</Text>
+              <Text style={styles.reviewCountBig}>{guide.reviewCount} reseñas</Text>
+            </View>
+            <View style={styles.ratingSummaryRight}>
+              {[5, 4, 3, 2, 1].map((star) => (
+                <View key={star} style={styles.ratingBar}>
+                  <Text style={styles.ratingBarLabel}>{star}</Text>
+                  <View style={styles.ratingBarBg}>
+                    <View
+                      style={[
+                        styles.ratingBarFill,
+                        { width: `${ratingBreakdown[star as keyof typeof ratingBreakdown]}%` },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.ratingBarPercent}>
+                    {ratingBreakdown[star as keyof typeof ratingBreakdown]}%
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          {/* All reviews */}
+          {MOCK_REVIEWS.map((review) => (
+            <View key={review.id} style={styles.reviewCardFull}>
+              <View style={styles.reviewHeader}>
+                <View style={styles.reviewerAvatar}>
+                  <Text style={styles.reviewerInitials}>
+                    {review.userName
+                      .split(' ')
+                      .map((n) => n[0])
+                      .join('')}
+                  </Text>
+                </View>
+                <View style={styles.reviewerInfo}>
+                  <Text style={styles.reviewerName}>{review.userName}</Text>
+                  <Text style={styles.reviewDate}>{getRelativeDate(review.date)}</Text>
+                </View>
+              </View>
+              <View style={styles.reviewRatingRow}>
+                <Text style={styles.reviewStarsSmall}>{renderStars(review.rating)}</Text>
+                <Text style={styles.reviewTourName}>• {review.tourName}</Text>
+              </View>
+              <Text style={styles.reviewTextFull}>{review.text}</Text>
+            </View>
+          ))}
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Header Actions */}
+        <View style={styles.headerActions}>
+          <TouchableOpacity style={styles.headerAction} onPress={handleSharePress}>
+            <Text style={styles.headerActionIcon}>📤</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.headerAction} onPress={handleFavoritePress}>
+            <Text style={styles.headerActionIcon}>{isFavorite ? '❤️' : '🤍'}</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.avatarContainer}>
@@ -65,10 +359,27 @@ export const GuideDetailScreen: React.FC<Props> = ({ route, navigation }) => {
                 <Text style={styles.verifiedIcon}>✓</Text>
               </View>
             )}
+            {guide.available && (
+              <View style={styles.onlineBadge}>
+                <View style={styles.onlineDot} />
+              </View>
+            )}
           </View>
 
           <Text style={styles.name}>{guide.name}</Text>
           <Text style={styles.location}>📍 {guide.location}</Text>
+
+          {/* Quick info badges */}
+          <View style={styles.quickInfoRow}>
+            <View style={styles.quickInfoBadge}>
+              <Text style={styles.quickInfoIcon}>⚡</Text>
+              <Text style={styles.quickInfoText}>Responde rápido</Text>
+            </View>
+            <View style={styles.quickInfoBadge}>
+              <Text style={styles.quickInfoIcon}>📅</Text>
+              <Text style={styles.quickInfoText}>Desde 2020</Text>
+            </View>
+          </View>
 
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
@@ -99,6 +410,25 @@ export const GuideDetailScreen: React.FC<Props> = ({ route, navigation }) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Sobre mí</Text>
           <Text style={styles.bioText}>{guide.bio}</Text>
+        </View>
+
+        {/* Gallery Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Galería</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.galleryContainer}
+          >
+            {MOCK_GALLERY.map((item) => (
+              <TouchableOpacity key={item.id} style={styles.galleryItem}>
+                <View style={styles.galleryImage}>
+                  <Text style={styles.galleryIcon}>{item.icon}</Text>
+                </View>
+                <Text style={styles.galleryTitle}>{item.title}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
 
         {/* Specialties */}
@@ -149,51 +479,49 @@ export const GuideDetailScreen: React.FC<Props> = ({ route, navigation }) => {
         {/* Reviews Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Reseñas</Text>
-            <TouchableOpacity>
+            <View>
+              <Text style={styles.sectionTitle}>Reseñas</Text>
+              <View style={styles.reviewSummary}>
+                <Text style={styles.reviewSummaryRating}>⭐ {guide.rating}</Text>
+                <Text style={styles.reviewSummaryCount}>
+                  ({guide.reviewCount} reseñas)
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity onPress={() => setShowAllReviews(true)}>
               <Text style={styles.seeAllText}>Ver todas</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Mock reviews */}
-          <View style={styles.reviewCard}>
-            <View style={styles.reviewHeader}>
-              <View style={styles.reviewerAvatar}>
-                <Text style={styles.reviewerInitials}>JM</Text>
+          {/* Preview reviews */}
+          {MOCK_REVIEWS.slice(0, 2).map((review) => (
+            <View key={review.id} style={styles.reviewCard}>
+              <View style={styles.reviewHeader}>
+                <View style={styles.reviewerAvatar}>
+                  <Text style={styles.reviewerInitials}>
+                    {review.userName
+                      .split(' ')
+                      .map((n) => n[0])
+                      .join('')}
+                  </Text>
+                </View>
+                <View style={styles.reviewerInfo}>
+                  <Text style={styles.reviewerName}>{review.userName}</Text>
+                  <Text style={styles.reviewDate}>{getRelativeDate(review.date)}</Text>
+                </View>
+                <View style={styles.reviewRating}>
+                  <Text style={styles.reviewStars}>{renderStars(review.rating)}</Text>
+                </View>
               </View>
-              <View style={styles.reviewerInfo}>
-                <Text style={styles.reviewerName}>Juan M.</Text>
-                <Text style={styles.reviewDate}>Hace 2 semanas</Text>
-              </View>
-              <View style={styles.reviewRating}>
-                <Text style={styles.reviewStars}>⭐⭐⭐⭐⭐</Text>
-              </View>
+              <Text style={styles.reviewText} numberOfLines={3}>
+                {review.text}
+              </Text>
             </View>
-            <Text style={styles.reviewText}>
-              Excelente guía, muy conocedor de la historia local. El tour superó mis expectativas.
-              ¡Totalmente recomendado!
-            </Text>
-          </View>
-
-          <View style={styles.reviewCard}>
-            <View style={styles.reviewHeader}>
-              <View style={styles.reviewerAvatar}>
-                <Text style={styles.reviewerInitials}>AL</Text>
-              </View>
-              <View style={styles.reviewerInfo}>
-                <Text style={styles.reviewerName}>Ana L.</Text>
-                <Text style={styles.reviewDate}>Hace 1 mes</Text>
-              </View>
-              <View style={styles.reviewRating}>
-                <Text style={styles.reviewStars}>⭐⭐⭐⭐⭐</Text>
-              </View>
-            </View>
-            <Text style={styles.reviewText}>
-              Una experiencia inolvidable. {guide.name.split(' ')[0]} nos llevó a lugares que
-              nunca habríamos descubierto por nuestra cuenta.
-            </Text>
-          </View>
+          ))}
         </View>
+
+        {/* Spacer for bottom bar */}
+        <View style={{ height: 100 }} />
       </ScrollView>
 
       {/* Bottom CTA */}
@@ -203,7 +531,10 @@ export const GuideDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           <Text style={styles.priceLabel}>por hora</Text>
         </View>
         <View style={styles.ctaButtons}>
-          <TouchableOpacity style={styles.contactButton} onPress={handleContactPress}>
+          <TouchableOpacity
+            style={styles.contactButton}
+            onPress={() => setShowContactModal(true)}
+          >
             <Text style={styles.contactButtonText}>💬</Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -217,6 +548,9 @@ export const GuideDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           </TouchableOpacity>
         </View>
       </View>
+
+      {renderContactModal()}
+      {renderReviewsModal()}
     </SafeAreaView>
   );
 };
@@ -230,14 +564,56 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: Spacing.lg,
+  },
+  errorIcon: {
+    fontSize: 64,
+    marginBottom: Spacing.md,
+  },
+  errorTitle: {
+    ...Typography.h3,
+    color: Colors.text,
+    marginBottom: Spacing.xs,
   },
   errorText: {
     ...Typography.body,
     color: Colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: Spacing.lg,
+  },
+  errorButton: {
+    minWidth: 120,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    padding: Spacing.md,
+    gap: Spacing.sm,
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    zIndex: 10,
+  },
+  headerAction: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  headerActionIcon: {
+    fontSize: 18,
   },
   header: {
     alignItems: 'center',
     padding: Spacing.lg,
+    paddingTop: Spacing.xl + 40, // Account for action buttons
     paddingBottom: Spacing.xl,
     backgroundColor: Colors.surface,
     borderBottomLeftRadius: 24,
@@ -277,6 +653,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
   },
+  onlineBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: Colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: Colors.surface,
+  },
+  onlineDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: Colors.success,
+  },
   name: {
     ...Typography.h2,
     color: Colors.text,
@@ -287,6 +682,27 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginBottom: Spacing.md,
   },
+  quickInfoRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  quickInfoBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: 12,
+  },
+  quickInfoIcon: {
+    fontSize: 12,
+    marginRight: 4,
+  },
+  quickInfoText: {
+    ...Typography.labelSmall,
+    color: Colors.textSecondary,
+  },
   statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -294,6 +710,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: Spacing.md,
     marginBottom: Spacing.md,
+    width: '100%',
   },
   statItem: {
     flex: 1,
@@ -334,7 +751,7 @@ const styles = StyleSheet.create({
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: Spacing.md,
   },
   sectionTitle: {
@@ -350,6 +767,29 @@ const styles = StyleSheet.create({
     ...Typography.body,
     color: Colors.textSecondary,
     lineHeight: 22,
+  },
+  galleryContainer: {
+    gap: Spacing.sm,
+  },
+  galleryItem: {
+    alignItems: 'center',
+    marginRight: Spacing.sm,
+  },
+  galleryImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+    backgroundColor: Colors.primary + '15',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
+  },
+  galleryIcon: {
+    fontSize: 32,
+  },
+  galleryTitle: {
+    ...Typography.labelSmall,
+    color: Colors.textSecondary,
   },
   tagsContainer: {
     flexDirection: 'row',
@@ -384,7 +824,26 @@ const styles = StyleSheet.create({
   tourSeparator: {
     width: Spacing.md,
   },
+  reviewSummary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  reviewSummaryRating: {
+    ...Typography.labelLarge,
+    color: Colors.text,
+    marginRight: Spacing.xs,
+  },
+  reviewSummaryCount: {
+    ...Typography.bodySmall,
+    color: Colors.textSecondary,
+  },
   reviewCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  reviewCardFull: {
     backgroundColor: Colors.surface,
     borderRadius: 12,
     padding: Spacing.md,
@@ -425,16 +884,39 @@ const styles = StyleSheet.create({
   reviewStars: {
     fontSize: 12,
   },
+  reviewRatingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  reviewStarsSmall: {
+    fontSize: 12,
+  },
+  reviewTourName: {
+    ...Typography.bodySmall,
+    color: Colors.textTertiary,
+    marginLeft: Spacing.xs,
+  },
   reviewText: {
     ...Typography.body,
     color: Colors.textSecondary,
     lineHeight: 20,
   },
+  reviewTextFull: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    lineHeight: 22,
+  },
   bottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: Spacing.lg,
+    paddingBottom: Spacing.xl,
     backgroundColor: Colors.surface,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
@@ -479,5 +961,177 @@ const styles = StyleSheet.create({
     color: Colors.textInverse,
     textTransform: 'none',
   },
+  // Modal styles
+  modalContainer: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: Spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  modalClose: {
+    fontSize: 20,
+    color: Colors.text,
+  },
+  modalTitle: {
+    ...Typography.h4,
+    color: Colors.text,
+  },
+  modalContent: {
+    flex: 1,
+    padding: Spacing.lg,
+  },
+  modalFooter: {
+    padding: Spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  // Contact modal
+  contactGuidePreview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  contactAvatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Spacing.md,
+  },
+  contactAvatarText: {
+    ...Typography.h4,
+    color: Colors.textInverse,
+  },
+  contactGuideInfo: {
+    flex: 1,
+  },
+  contactGuideName: {
+    ...Typography.labelLarge,
+    color: Colors.text,
+  },
+  contactGuideLocation: {
+    ...Typography.bodySmall,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.xs,
+  },
+  responseTime: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  responseIcon: {
+    fontSize: 12,
+    marginRight: 4,
+  },
+  responseText: {
+    ...Typography.labelSmall,
+    color: Colors.success,
+  },
+  quickQuestions: {
+    marginBottom: Spacing.lg,
+  },
+  quickQuestionsTitle: {
+    ...Typography.labelLarge,
+    color: Colors.text,
+    marginBottom: Spacing.sm,
+  },
+  quickQuestion: {
+    backgroundColor: Colors.surface,
+    borderRadius: 8,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  quickQuestionText: {
+    ...Typography.body,
+    color: Colors.primary,
+  },
+  messageSection: {},
+  messageSectionTitle: {
+    ...Typography.labelLarge,
+    color: Colors.text,
+    marginBottom: Spacing.sm,
+  },
+  messageInput: {
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    padding: Spacing.md,
+    minHeight: 120,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    ...Typography.body,
+    color: Colors.text,
+  },
+  // Reviews modal
+  ratingSummary: {
+    flexDirection: 'row',
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    padding: Spacing.lg,
+    marginBottom: Spacing.lg,
+  },
+  ratingSummaryLeft: {
+    alignItems: 'center',
+    paddingRight: Spacing.lg,
+    borderRightWidth: 1,
+    borderRightColor: Colors.border,
+  },
+  ratingBig: {
+    ...Typography.h1,
+    color: Colors.text,
+    fontSize: 48,
+  },
+  ratingStarsBig: {
+    fontSize: 16,
+    marginBottom: Spacing.xs,
+  },
+  reviewCountBig: {
+    ...Typography.bodySmall,
+    color: Colors.textSecondary,
+  },
+  ratingSummaryRight: {
+    flex: 1,
+    paddingLeft: Spacing.lg,
+    justifyContent: 'center',
+  },
+  ratingBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
+  },
+  ratingBarLabel: {
+    ...Typography.labelSmall,
+    color: Colors.textSecondary,
+    width: 16,
+  },
+  ratingBarBg: {
+    flex: 1,
+    height: 6,
+    backgroundColor: Colors.border,
+    borderRadius: 3,
+    marginHorizontal: Spacing.sm,
+    overflow: 'hidden',
+  },
+  ratingBarFill: {
+    height: '100%',
+    backgroundColor: Colors.warning,
+    borderRadius: 3,
+  },
+  ratingBarPercent: {
+    ...Typography.labelSmall,
+    color: Colors.textTertiary,
+    width: 30,
+    textAlign: 'right',
+  },
 });
-
