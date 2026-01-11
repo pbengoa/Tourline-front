@@ -3,6 +3,15 @@ import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { CompositeScreenProps, NavigatorScreenParams } from '@react-navigation/native';
 
 /**
+ * Auth stack navigator param list
+ */
+export type AuthStackParamList = {
+  Login: undefined;
+  Register: undefined;
+  ForgotPassword: undefined;
+};
+
+/**
  * Root stack navigator param list
  */
 export type RootStackParamList = {
@@ -19,6 +28,12 @@ export type MainTabParamList = {
   Search: undefined;
   Profile: undefined;
 };
+
+/**
+ * Auth stack screen props
+ */
+export type AuthStackScreenProps<T extends keyof AuthStackParamList> =
+  NativeStackScreenProps<AuthStackParamList, T>;
 
 /**
  * Root stack screen props
@@ -43,4 +58,3 @@ declare global {
     interface RootParamList extends RootStackParamList {}
   }
 }
-

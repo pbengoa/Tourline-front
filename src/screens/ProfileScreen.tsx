@@ -6,8 +6,10 @@ import {
   SafeAreaView,
   TouchableOpacity,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { Colors, Spacing, Typography } from '../theme';
+import { useAuth } from '../context';
 import type { MainTabScreenProps } from '../types';
 
 type Props = MainTabScreenProps<'Profile'>;
@@ -22,15 +24,49 @@ const MENU_ITEMS = [
 ];
 
 export const ProfileScreen: React.FC<Props> = () => {
+  const { user, signOut } = useAuth();
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Cerrar Sesión',
+      '¿Estás seguro de que quieres cerrar sesión?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Cerrar Sesión',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await signOut();
+            } catch (error) {
+              Alert.alert('Error', 'No se pudo cerrar sesión');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map((part) => part[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>U</Text>
+            <Text style={styles.avatarText}>
+              {user?.name ? getInitials(user.name) : 'U'}
+            </Text>
           </View>
-          <Text style={styles.userName}>Usuario</Text>
-          <Text style={styles.userEmail}>usuario@example.com</Text>
+          <Text style={styles.userName}>{user?.name || 'Usuario'}</Text>
+          <Text style={styles.userEmail}>{user?.email || 'usuario@example.com'}</Text>
           <TouchableOpacity style={styles.editButton} activeOpacity={0.7}>
             <Text style={styles.editButtonText}>Editar Perfil</Text>
           </TouchableOpacity>
@@ -69,7 +105,11 @@ export const ProfileScreen: React.FC<Props> = () => {
           ))}
         </View>
 
-        <TouchableOpacity style={styles.logoutButton} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={styles.logoutButton}
+          activeOpacity={0.7}
+          onPress={handleLogout}
+        >
           <Text style={styles.logoutText}>Cerrar Sesión</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -186,4 +226,3 @@ const styles = StyleSheet.create({
     color: Colors.error,
   },
 });
-
