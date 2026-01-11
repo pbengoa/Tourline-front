@@ -57,24 +57,20 @@ export const ProfileScreen: React.FC<Props> = () => {
   };
 
   const handleLogout = () => {
-    Alert.alert(
-      'Cerrar Sesión',
-      '¿Estás seguro de que quieres cerrar sesión?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Cerrar Sesión',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await signOut();
-            } catch (error) {
-              Alert.alert('Error', 'No se pudo cerrar sesión');
-            }
-          },
+    Alert.alert('Cerrar Sesión', '¿Estás seguro de que quieres cerrar sesión?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Cerrar Sesión',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await signOut();
+          } catch (error) {
+            Alert.alert('Error', 'No se pudo cerrar sesión');
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const getInitials = (name: string) => {
@@ -91,9 +87,7 @@ export const ProfileScreen: React.FC<Props> = () => {
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {user?.name ? getInitials(user.name) : 'U'}
-            </Text>
+            <Text style={styles.avatarText}>{user?.name ? getInitials(user.name) : 'U'}</Text>
           </View>
           <Text style={styles.userName}>{user?.name || 'Usuario'}</Text>
           <Text style={styles.userEmail}>{user?.email || 'usuario@example.com'}</Text>
@@ -136,11 +130,7 @@ export const ProfileScreen: React.FC<Props> = () => {
           ))}
         </View>
 
-        <TouchableOpacity
-          style={styles.logoutButton}
-          activeOpacity={0.7}
-          onPress={handleLogout}
-        >
+        <TouchableOpacity style={styles.logoutButton} activeOpacity={0.7} onPress={handleLogout}>
           <Text style={styles.logoutText}>Cerrar Sesión</Text>
         </TouchableOpacity>
       </ScrollView>

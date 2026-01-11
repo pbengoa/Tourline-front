@@ -88,4 +88,3 @@ export const Typography: Record<string, TextStyle> = {
 } as const;
 
 export type TypographyKey = keyof typeof Typography;
-

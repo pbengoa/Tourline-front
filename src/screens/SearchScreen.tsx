@@ -203,10 +203,7 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
               {[4.5, 4.0, 3.5, 3.0].map((rating) => (
                 <TouchableOpacity
                   key={rating}
-                  style={[
-                    styles.ratingChip,
-                    minRating === rating && styles.ratingChipSelected,
-                  ]}
+                  style={[styles.ratingChip, minRating === rating && styles.ratingChipSelected]}
                   onPress={() => setMinRating(minRating === rating ? null : rating)}
                 >
                   <Text style={styles.starIcon}>⭐</Text>
@@ -229,10 +226,7 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
             {SORT_OPTIONS.map((option) => (
               <TouchableOpacity
                 key={option.value}
-                style={[
-                  styles.sortOption,
-                  sortBy === option.value && styles.sortOptionSelected,
-                ]}
+                style={[styles.sortOption, sortBy === option.value && styles.sortOptionSelected]}
                 onPress={() => setSortBy(option.value)}
               >
                 <Text
@@ -250,10 +244,7 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
         </ScrollView>
 
         <View style={styles.modalFooter}>
-          <TouchableOpacity
-            style={styles.applyButton}
-            onPress={() => setShowFilters(false)}
-          >
+          <TouchableOpacity style={styles.applyButton} onPress={() => setShowFilters(false)}>
             <Text style={styles.applyButtonText}>
               Aplicar filtros
               {activeFiltersCount > 0 && ` (${activeFiltersCount})`}
@@ -370,9 +361,7 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyIcon}>🔍</Text>
               <Text style={styles.emptyTitle}>No se encontraron tours</Text>
-              <Text style={styles.emptyText}>
-                Intenta con otros términos de búsqueda o filtros
-              </Text>
+              <Text style={styles.emptyText}>Intenta con otros términos de búsqueda o filtros</Text>
             </View>
           }
         />
@@ -387,9 +376,7 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyIcon}>🔍</Text>
               <Text style={styles.emptyTitle}>No se encontraron guías</Text>
-              <Text style={styles.emptyText}>
-                Intenta con otros términos de búsqueda o filtros
-              </Text>
+              <Text style={styles.emptyText}>Intenta con otros términos de búsqueda o filtros</Text>
             </View>
           }
         />

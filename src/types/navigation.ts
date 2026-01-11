@@ -60,23 +60,26 @@ export type MainTabParamList = {
 /**
  * Auth stack screen props
  */
-export type AuthStackScreenProps<T extends keyof AuthStackParamList> =
-  NativeStackScreenProps<AuthStackParamList, T>;
+export type AuthStackScreenProps<T extends keyof AuthStackParamList> = NativeStackScreenProps<
+  AuthStackParamList,
+  T
+>;
 
 /**
  * Root stack screen props
  */
-export type RootStackScreenProps<T extends keyof RootStackParamList> =
-  NativeStackScreenProps<RootStackParamList, T>;
+export type RootStackScreenProps<T extends keyof RootStackParamList> = NativeStackScreenProps<
+  RootStackParamList,
+  T
+>;
 
 /**
  * Main tab screen props
  */
-export type MainTabScreenProps<T extends keyof MainTabParamList> =
-  CompositeScreenProps<
-    BottomTabScreenProps<MainTabParamList, T>,
-    RootStackScreenProps<keyof RootStackParamList>
-  >;
+export type MainTabScreenProps<T extends keyof MainTabParamList> = CompositeScreenProps<
+  BottomTabScreenProps<MainTabParamList, T>,
+  RootStackScreenProps<keyof RootStackParamList>
+>;
 
 /**
  * Declare global navigation types for useNavigation hook

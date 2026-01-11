@@ -39,4 +39,3 @@ export const Colors = {
 } as const;
 
 export type ColorKey = keyof typeof Colors;
-

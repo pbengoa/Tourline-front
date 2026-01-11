@@ -23,7 +23,7 @@ export interface Message {
 
 export interface Conversation {
   id: string;
-  
+
   // Participant info (the other person - guide or user)
   participantId: string;
   participantName: string;
@@ -31,7 +31,7 @@ export interface Conversation {
   participantType: 'guide' | 'user';
   isVerified?: boolean;
   isOnline?: boolean;
-  
+
   // Last message preview
   lastMessage?: {
     content: string;
@@ -39,18 +39,18 @@ export interface Conversation {
     senderId: string;
     type: MessageType;
   };
-  
+
   // Unread count
   unreadCount: number;
-  
+
   // Related booking (if any)
   relatedBookingId?: string;
   relatedTourTitle?: string;
-  
+
   // Timestamps
   createdAt: string;
   updatedAt: string;
-  
+
   // Muted
   isMuted?: boolean;
 }
@@ -63,14 +63,16 @@ export interface ChatState {
   error: string | null;
 }
 
-export const MESSAGE_STATUS_CONFIG: Record<MessageStatus, {
-  icon: string;
-  label: string;
-}> = {
+export const MESSAGE_STATUS_CONFIG: Record<
+  MessageStatus,
+  {
+    icon: string;
+    label: string;
+  }
+> = {
   sending: { icon: '○', label: 'Enviando' },
   sent: { icon: '✓', label: 'Enviado' },
   delivered: { icon: '✓✓', label: 'Entregado' },
   read: { icon: '✓✓', label: 'Leído' },
   failed: { icon: '!', label: 'Error' },
 };
-

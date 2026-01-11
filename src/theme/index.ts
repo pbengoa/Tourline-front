@@ -6,4 +6,3 @@ export type { SpacingKey } from './spacing';
 
 export { Typography } from './typography';
 export type { TypographyKey } from './typography';
-

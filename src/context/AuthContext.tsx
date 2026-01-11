@@ -34,7 +34,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // TODO: Implement actual token/session check
         // Example: const storedUser = await AsyncStorage.getItem('@auth_user');
         // if (storedUser) setUser(JSON.parse(storedUser));
-        
+
         // Simulate loading delay
         await new Promise((resolve) => setTimeout(resolve, 1000));
       } catch (error) {
@@ -58,13 +58,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       // Simulated response
       await new Promise((resolve) => setTimeout(resolve, 1500));
-      
+
       const mockUser: User = {
         id: '1',
         email,
         name: email.split('@')[0],
       };
-      
+
       setUser(mockUser);
     } catch (error) {
       console.error('Sign in error:', error);
@@ -83,13 +83,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       // Simulated response
       await new Promise((resolve) => setTimeout(resolve, 1500));
-      
+
       const mockUser: User = {
         id: '1',
         email,
         name,
       };
-      
+
       setUser(mockUser);
     } catch (error) {
       console.error('Sign up error:', error);
@@ -145,11 +145,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
 export const useAuth = (): AuthContextData => {
   const context = useContext(AuthContext);
-  
+
   if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
-  
+
   return context;
 };
-

@@ -25,15 +25,15 @@ type Props = RootStackScreenProps<'Chat'>;
 
 export const ChatScreen: React.FC<Props> = ({ route, navigation }) => {
   const { conversationId, participantName, participantId } = route.params;
-  
+
   const conversation = MOCK_CONVERSATIONS.find((c) => c.id === conversationId);
   const initialMessages = getMessagesByConversationId(conversationId);
-  
+
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [showQuickReplies, setShowQuickReplies] = useState(true);
-  
+
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
@@ -67,20 +67,20 @@ export const ChatScreen: React.FC<Props> = ({ route, navigation }) => {
     } else if (diffDays === 1) {
       return 'Ayer';
     } else {
-      return date.toLocaleDateString('es-ES', { 
-        weekday: 'long', 
-        day: 'numeric', 
-        month: 'long' 
+      return date.toLocaleDateString('es-ES', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
       });
     }
   };
 
   const shouldShowDateDivider = (currentMsg: Message, prevMsg?: Message) => {
     if (!prevMsg) return true;
-    
+
     const currentDate = new Date(currentMsg.timestamp).toDateString();
     const prevDate = new Date(prevMsg.timestamp).toDateString();
-    
+
     return currentDate !== prevDate;
   };
 
@@ -116,18 +116,14 @@ export const ChatScreen: React.FC<Props> = ({ route, navigation }) => {
 
     // Update message status to 'sent'
     setMessages((prev) =>
-      prev.map((msg) =>
-        msg.id === newMessage.id ? { ...msg, status: 'sent' } : msg
-      )
+      prev.map((msg) => (msg.id === newMessage.id ? { ...msg, status: 'sent' } : msg))
     );
 
     // Simulate delivery after another delay
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
     setMessages((prev) =>
-      prev.map((msg) =>
-        msg.id === newMessage.id ? { ...msg, status: 'delivered' } : msg
-      )
+      prev.map((msg) => (msg.id === newMessage.id ? { ...msg, status: 'delivered' } : msg))
     );
 
     setIsSending(false);
@@ -135,14 +131,14 @@ export const ChatScreen: React.FC<Props> = ({ route, navigation }) => {
     // Simulate auto-reply for demo purposes (30% chance)
     if (Math.random() > 0.7) {
       await new Promise((resolve) => setTimeout(resolve, 2000));
-      
+
       const autoReplies = [
         '¡Perfecto! Lo tengo en cuenta.',
         '¡Gracias por el mensaje!',
         'De acuerdo, nos vemos pronto.',
         '👍',
       ];
-      
+
       const replyMessage: Message = {
         id: `msg-${Date.now()}`,
         conversationId,
@@ -155,7 +151,7 @@ export const ChatScreen: React.FC<Props> = ({ route, navigation }) => {
       };
 
       setMessages((prev) => [...prev, replyMessage]);
-      
+
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
@@ -184,7 +180,7 @@ export const ChatScreen: React.FC<Props> = ({ route, navigation }) => {
             <Text style={styles.dateDividerText}>{formatDateDivider(message.timestamp)}</Text>
           </View>
         )}
-        
+
         <View
           style={[
             styles.messageContainer,
@@ -196,7 +192,7 @@ export const ChatScreen: React.FC<Props> = ({ route, navigation }) => {
               <Text style={styles.messageAvatarText}>{getInitials(message.senderName)}</Text>
             </View>
           )}
-          
+
           <View
             style={[
               styles.messageBubble,
@@ -211,7 +207,7 @@ export const ChatScreen: React.FC<Props> = ({ route, navigation }) => {
             >
               {message.content}
             </Text>
-            
+
             <View style={styles.messageFooter}>
               <Text
                 style={[
@@ -221,7 +217,7 @@ export const ChatScreen: React.FC<Props> = ({ route, navigation }) => {
               >
                 {formatMessageTime(message.timestamp)}
               </Text>
-              
+
               {isOwnMessage && (
                 <Text
                   style={[
@@ -247,13 +243,13 @@ export const ChatScreen: React.FC<Props> = ({ route, navigation }) => {
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Text style={styles.backIcon}>‹</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity style={styles.headerContent} onPress={handleViewProfile}>
           <View style={styles.headerAvatar}>
             <Text style={styles.headerAvatarText}>{getInitials(participantName)}</Text>
             {conversation?.isOnline && <View style={styles.headerOnlineBadge} />}
           </View>
-          
+
           <View style={styles.headerInfo}>
             <View style={styles.headerNameRow}>
               <Text style={styles.headerName}>{participantName}</Text>
@@ -268,7 +264,7 @@ export const ChatScreen: React.FC<Props> = ({ route, navigation }) => {
             </Text>
           </View>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={styles.menuButton}
           onPress={() => Alert.alert('Opciones', 'Próximamente: más opciones de chat')}
@@ -340,7 +336,7 @@ export const ChatScreen: React.FC<Props> = ({ route, navigation }) => {
               onFocus={() => setShowQuickReplies(false)}
             />
           </View>
-          
+
           <TouchableOpacity
             style={[
               styles.sendButton,
@@ -633,4 +629,3 @@ const styles = StyleSheet.create({
     marginLeft: 2,
   },
 });
-

@@ -89,6 +89,49 @@ src/
 | `npm run format` | Formatea el código con Prettier |
 | `npm run format:check` | Verifica el formato del código |
 | `npm run typecheck` | Verifica los tipos de TypeScript |
+| `npm test` | Ejecuta los tests con Jest |
+| `npm run test:watch` | Ejecuta tests en modo watch |
+| `npm run test:coverage` | Ejecuta tests con reporte de cobertura |
+
+## 🧪 Testing
+
+El proyecto incluye una configuración completa de testing con:
+
+- **Jest** - Framework de testing
+- **React Native Testing Library** - Utilidades para testing de componentes
+- **jest-expo** - Preset de Jest para Expo
+
+### Estructura de Tests
+
+```
+src/__tests__/
+├── __mocks__/           # Mocks globales
+├── components/          # Tests de componentes
+│   ├── Button.test.tsx
+│   ├── GuideCard.test.tsx
+│   ├── TourCard.test.tsx
+│   └── CategoryPill.test.tsx
+├── screens/             # Tests de pantallas
+│   ├── HomeScreen.test.tsx
+│   ├── LoginScreen.test.tsx
+│   └── ProfileScreen.test.tsx
+├── context/             # Tests de contextos
+│   └── AuthContext.test.tsx
+└── utils/               # Tests de utilidades y datos
+    ├── test-utils.tsx   # Utilidades de testing
+    ├── mockData.test.ts
+    └── bookingData.test.ts
+```
+
+### ⚠️ Nota sobre Expo 54
+
+Actualmente existe una incompatibilidad conocida entre Jest y el nuevo "winter runtime" de Expo 54. La configuración de tests está lista pero requiere una actualización del preset `jest-expo` para funcionar correctamente. Esta issue está siendo rastreada por la comunidad de Expo.
+
+Para verificar la integridad del código mientras se resuelve este problema:
+```bash
+npm run typecheck  # Verificación de tipos TypeScript
+npm run lint       # Verificación de estilo de código
+```
 
 ## 🎨 Sistema de Diseño
 

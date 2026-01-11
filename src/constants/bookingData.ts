@@ -4,7 +4,7 @@ import type { Booking, BookingDay, TimeSlot } from '../types/booking';
 export const generateTimeSlots = (available: boolean = true): TimeSlot[] => {
   const slots: TimeSlot[] = [];
   const startHours = [9, 10, 11, 14, 15, 16, 17, 18];
-  
+
   startHours.forEach((hour, index) => {
     slots.push({
       id: `slot-${index}`,
@@ -13,7 +13,7 @@ export const generateTimeSlots = (available: boolean = true): TimeSlot[] => {
       available: available && Math.random() > 0.3, // 70% availability
     });
   });
-  
+
   return slots;
 };
 
@@ -21,22 +21,22 @@ export const generateTimeSlots = (available: boolean = true): TimeSlot[] => {
 export const generateAvailableDays = (): BookingDay[] => {
   const days: BookingDay[] = [];
   const today = new Date();
-  
+
   for (let i = 1; i <= 30; i++) {
     const date = new Date(today);
     date.setDate(today.getDate() + i);
-    
+
     const dayOfWeek = date.getDay();
     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
     const available = Math.random() > 0.2; // 80% days available
-    
+
     days.push({
       date: date.toISOString().split('T')[0],
       available,
       slots: generateTimeSlots(available),
     });
   }
-  
+
   return days;
 };
 
@@ -60,8 +60,10 @@ export const MOCK_BOOKINGS: Booking[] = [
     status: 'confirmed',
     createdAt: '2026-01-08T10:30:00Z',
     confirmedAt: '2026-01-08T14:00:00Z',
-    userMessage: 'Estamos muy emocionados por el tour. ¿Hay algún lugar para tomar café cerca del punto de encuentro?',
-    guideResponse: '¡Hola! Sí, hay varios cafés cerca. Nos vemos en la Plaza Mayor, junto a la estatua.',
+    userMessage:
+      'Estamos muy emocionados por el tour. ¿Hay algún lugar para tomar café cerca del punto de encuentro?',
+    guideResponse:
+      '¡Hola! Sí, hay varios cafés cerca. Nos vemos en la Plaza Mayor, junto a la estatua.',
   },
   {
     id: 'booking-2',
@@ -122,4 +124,3 @@ export const MOCK_BOOKINGS: Booking[] = [
 ];
 
 export const AVAILABLE_DAYS = generateAvailableDays();
-

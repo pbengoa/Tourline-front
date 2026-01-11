@@ -13,4 +13,3 @@ export const Spacing = {
 } as const;
 
 export type SpacingKey = keyof typeof Spacing;
-

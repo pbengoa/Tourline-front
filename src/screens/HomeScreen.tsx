@@ -70,9 +70,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             activeOpacity={0.7}
           >
             <Text style={styles.searchIcon}>🔍</Text>
-            <Text style={styles.searchPlaceholder}>
-              Buscar tours, guías o ciudades...
-            </Text>
+            <Text style={styles.searchPlaceholder}>Buscar tours, guías o ciudades...</Text>
           </TouchableOpacity>
         </View>
 
@@ -107,10 +105,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             horizontal
             data={featuredTours}
             renderItem={({ item }) => (
-              <TourCard
-                tour={item}
-                onPress={() => handleTourPress(item.id, item.title)}
-              />
+              <TourCard tour={item} onPress={() => handleTourPress(item.id, item.title)} />
             )}
             keyExtractor={(item) => item.id}
             showsHorizontalScrollIndicator={false}
@@ -134,11 +129,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           >
             {featuredGuides.map((guide) => (
               <View key={guide.id} style={styles.compactGuideWrapper}>
-                <GuideCard
-                  guide={guide}
-                  compact
-                  onPress={() => handleGuidePress(guide.id)}
-                />
+                <GuideCard guide={guide} compact onPress={() => handleGuidePress(guide.id)} />
               </View>
             ))}
           </ScrollView>
@@ -176,10 +167,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.verticalList}>
             {MOCK_GUIDES.slice(0, 2).map((guide) => (
               <View key={guide.id} style={styles.verticalItem}>
-                <GuideCard
-                  guide={guide}
-                  onPress={() => handleGuidePress(guide.id)}
-                />
+                <GuideCard guide={guide} onPress={() => handleGuidePress(guide.id)} />
               </View>
             ))}
           </View>

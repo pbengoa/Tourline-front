@@ -56,4 +56,3 @@ export interface SearchFilters {
   languages?: string[];
   sortBy?: SortOption;
 }
-

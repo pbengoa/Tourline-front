@@ -1,12 +1,5 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  ScrollView,
-  TouchableOpacity,
-} from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity } from 'react-native';
 import { Colors, Spacing, Typography } from '../theme';
 import type { RootStackScreenProps } from '../types';
 
@@ -44,23 +37,26 @@ export const DetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Descripción</Text>
             <Text style={styles.description}>
-              Descubre los lugares más emblemáticos de la ciudad en este tour
-              guiado. Visitarás monumentos históricos, plazas pintorescas y
-              conocerás la cultura local de la mano de nuestros guías expertos.
+              Descubre los lugares más emblemáticos de la ciudad en este tour guiado. Visitarás
+              monumentos históricos, plazas pintorescas y conocerás la cultura local de la mano de
+              nuestros guías expertos.
             </Text>
           </View>
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Incluye</Text>
             <View style={styles.includesList}>
-              {['Guía profesional', 'Entrada a monumentos', 'Seguro de viaje', 'Mapa de la ciudad'].map(
-                (item, index) => (
-                  <View key={index} style={styles.includeItem}>
-                    <Text style={styles.includeIcon}>✓</Text>
-                    <Text style={styles.includeText}>{item}</Text>
-                  </View>
-                )
-              )}
+              {[
+                'Guía profesional',
+                'Entrada a monumentos',
+                'Seguro de viaje',
+                'Mapa de la ciudad',
+              ].map((item, index) => (
+                <View key={index} style={styles.includeItem}>
+                  <Text style={styles.includeIcon}>✓</Text>
+                  <Text style={styles.includeText}>{item}</Text>
+                </View>
+              ))}
             </View>
           </View>
         </View>
@@ -180,4 +176,3 @@ const styles = StyleSheet.create({
     textTransform: 'none',
   },
 });
-

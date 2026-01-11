@@ -72,7 +72,10 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     if (!validateForm()) return;
 
     if (!acceptTerms) {
-      Alert.alert('Términos y Condiciones', 'Debes aceptar los términos y condiciones para continuar');
+      Alert.alert(
+        'Términos y Condiciones',
+        'Debes aceptar los términos y condiciones para continuar'
+      );
       return;
     }
 
@@ -109,10 +112,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
         >
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-            >
+            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
               <Text style={styles.backIcon}>←</Text>
             </TouchableOpacity>
             <Text style={styles.title}>Crear Cuenta</Text>
@@ -215,7 +215,9 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
                   <Text style={styles.showPasswordIcon}>{showConfirmPassword ? '👁️' : '👁️‍🗨️'}</Text>
                 </TouchableOpacity>
               </View>
-              {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
+              {errors.confirmPassword && (
+                <Text style={styles.errorText}>{errors.confirmPassword}</Text>
+              )}
             </View>
 
             {/* Terms and Conditions */}
@@ -228,9 +230,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
                 {acceptTerms && <Text style={styles.checkmark}>✓</Text>}
               </View>
               <Text style={styles.termsText}>
-                Acepto los{' '}
-                <Text style={styles.termsLink}>Términos y Condiciones</Text>
-                {' '}y la{' '}
+                Acepto los <Text style={styles.termsLink}>Términos y Condiciones</Text> y la{' '}
                 <Text style={styles.termsLink}>Política de Privacidad</Text>
               </Text>
             </TouchableOpacity>
@@ -393,4 +393,3 @@ const styles = StyleSheet.create({
     color: Colors.primary,
   },
 });
-

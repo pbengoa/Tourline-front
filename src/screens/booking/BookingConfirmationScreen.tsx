@@ -16,20 +16,28 @@ import type { RootStackScreenProps } from '../../types';
 type Props = RootStackScreenProps<'BookingConfirmation'>;
 
 const MONTHS_ES = [
-  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
+  'enero',
+  'febrero',
+  'marzo',
+  'abril',
+  'mayo',
+  'junio',
+  'julio',
+  'agosto',
+  'septiembre',
+  'octubre',
+  'noviembre',
+  'diciembre',
 ];
 
-const DAYS_ES = [
-  'domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'
-];
+const DAYS_ES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 
 export const BookingConfirmationScreen: React.FC<Props> = ({ route, navigation }) => {
   const { guideId, tourId, date, timeSlot, participants, message, totalPrice } = route.params;
-  
+
   const guide = MOCK_GUIDES.find((g) => g.id === guideId);
   const tour = tourId ? MOCK_TOURS.find((t) => t.id === tourId) : null;
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'paypal'>('card');
 
@@ -54,11 +62,11 @@ export const BookingConfirmationScreen: React.FC<Props> = ({ route, navigation }
 
   const handleConfirmBooking = async () => {
     setIsSubmitting(true);
-    
+
     try {
       // TODO: Implement actual booking API call
       await new Promise((resolve) => setTimeout(resolve, 2000));
-      
+
       // Navigate to success screen
       navigation.reset({
         index: 0,
@@ -99,7 +107,7 @@ export const BookingConfirmationScreen: React.FC<Props> = ({ route, navigation }
         {/* Booking Summary */}
         <View style={styles.summaryCard}>
           <Text style={styles.summaryTitle}>Resumen de tu reserva</Text>
-          
+
           {/* Guide/Tour info */}
           <View style={styles.summaryRow}>
             <View style={styles.guidePreview}>
@@ -183,7 +191,7 @@ export const BookingConfirmationScreen: React.FC<Props> = ({ route, navigation }
         {/* Payment Method */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Método de pago</Text>
-          
+
           <TouchableOpacity
             style={[styles.paymentOption, paymentMethod === 'card' && styles.paymentOptionSelected]}
             onPress={() => setPaymentMethod('card')}
@@ -195,13 +203,18 @@ export const BookingConfirmationScreen: React.FC<Props> = ({ route, navigation }
                 <Text style={styles.paymentSubtitle}>Visa, Mastercard, Amex</Text>
               </View>
             </View>
-            <View style={[styles.radioButton, paymentMethod === 'card' && styles.radioButtonSelected]}>
+            <View
+              style={[styles.radioButton, paymentMethod === 'card' && styles.radioButtonSelected]}
+            >
               {paymentMethod === 'card' && <View style={styles.radioButtonInner} />}
             </View>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.paymentOption, paymentMethod === 'paypal' && styles.paymentOptionSelected]}
+            style={[
+              styles.paymentOption,
+              paymentMethod === 'paypal' && styles.paymentOptionSelected,
+            ]}
             onPress={() => setPaymentMethod('paypal')}
           >
             <View style={styles.paymentOptionLeft}>
@@ -211,7 +224,9 @@ export const BookingConfirmationScreen: React.FC<Props> = ({ route, navigation }
                 <Text style={styles.paymentSubtitle}>Pago rápido y seguro</Text>
               </View>
             </View>
-            <View style={[styles.radioButton, paymentMethod === 'paypal' && styles.radioButtonSelected]}>
+            <View
+              style={[styles.radioButton, paymentMethod === 'paypal' && styles.radioButtonSelected]}
+            >
               {paymentMethod === 'paypal' && <View style={styles.radioButtonInner} />}
             </View>
           </TouchableOpacity>
@@ -246,8 +261,8 @@ export const BookingConfirmationScreen: React.FC<Props> = ({ route, navigation }
             <View style={styles.policyContent}>
               <Text style={styles.policyTitle}>Política de cancelación</Text>
               <Text style={styles.policyText}>
-                Cancelación gratuita hasta 24 horas antes del tour. 
-                Después de este plazo, se retendrá el 50% del importe.
+                Cancelación gratuita hasta 24 horas antes del tour. Después de este plazo, se
+                retendrá el 50% del importe.
               </Text>
             </View>
           </View>
@@ -257,8 +272,7 @@ export const BookingConfirmationScreen: React.FC<Props> = ({ route, navigation }
         <View style={styles.termsSection}>
           <Text style={styles.termsText}>
             Al confirmar esta reserva, aceptas los{' '}
-            <Text style={styles.termsLink}>Términos de Servicio</Text>
-            {' '}y la{' '}
+            <Text style={styles.termsLink}>Términos de Servicio</Text> y la{' '}
             <Text style={styles.termsLink}>Política de Privacidad</Text>
           </Text>
         </View>
@@ -537,4 +551,3 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
 });
-

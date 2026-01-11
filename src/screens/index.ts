@@ -18,4 +18,3 @@ export {
 
 // Chat screens
 export { ChatListScreen, ChatScreen } from './chat';
-

@@ -66,10 +66,7 @@ export const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.content}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
 
@@ -119,17 +116,14 @@ export const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.content}>
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-            >
+            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
               <Text style={styles.backIcon}>←</Text>
             </TouchableOpacity>
-            
+
             <View style={styles.iconContainer}>
               <Text style={styles.headerIcon}>🔐</Text>
             </View>
-            
+
             <Text style={styles.title}>¿Olvidaste tu contraseña?</Text>
             <Text style={styles.subtitle}>
               No te preocupes, ingresa tu correo y te enviaremos instrucciones para restablecerla.
@@ -348,4 +342,3 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
 });
-

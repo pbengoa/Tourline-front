@@ -98,7 +98,8 @@ export const MOCK_TOURS: Tour[] = [
   {
     id: '1',
     title: 'Madrid de los Austrias',
-    description: 'Descubre el corazón histórico de Madrid, desde la Plaza Mayor hasta el Palacio Real.',
+    description:
+      'Descubre el corazón histórico de Madrid, desde la Plaza Mayor hasta el Palacio Real.',
     image: undefined,
     guideId: '1',
     guideName: 'María García',
@@ -239,4 +240,3 @@ export const LOCATIONS = [
   'San Sebastián',
   'Málaga',
 ];
-

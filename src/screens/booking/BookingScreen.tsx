@@ -18,18 +18,28 @@ import type { RootStackScreenProps, TimeSlot } from '../../types';
 type Props = RootStackScreenProps<'Booking'>;
 
 const MONTHS_ES = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  'Enero',
+  'Febrero',
+  'Marzo',
+  'Abril',
+  'Mayo',
+  'Junio',
+  'Julio',
+  'Agosto',
+  'Septiembre',
+  'Octubre',
+  'Noviembre',
+  'Diciembre',
 ];
 
 const DAYS_ES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
 export const BookingScreen: React.FC<Props> = ({ route, navigation }) => {
   const { guideId, tourId } = route.params;
-  
+
   const guide = MOCK_GUIDES.find((g) => g.id === guideId);
   const tour = tourId ? MOCK_TOURS.find((t) => t.id === tourId) : null;
-  
+
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [participants, setParticipants] = useState(1);
@@ -60,7 +70,7 @@ export const BookingScreen: React.FC<Props> = ({ route, navigation }) => {
     const lastDay = new Date(year, month + 1, 0);
     const daysInMonth = lastDay.getDate();
     const startingDay = firstDay.getDay();
-    
+
     return { daysInMonth, startingDay };
   };
 
@@ -124,12 +134,12 @@ export const BookingScreen: React.FC<Props> = ({ route, navigation }) => {
   const renderCalendar = () => {
     const { daysInMonth, startingDay } = getDaysInMonth(currentMonth);
     const days: (number | null)[] = [];
-    
+
     // Add empty cells for days before the first day of month
     for (let i = 0; i < startingDay; i++) {
       days.push(null);
     }
-    
+
     // Add days of month
     for (let i = 1; i <= daysInMonth; i++) {
       days.push(i);
@@ -156,7 +166,9 @@ export const BookingScreen: React.FC<Props> = ({ route, navigation }) => {
         {/* Day headers */}
         <View style={styles.dayHeaders}>
           {DAYS_ES.map((day) => (
-            <Text key={day} style={styles.dayHeader}>{day}</Text>
+            <Text key={day} style={styles.dayHeader}>
+              {day}
+            </Text>
           ))}
         </View>
 
@@ -245,7 +257,7 @@ export const BookingScreen: React.FC<Props> = ({ route, navigation }) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Selecciona una fecha</Text>
           {renderCalendar()}
-          
+
           <View style={styles.legendRow}>
             <View style={styles.legendItem}>
               <View style={[styles.legendDot, { backgroundColor: Colors.primary }]} />
@@ -296,9 +308,7 @@ export const BookingScreen: React.FC<Props> = ({ route, navigation }) => {
               </View>
             ) : (
               <View style={styles.noSlots}>
-                <Text style={styles.noSlotsText}>
-                  No hay horarios disponibles para esta fecha
-                </Text>
+                <Text style={styles.noSlotsText}>No hay horarios disponibles para esta fecha</Text>
               </View>
             )}
           </View>
@@ -309,7 +319,10 @@ export const BookingScreen: React.FC<Props> = ({ route, navigation }) => {
           <Text style={styles.sectionTitle}>Número de participantes</Text>
           <View style={styles.participantsRow}>
             <TouchableOpacity
-              style={[styles.participantButton, participants <= 1 && styles.participantButtonDisabled]}
+              style={[
+                styles.participantButton,
+                participants <= 1 && styles.participantButtonDisabled,
+              ]}
               onPress={() => handleParticipantsChange(-1)}
               disabled={participants <= 1}
             >
@@ -333,9 +346,7 @@ export const BookingScreen: React.FC<Props> = ({ route, navigation }) => {
             </TouchableOpacity>
           </View>
           {tour && (
-            <Text style={styles.maxParticipants}>
-              Máximo {tour.maxParticipants} participantes
-            </Text>
+            <Text style={styles.maxParticipants}>Máximo {tour.maxParticipants} participantes</Text>
           )}
         </View>
 
@@ -667,4 +678,3 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
 });
-

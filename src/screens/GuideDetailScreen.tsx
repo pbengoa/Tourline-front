@@ -78,14 +78,8 @@ export const GuideDetailScreen: React.FC<Props> = ({ route, navigation }) => {
         <View style={styles.errorContainer}>
           <Text style={styles.errorIcon}>😕</Text>
           <Text style={styles.errorTitle}>Guía no encontrado</Text>
-          <Text style={styles.errorText}>
-            El perfil que buscas no está disponible
-          </Text>
-          <Button
-            title="Volver"
-            onPress={() => navigation.goBack()}
-            style={styles.errorButton}
-          />
+          <Text style={styles.errorText}>El perfil que buscas no está disponible</Text>
+          <Button title="Volver" onPress={() => navigation.goBack()} style={styles.errorButton} />
         </View>
       </SafeAreaView>
     );
@@ -104,7 +98,7 @@ export const GuideDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     const date = new Date(dateString);
     const now = new Date();
     const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays === 0) return 'Hoy';
     if (diffDays === 1) return 'Ayer';
     if (diffDays < 7) return `Hace ${diffDays} días`;
@@ -156,7 +150,7 @@ export const GuideDetailScreen: React.FC<Props> = ({ route, navigation }) => {
       await new Promise((resolve) => setTimeout(resolve, 1500));
       setShowContactModal(false);
       setContactMessage('');
-      
+
       // Navigate to chat with a new/existing conversation
       navigation.navigate('Chat', {
         conversationId: `conv-new-${guide.id}`,
@@ -172,10 +166,15 @@ export const GuideDetailScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handleOpenChat = () => {
     // Check if there's an existing conversation (mock check)
-    const existingConvId = guide.id === '1' ? 'conv-1' : 
-                          guide.id === '2' ? 'conv-3' : 
-                          guide.id === '4' ? 'conv-2' : null;
-    
+    const existingConvId =
+      guide.id === '1'
+        ? 'conv-1'
+        : guide.id === '2'
+          ? 'conv-3'
+          : guide.id === '4'
+            ? 'conv-2'
+            : null;
+
     if (existingConvId) {
       // Navigate to existing conversation
       navigation.navigate('Chat', {
@@ -200,11 +199,7 @@ export const GuideDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const ratingBreakdown = getRatingBreakdown();
 
   const renderContactModal = () => (
-    <Modal
-      visible={showContactModal}
-      animationType="slide"
-      presentationStyle="pageSheet"
-    >
+    <Modal visible={showContactModal} animationType="slide" presentationStyle="pageSheet">
       <SafeAreaView style={styles.modalContainer}>
         <View style={styles.modalHeader}>
           <TouchableOpacity onPress={() => setShowContactModal(false)}>
@@ -472,10 +467,7 @@ export const GuideDetailScreen: React.FC<Props> = ({ route, navigation }) => {
               horizontal
               data={guideTours}
               renderItem={({ item }) => (
-                <TourCard
-                  tour={item}
-                  onPress={() => handleTourPress(item.id, item.title)}
-                />
+                <TourCard tour={item} onPress={() => handleTourPress(item.id, item.title)} />
               )}
               keyExtractor={(item) => item.id}
               showsHorizontalScrollIndicator={false}
@@ -492,9 +484,7 @@ export const GuideDetailScreen: React.FC<Props> = ({ route, navigation }) => {
               <Text style={styles.sectionTitle}>Reseñas</Text>
               <View style={styles.reviewSummary}>
                 <Text style={styles.reviewSummaryRating}>⭐ {guide.rating}</Text>
-                <Text style={styles.reviewSummaryCount}>
-                  ({guide.reviewCount} reseñas)
-                </Text>
+                <Text style={styles.reviewSummaryCount}>({guide.reviewCount} reseñas)</Text>
               </View>
             </View>
             <TouchableOpacity onPress={() => setShowAllReviews(true)}>
@@ -540,10 +530,7 @@ export const GuideDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           <Text style={styles.priceLabel}>por hora</Text>
         </View>
         <View style={styles.ctaButtons}>
-          <TouchableOpacity
-            style={styles.contactButton}
-            onPress={handleOpenChat}
-          >
+          <TouchableOpacity style={styles.contactButton} onPress={handleOpenChat}>
             <Text style={styles.contactButtonText}>💬</Text>
           </TouchableOpacity>
           <TouchableOpacity

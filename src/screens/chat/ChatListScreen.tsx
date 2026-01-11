@@ -19,9 +19,10 @@ export const ChatListScreen: React.FC<Props> = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
-  const filteredConversations = MOCK_CONVERSATIONS.filter((conv) =>
-    conv.participantName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    conv.relatedTourTitle?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredConversations = MOCK_CONVERSATIONS.filter(
+    (conv) =>
+      conv.participantName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      conv.relatedTourTitle?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const getInitials = (name: string) => {
@@ -91,7 +92,10 @@ export const ChatListScreen: React.FC<Props> = ({ navigation }) => {
         {/* Content */}
         <View style={styles.conversationContent}>
           <View style={styles.conversationHeader}>
-            <Text style={[styles.participantName, hasUnread && styles.unreadText]} numberOfLines={1}>
+            <Text
+              style={[styles.participantName, hasUnread && styles.unreadText]}
+              numberOfLines={1}
+            >
               {conversation.participantName}
             </Text>
             <Text style={[styles.timestamp, hasUnread && styles.unreadTimestamp]}>
@@ -106,10 +110,7 @@ export const ChatListScreen: React.FC<Props> = ({ navigation }) => {
           )}
 
           <View style={styles.messageRow}>
-            <Text
-              style={[styles.lastMessage, hasUnread && styles.unreadText]}
-              numberOfLines={1}
-            >
+            <Text style={[styles.lastMessage, hasUnread && styles.unreadText]} numberOfLines={1}>
               {conversation.lastMessage?.content || 'Inicia una conversación'}
             </Text>
             {hasUnread && (
@@ -382,4 +383,3 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
-

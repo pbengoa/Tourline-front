@@ -1,11 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  Animated,
-} from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, Animated } from 'react-native';
 import { Colors, Spacing, Typography } from '../../theme';
 import { Button } from '../../components';
 import type { RootStackScreenProps } from '../../types';
@@ -13,13 +7,23 @@ import type { RootStackScreenProps } from '../../types';
 type Props = RootStackScreenProps<'BookingSuccess'>;
 
 const MONTHS_ES = [
-  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
+  'enero',
+  'febrero',
+  'marzo',
+  'abril',
+  'mayo',
+  'junio',
+  'julio',
+  'agosto',
+  'septiembre',
+  'octubre',
+  'noviembre',
+  'diciembre',
 ];
 
 export const BookingSuccessScreen: React.FC<Props> = ({ route, navigation }) => {
   const { bookingId, guideName, tourTitle, date, startTime } = route.params;
-  
+
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -50,10 +54,7 @@ export const BookingSuccessScreen: React.FC<Props> = ({ route, navigation }) => 
   const handleViewBookings = () => {
     navigation.reset({
       index: 1,
-      routes: [
-        { name: 'Main' },
-        { name: 'MyBookings' },
-      ],
+      routes: [{ name: 'Main' }, { name: 'MyBookings' }],
     });
   };
 
@@ -68,12 +69,7 @@ export const BookingSuccessScreen: React.FC<Props> = ({ route, navigation }) => 
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         {/* Success Animation */}
-        <Animated.View
-          style={[
-            styles.successCircle,
-            { transform: [{ scale: scaleAnim }] },
-          ]}
-        >
+        <Animated.View style={[styles.successCircle, { transform: [{ scale: scaleAnim }] }]}>
           <Text style={styles.successIcon}>✓</Text>
         </Animated.View>
 
@@ -132,8 +128,7 @@ export const BookingSuccessScreen: React.FC<Props> = ({ route, navigation }) => 
           <View style={styles.infoCard}>
             <Text style={styles.infoIcon}>⏳</Text>
             <Text style={styles.infoText}>
-              El guía tiene 24 horas para confirmar tu reserva. 
-              Te notificaremos cuando responda.
+              El guía tiene 24 horas para confirmar tu reserva. Te notificaremos cuando responda.
             </Text>
           </View>
 
@@ -144,25 +139,19 @@ export const BookingSuccessScreen: React.FC<Props> = ({ route, navigation }) => 
               <View style={styles.stepNumber}>
                 <Text style={styles.stepNumberText}>1</Text>
               </View>
-              <Text style={styles.stepText}>
-                Espera la confirmación del guía
-              </Text>
+              <Text style={styles.stepText}>Espera la confirmación del guía</Text>
             </View>
             <View style={styles.step}>
               <View style={styles.stepNumber}>
                 <Text style={styles.stepNumberText}>2</Text>
               </View>
-              <Text style={styles.stepText}>
-                Recibirás los detalles del punto de encuentro
-              </Text>
+              <Text style={styles.stepText}>Recibirás los detalles del punto de encuentro</Text>
             </View>
             <View style={styles.step}>
               <View style={styles.stepNumber}>
                 <Text style={styles.stepNumberText}>3</Text>
               </View>
-              <Text style={styles.stepText}>
-                ¡Disfruta tu experiencia!
-              </Text>
+              <Text style={styles.stepText}>¡Disfruta tu experiencia!</Text>
             </View>
           </View>
         </Animated.View>
@@ -176,12 +165,7 @@ export const BookingSuccessScreen: React.FC<Props> = ({ route, navigation }) => 
           fullWidth
           style={styles.primaryButton}
         />
-        <Button
-          title="Volver al inicio"
-          onPress={handleBackToHome}
-          variant="outline"
-          fullWidth
-        />
+        <Button title="Volver al inicio" onPress={handleBackToHome} variant="outline" fullWidth />
       </View>
     </SafeAreaView>
   );
@@ -314,4 +298,3 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
 });
-

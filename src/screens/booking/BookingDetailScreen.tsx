@@ -17,18 +17,26 @@ import type { RootStackScreenProps } from '../../types';
 type Props = RootStackScreenProps<'BookingDetail'>;
 
 const MONTHS_ES = [
-  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
+  'enero',
+  'febrero',
+  'marzo',
+  'abril',
+  'mayo',
+  'junio',
+  'julio',
+  'agosto',
+  'septiembre',
+  'octubre',
+  'noviembre',
+  'diciembre',
 ];
 
-const DAYS_ES = [
-  'domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'
-];
+const DAYS_ES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 
 export const BookingDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const { bookingId } = route.params;
   const booking = MOCK_BOOKINGS.find((b) => b.id === bookingId);
-  
+
   const [isCancelling, setIsCancelling] = useState(false);
 
   if (!booking) {
@@ -115,14 +123,10 @@ export const BookingDetailScreen: React.FC<Props> = ({ route, navigation }) => {
               {statusConfig.label}
             </Text>
             {booking.status === 'pending' && (
-              <Text style={styles.statusDescription}>
-                Esperando confirmación del guía
-              </Text>
+              <Text style={styles.statusDescription}>Esperando confirmación del guía</Text>
             )}
             {booking.status === 'confirmed' && (
-              <Text style={styles.statusDescription}>
-                ¡Tu reserva está confirmada!
-              </Text>
+              <Text style={styles.statusDescription}>¡Tu reserva está confirmada!</Text>
             )}
           </View>
         </View>
@@ -196,17 +200,19 @@ export const BookingDetailScreen: React.FC<Props> = ({ route, navigation }) => {
         {(booking.userMessage || booking.guideResponse) && (
           <View style={styles.messagesCard}>
             <Text style={styles.messagesTitle}>Mensajes</Text>
-            
+
             {booking.userMessage && (
               <View style={styles.messageItem}>
                 <Text style={styles.messageAuthor}>Tu mensaje:</Text>
                 <Text style={styles.messageText}>"{booking.userMessage}"</Text>
               </View>
             )}
-            
+
             {booking.guideResponse && (
               <View style={[styles.messageItem, styles.guideMessage]}>
-                <Text style={styles.messageAuthor}>Respuesta de {booking.guideName.split(' ')[0]}:</Text>
+                <Text style={styles.messageAuthor}>
+                  Respuesta de {booking.guideName.split(' ')[0]}:
+                </Text>
                 <Text style={styles.messageText}>"{booking.guideResponse}"</Text>
               </View>
             )}
@@ -266,7 +272,9 @@ export const BookingDetailScreen: React.FC<Props> = ({ route, navigation }) => {
             <Text style={styles.reviewTitle}>¿Cómo fue tu experiencia?</Text>
             <Button
               title="Dejar una reseña"
-              onPress={() => Alert.alert('Próximamente', 'La función de reseñas estará disponible pronto')}
+              onPress={() =>
+                Alert.alert('Próximamente', 'La función de reseñas estará disponible pronto')
+              }
               fullWidth
             />
           </View>
@@ -507,4 +515,3 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
-

@@ -14,7 +14,8 @@ export const MOCK_CONVERSATIONS: Conversation[] = [
     isVerified: true,
     isOnline: true,
     lastMessage: {
-      content: '¡Perfecto! Nos vemos en la Plaza Mayor a las 10:00. Llevaré un paraguas rojo para que me identifiques.',
+      content:
+        '¡Perfecto! Nos vemos en la Plaza Mayor a las 10:00. Llevaré un paraguas rojo para que me identifiques.',
       timestamp: '2026-01-11T09:30:00Z',
       senderId: '1',
       type: 'text',
@@ -52,7 +53,8 @@ export const MOCK_CONVERSATIONS: Conversation[] = [
     isVerified: true,
     isOnline: false,
     lastMessage: {
-      content: '¡Gracias por venir! Espero que disfrutaran del tour de tapas. ¿Les gustaría dejar una reseña?',
+      content:
+        '¡Gracias por venir! Espero que disfrutaran del tour de tapas. ¿Les gustaría dejar una reseña?',
       timestamp: '2025-12-29T00:15:00Z',
       senderId: '2',
       type: 'text',
@@ -72,7 +74,8 @@ export const MOCK_MESSAGES_CONV_1: Message[] = [
     conversationId: 'conv-1',
     senderId: CURRENT_USER_ID,
     senderName: CURRENT_USER_NAME,
-    content: '¡Hola María! Acabo de reservar el tour "Madrid de los Austrias" para el día 15. Estamos muy emocionados.',
+    content:
+      '¡Hola María! Acabo de reservar el tour "Madrid de los Austrias" para el día 15. Estamos muy emocionados.',
     type: 'text',
     status: 'read',
     timestamp: '2026-01-08T10:35:00Z',
@@ -82,7 +85,8 @@ export const MOCK_MESSAGES_CONV_1: Message[] = [
     conversationId: 'conv-1',
     senderId: '1',
     senderName: 'María García',
-    content: '¡Hola! Me alegra mucho que hayas reservado. Va a ser un tour fantástico. ¿Es tu primera vez en Madrid?',
+    content:
+      '¡Hola! Me alegra mucho que hayas reservado. Va a ser un tour fantástico. ¿Es tu primera vez en Madrid?',
     type: 'text',
     status: 'read',
     timestamp: '2026-01-08T11:20:00Z',
@@ -92,7 +96,8 @@ export const MOCK_MESSAGES_CONV_1: Message[] = [
     conversationId: 'conv-1',
     senderId: CURRENT_USER_ID,
     senderName: CURRENT_USER_NAME,
-    content: 'Sí, es nuestra primera vez. Venimos con mi pareja y queremos conocer la historia de la ciudad.',
+    content:
+      'Sí, es nuestra primera vez. Venimos con mi pareja y queremos conocer la historia de la ciudad.',
     type: 'text',
     status: 'read',
     timestamp: '2026-01-08T11:25:00Z',
@@ -102,7 +107,8 @@ export const MOCK_MESSAGES_CONV_1: Message[] = [
     conversationId: 'conv-1',
     senderId: '1',
     senderName: 'María García',
-    content: '¡Excelente! Les va a encantar. El Madrid de los Austrias tiene una historia fascinante. ¿Tienen alguna preferencia especial o algo que les gustaría ver en particular?',
+    content:
+      '¡Excelente! Les va a encantar. El Madrid de los Austrias tiene una historia fascinante. ¿Tienen alguna preferencia especial o algo que les gustaría ver en particular?',
     type: 'text',
     status: 'read',
     timestamp: '2026-01-08T14:00:00Z',
@@ -112,7 +118,8 @@ export const MOCK_MESSAGES_CONV_1: Message[] = [
     conversationId: 'conv-1',
     senderId: CURRENT_USER_ID,
     senderName: CURRENT_USER_NAME,
-    content: 'Nos encantaría conocer los lugares donde vivieron los reyes y también algunos sitios menos conocidos si es posible.',
+    content:
+      'Nos encantaría conocer los lugares donde vivieron los reyes y también algunos sitios menos conocidos si es posible.',
     type: 'text',
     status: 'read',
     timestamp: '2026-01-08T14:30:00Z',
@@ -122,7 +129,8 @@ export const MOCK_MESSAGES_CONV_1: Message[] = [
     conversationId: 'conv-1',
     senderId: '1',
     senderName: 'María García',
-    content: 'Por supuesto, tengo algunos secretos guardados que no están en las guías turísticas 😊 Os llevaré por patios escondidos y callejones con mucha historia.',
+    content:
+      'Por supuesto, tengo algunos secretos guardados que no están en las guías turísticas 😊 Os llevaré por patios escondidos y callejones con mucha historia.',
     type: 'text',
     status: 'read',
     timestamp: '2026-01-08T15:00:00Z',
@@ -132,7 +140,8 @@ export const MOCK_MESSAGES_CONV_1: Message[] = [
     conversationId: 'conv-1',
     senderId: CURRENT_USER_ID,
     senderName: CURRENT_USER_NAME,
-    content: '¡Genial! Por cierto, ¿hay algún lugar para tomar café cerca del punto de encuentro? Llegaremos un poco antes.',
+    content:
+      '¡Genial! Por cierto, ¿hay algún lugar para tomar café cerca del punto de encuentro? Llegaremos un poco antes.',
     type: 'text',
     status: 'read',
     timestamp: '2026-01-10T18:00:00Z',
@@ -142,7 +151,8 @@ export const MOCK_MESSAGES_CONV_1: Message[] = [
     conversationId: 'conv-1',
     senderId: '1',
     senderName: 'María García',
-    content: 'Sí, hay varios cafés excelentes. Os recomiendo "La Mallorquina" en la misma Plaza Mayor, tienen unos churros increíbles.',
+    content:
+      'Sí, hay varios cafés excelentes. Os recomiendo "La Mallorquina" en la misma Plaza Mayor, tienen unos churros increíbles.',
     type: 'text',
     status: 'read',
     timestamp: '2026-01-10T18:30:00Z',
@@ -162,7 +172,8 @@ export const MOCK_MESSAGES_CONV_1: Message[] = [
     conversationId: 'conv-1',
     senderId: '1',
     senderName: 'María García',
-    content: '¡Perfecto! Nos vemos en la Plaza Mayor a las 10:00. Llevaré un paraguas rojo para que me identifiques.',
+    content:
+      '¡Perfecto! Nos vemos en la Plaza Mayor a las 10:00. Llevaré un paraguas rojo para que me identifiques.',
     type: 'text',
     status: 'delivered',
     timestamp: '2026-01-11T09:30:00Z',
@@ -176,7 +187,8 @@ export const MOCK_MESSAGES_CONV_2: Message[] = [
     conversationId: 'conv-2',
     senderId: CURRENT_USER_ID,
     senderName: CURRENT_USER_NAME,
-    content: 'Hola Pedro, he reservado el tour de la Alhambra para 4 personas. Somos todos adultos.',
+    content:
+      'Hola Pedro, he reservado el tour de la Alhambra para 4 personas. Somos todos adultos.',
     type: 'text',
     status: 'read',
     timestamp: '2026-01-10T09:20:00Z',
@@ -186,7 +198,8 @@ export const MOCK_MESSAGES_CONV_2: Message[] = [
     conversationId: 'conv-2',
     senderId: '4',
     senderName: 'Pedro Sánchez',
-    content: '¡Hola! Muchas gracias por la reserva. La Alhambra al atardecer es una experiencia mágica. ¿Habéis estado antes en Granada?',
+    content:
+      '¡Hola! Muchas gracias por la reserva. La Alhambra al atardecer es una experiencia mágica. ¿Habéis estado antes en Granada?',
     type: 'text',
     status: 'read',
     timestamp: '2026-01-10T10:00:00Z',
@@ -196,7 +209,8 @@ export const MOCK_MESSAGES_CONV_2: Message[] = [
     conversationId: 'conv-2',
     senderId: CURRENT_USER_ID,
     senderName: CURRENT_USER_NAME,
-    content: 'No, es la primera vez para todos. Por cierto, ¿es posible hacer el tour también en inglés? Uno de nosotros no habla español.',
+    content:
+      'No, es la primera vez para todos. Por cierto, ¿es posible hacer el tour también en inglés? Uno de nosotros no habla español.',
     type: 'text',
     status: 'read',
     timestamp: '2026-01-10T10:15:00Z',
@@ -240,7 +254,8 @@ export const MOCK_MESSAGES_CONV_3: Message[] = [
     conversationId: 'conv-3',
     senderId: '2',
     senderName: 'Carlos Rodríguez',
-    content: '¡Gracias por venir! Espero que disfrutaran del tour de tapas. ¿Les gustaría dejar una reseña?',
+    content:
+      '¡Gracias por venir! Espero que disfrutaran del tour de tapas. ¿Les gustaría dejar una reseña?',
     type: 'text',
     status: 'read',
     timestamp: '2025-12-29T00:15:00Z',
@@ -269,4 +284,3 @@ export const QUICK_REPLIES = [
   'Perfecto, gracias',
   '¿Dónde nos encontramos?',
 ];
-

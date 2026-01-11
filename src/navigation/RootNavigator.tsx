@@ -27,16 +27,21 @@ export const RootNavigator: React.FC = () => {
         headerTitleStyle: {
           fontFamily: Typography.h4.fontFamily,
           fontSize: Typography.h4.fontSize,
-          fontWeight: Typography.h4.fontWeight as '100' | '200' | '300' | '400' | '500' | '600' | '700' | '800' | '900',
+          fontWeight: Typography.h4.fontWeight as
+            | '100'
+            | '200'
+            | '300'
+            | '400'
+            | '500'
+            | '600'
+            | '700'
+            | '800'
+            | '900',
         },
         headerShadowVisible: false,
       }}
     >
-      <Stack.Screen
-        name="Main"
-        component={MainTabNavigator}
-        options={{ headerShown: false }}
-      />
+      <Stack.Screen name="Main" component={MainTabNavigator} options={{ headerShown: false }} />
       <Stack.Screen
         name="Details"
         component={DetailsScreen}
@@ -55,11 +60,7 @@ export const RootNavigator: React.FC = () => {
         }}
       />
       {/* Booking flow */}
-      <Stack.Screen
-        name="Booking"
-        component={BookingScreen}
-        options={{ title: 'Reservar' }}
-      />
+      <Stack.Screen name="Booking" component={BookingScreen} options={{ title: 'Reservar' }} />
       <Stack.Screen
         name="BookingConfirmation"
         component={BookingConfirmationScreen}
@@ -81,16 +82,8 @@ export const RootNavigator: React.FC = () => {
         options={{ title: 'Detalle de reserva' }}
       />
       {/* Chat flow */}
-      <Stack.Screen
-        name="ChatList"
-        component={ChatListScreen}
-        options={{ title: 'Mensajes' }}
-      />
-      <Stack.Screen
-        name="Chat"
-        component={ChatScreen}
-        options={{ headerShown: false }}
-      />
+      <Stack.Screen name="ChatList" component={ChatListScreen} options={{ title: 'Mensajes' }} />
+      <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 };

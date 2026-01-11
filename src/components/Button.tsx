@@ -53,6 +53,7 @@ export const Button: React.FC<ButtonProps> = ({
     >
       {loading ? (
         <ActivityIndicator
+          testID="button-loading"
           color={variant === 'primary' ? Colors.textInverse : Colors.primary}
           size="small"
         />
@@ -154,4 +155,3 @@ const styles = StyleSheet.create({
     color: Colors.textTertiary,
   },
 });
-

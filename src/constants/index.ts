@@ -1,10 +1,4 @@
-export {
-  CATEGORIES,
-  MOCK_GUIDES,
-  MOCK_TOURS,
-  LANGUAGES,
-  LOCATIONS,
-} from './mockData';
+export { CATEGORIES, MOCK_GUIDES, MOCK_TOURS, LANGUAGES, LOCATIONS } from './mockData';
 
 export {
   MOCK_BOOKINGS,
@@ -20,4 +14,3 @@ export {
   getMessagesByConversationId,
   QUICK_REPLIES,
 } from './chatData';
-

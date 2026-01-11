@@ -25,9 +25,7 @@ export const CategoryPill: React.FC<CategoryPillProps> = ({
       activeOpacity={0.7}
     >
       <Text style={styles.icon}>{category.icon}</Text>
-      <Text style={[styles.label, selected && styles.labelSelected]}>
-        {category.name}
-      </Text>
+      <Text style={[styles.label, selected && styles.labelSelected]}>{category.name}</Text>
     </TouchableOpacity>
   );
 };
@@ -60,4 +58,3 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
-

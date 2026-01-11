@@ -11,7 +11,11 @@
     "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json}\"",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:ci": "jest --ci --coverage --watchAll=false"
   },
   "dependencies": {
     "@react-navigation/bottom-tabs": "^7.9.0",
@@ -25,10 +29,27 @@
     "react-native-screens": "^4.19.0"
   },
   "devDependencies": {
+    "@babel/preset-env": "^7.28.5",
+    "@babel/preset-react": "^7.28.5",
+    "@babel/preset-typescript": "^7.28.5",
+    "@testing-library/jest-native": "^5.4.3",
+    "@testing-library/react-native": "^13.3.3",
+    "@types/jest": "^30.0.0",
     "@types/react": "~19.1.0",
+    "@types/react-test-renderer": "^19.1.0",
+    "@typescript-eslint/eslint-plugin": "^8.52.0",
+    "@typescript-eslint/parser": "^8.52.0",
+    "babel-jest": "^30.2.0",
+    "babel-preset-expo": "^54.0.9",
+    "eslint": "^8.57.1",
+    "eslint-config-expo": "^10.0.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
+    "jest": "^30.2.0",
+    "jest-expo": "^54.0.16",
     "prettier": "^3.7.4",
+    "react-test-renderer": "^19.1.0",
+    "ts-jest": "^29.4.6",
     "typescript": "~5.9.2"
   },
   "private": true

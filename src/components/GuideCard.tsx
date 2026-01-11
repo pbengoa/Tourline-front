@@ -89,9 +89,7 @@ export const GuideCard: React.FC<GuideCardProps> = ({ guide, onPress, compact = 
 
       <View style={styles.cardFooter}>
         <View style={styles.priceContainer}>
-          <Text style={styles.price}>
-            {guide.pricePerHour}€
-          </Text>
+          <Text style={styles.price}>{guide.pricePerHour}€</Text>
           <Text style={styles.priceUnit}>/hora</Text>
         </View>
         <View style={[styles.availabilityBadge, !guide.available && styles.unavailableBadge]}>
@@ -312,4 +310,3 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
 });
-

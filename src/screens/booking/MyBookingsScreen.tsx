@@ -17,8 +17,18 @@ type Props = RootStackScreenProps<'MyBookings'>;
 type BookingFilter = 'all' | 'upcoming' | 'past';
 
 const MONTHS_ES = [
-  'ene', 'feb', 'mar', 'abr', 'may', 'jun',
-  'jul', 'ago', 'sep', 'oct', 'nov', 'dic'
+  'ene',
+  'feb',
+  'mar',
+  'abr',
+  'may',
+  'jun',
+  'jul',
+  'ago',
+  'sep',
+  'oct',
+  'nov',
+  'dic',
 ];
 
 export const MyBookingsScreen: React.FC<Props> = ({ navigation }) => {
@@ -30,16 +40,19 @@ export const MyBookingsScreen: React.FC<Props> = ({ navigation }) => {
 
   const filteredBookings = MOCK_BOOKINGS.filter((booking) => {
     const bookingDate = new Date(booking.date);
-    
+
     switch (filter) {
       case 'upcoming':
-        return bookingDate >= today && 
-               (booking.status === 'confirmed' || booking.status === 'pending');
+        return (
+          bookingDate >= today && (booking.status === 'confirmed' || booking.status === 'pending')
+        );
       case 'past':
-        return bookingDate < today || 
-               booking.status === 'completed' || 
-               booking.status === 'cancelled' ||
-               booking.status === 'rejected';
+        return (
+          bookingDate < today ||
+          booking.status === 'completed' ||
+          booking.status === 'cancelled' ||
+          booking.status === 'rejected'
+        );
       default:
         return true;
     }
@@ -77,8 +90,9 @@ export const MyBookingsScreen: React.FC<Props> = ({ navigation }) => {
 
   const renderBookingCard = ({ item: booking }: { item: Booking }) => {
     const statusConfig = BOOKING_STATUS_CONFIG[booking.status];
-    const isUpcoming = new Date(booking.date) >= today && 
-                       (booking.status === 'confirmed' || booking.status === 'pending');
+    const isUpcoming =
+      new Date(booking.date) >= today &&
+      (booking.status === 'confirmed' || booking.status === 'pending');
 
     return (
       <TouchableOpacity
@@ -124,9 +138,7 @@ export const MyBookingsScreen: React.FC<Props> = ({ navigation }) => {
 
         <View style={styles.bookingFooter}>
           <Text style={styles.bookingPrice}>{booking.totalPrice}€</Text>
-          {isUpcoming && (
-            <Text style={styles.viewDetails}>Ver detalles →</Text>
-          )}
+          {isUpcoming && <Text style={styles.viewDetails}>Ver detalles →</Text>}
         </View>
       </TouchableOpacity>
     );
@@ -136,11 +148,11 @@ export const MyBookingsScreen: React.FC<Props> = ({ navigation }) => {
     <View style={styles.emptyContainer}>
       <Text style={styles.emptyIcon}>📋</Text>
       <Text style={styles.emptyTitle}>
-        {filter === 'upcoming' 
+        {filter === 'upcoming'
           ? 'No tienes reservas próximas'
           : filter === 'past'
-          ? 'No tienes reservas pasadas'
-          : 'No tienes reservas'}
+            ? 'No tienes reservas pasadas'
+            : 'No tienes reservas'}
       </Text>
       <Text style={styles.emptyText}>
         Explora los guías y tours disponibles para planificar tu próxima aventura
@@ -346,4 +358,3 @@ const styles = StyleSheet.create({
     textTransform: 'none',
   },
 });
-
