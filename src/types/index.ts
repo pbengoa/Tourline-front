@@ -14,3 +14,13 @@ export type {
   SortOption,
   SearchFilters,
 } from './guide';
+
+export type {
+  Booking,
+  BookingRequest,
+  BookingStatus,
+  BookingDay,
+  TimeSlot,
+} from './booking';
+
+export { BOOKING_STATUS_CONFIG } from './booking';

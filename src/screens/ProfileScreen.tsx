@@ -8,9 +8,11 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Colors, Spacing, Typography } from '../theme';
 import { useAuth } from '../context';
-import type { MainTabScreenProps } from '../types';
+import type { MainTabScreenProps, RootStackParamList } from '../types';
 
 type Props = MainTabScreenProps<'Profile'>;
 
@@ -25,6 +27,30 @@ const MENU_ITEMS = [
 
 export const ProfileScreen: React.FC<Props> = () => {
   const { user, signOut } = useAuth();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
+  const handleMenuPress = (id: string) => {
+    switch (id) {
+      case 'bookings':
+        navigation.navigate('MyBookings');
+        break;
+      case 'favorites':
+        Alert.alert('Próximamente', 'Esta función estará disponible pronto');
+        break;
+      case 'payments':
+        Alert.alert('Próximamente', 'Esta función estará disponible pronto');
+        break;
+      case 'notifications':
+        Alert.alert('Próximamente', 'Esta función estará disponible pronto');
+        break;
+      case 'settings':
+        Alert.alert('Próximamente', 'Esta función estará disponible pronto');
+        break;
+      case 'help':
+        Alert.alert('Próximamente', 'Esta función estará disponible pronto');
+        break;
+    }
+  };
 
   const handleLogout = () => {
     Alert.alert(
@@ -95,6 +121,7 @@ export const ProfileScreen: React.FC<Props> = () => {
               key={item.id}
               style={styles.menuItem}
               activeOpacity={0.7}
+              onPress={() => handleMenuPress(item.id)}
             >
               <View style={styles.menuItemLeft}>
                 <Text style={styles.menuIcon}>{item.icon}</Text>

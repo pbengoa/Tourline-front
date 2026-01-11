@@ -168,20 +168,7 @@ export const GuideDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   };
 
   const handleBookPress = () => {
-    // TODO: Implement booking flow
-    Alert.alert(
-      'Reservar con ' + guide.name.split(' ')[0],
-      '¿Deseas solicitar una reserva?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Continuar',
-          onPress: () => {
-            Alert.alert('Próximamente', 'La función de reserva estará disponible pronto');
-          },
-        },
-      ]
-    );
+    navigation.navigate('Booking', { guideId: guide.id });
   };
 
   const renderStars = (rating: number) => {

@@ -2,6 +2,13 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { MainTabNavigator } from './MainTabNavigator';
 import { DetailsScreen, GuideDetailScreen } from '../screens';
+import {
+  BookingScreen,
+  BookingConfirmationScreen,
+  BookingSuccessScreen,
+  MyBookingsScreen,
+  BookingDetailScreen,
+} from '../screens/booking';
 import { Colors, Typography } from '../theme';
 import { MOCK_GUIDES } from '../constants/mockData';
 import type { RootStackParamList } from '../types';
@@ -17,10 +24,11 @@ export const RootNavigator: React.FC = () => {
         },
         headerTintColor: Colors.text,
         headerTitleStyle: {
-          ...Typography.h4,
+          fontFamily: Typography.h4.fontFamily,
+          fontSize: Typography.h4.fontSize,
+          fontWeight: Typography.h4.fontWeight as '100' | '200' | '300' | '400' | '500' | '600' | '700' | '800' | '900',
         },
         headerShadowVisible: false,
-        headerBackTitleVisible: false,
       }}
     >
       <Stack.Screen
@@ -44,6 +52,32 @@ export const RootNavigator: React.FC = () => {
             title: guide?.name || 'Perfil del Guía',
           };
         }}
+      />
+      {/* Booking flow */}
+      <Stack.Screen
+        name="Booking"
+        component={BookingScreen}
+        options={{ title: 'Reservar' }}
+      />
+      <Stack.Screen
+        name="BookingConfirmation"
+        component={BookingConfirmationScreen}
+        options={{ title: 'Confirmar reserva' }}
+      />
+      <Stack.Screen
+        name="BookingSuccess"
+        component={BookingSuccessScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="MyBookings"
+        component={MyBookingsScreen}
+        options={{ title: 'Mis reservas' }}
+      />
+      <Stack.Screen
+        name="BookingDetail"
+        component={BookingDetailScreen}
+        options={{ title: 'Detalle de reserva' }}
       />
     </Stack.Navigator>
   );
