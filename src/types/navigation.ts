@@ -39,6 +39,13 @@ export type RootStackParamList = {
   };
   MyBookings: undefined;
   BookingDetail: { bookingId: string };
+  // Chat flow
+  ChatList: undefined;
+  Chat: {
+    conversationId: string;
+    participantName: string;
+    participantId: string;
+  };
 };
 
 /**

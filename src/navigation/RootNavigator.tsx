@@ -9,6 +9,7 @@ import {
   MyBookingsScreen,
   BookingDetailScreen,
 } from '../screens/booking';
+import { ChatListScreen, ChatScreen } from '../screens/chat';
 import { Colors, Typography } from '../theme';
 import { MOCK_GUIDES } from '../constants/mockData';
 import type { RootStackParamList } from '../types';
@@ -78,6 +79,17 @@ export const RootNavigator: React.FC = () => {
         name="BookingDetail"
         component={BookingDetailScreen}
         options={{ title: 'Detalle de reserva' }}
+      />
+      {/* Chat flow */}
+      <Stack.Screen
+        name="ChatList"
+        component={ChatListScreen}
+        options={{ title: 'Mensajes' }}
+      />
+      <Stack.Screen
+        name="Chat"
+        component={ChatScreen}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );

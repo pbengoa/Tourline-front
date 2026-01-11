@@ -152,18 +152,40 @@ export const GuideDetailScreen: React.FC<Props> = ({ route, navigation }) => {
 
     setSendingMessage(true);
     try {
-      // TODO: Implement actual message sending
+      // TODO: Implement actual message sending to create conversation
       await new Promise((resolve) => setTimeout(resolve, 1500));
-      Alert.alert(
-        'Mensaje enviado',
-        `Tu mensaje ha sido enviado a ${guide.name}. Te responderá pronto.`,
-        [{ text: 'OK', onPress: () => setShowContactModal(false) }]
-      );
+      setShowContactModal(false);
       setContactMessage('');
+      
+      // Navigate to chat with a new/existing conversation
+      navigation.navigate('Chat', {
+        conversationId: `conv-new-${guide.id}`,
+        participantName: guide.name,
+        participantId: guide.id,
+      });
     } catch (error) {
       Alert.alert('Error', 'No se pudo enviar el mensaje');
     } finally {
       setSendingMessage(false);
+    }
+  };
+
+  const handleOpenChat = () => {
+    // Check if there's an existing conversation (mock check)
+    const existingConvId = guide.id === '1' ? 'conv-1' : 
+                          guide.id === '2' ? 'conv-3' : 
+                          guide.id === '4' ? 'conv-2' : null;
+    
+    if (existingConvId) {
+      // Navigate to existing conversation
+      navigation.navigate('Chat', {
+        conversationId: existingConvId,
+        participantName: guide.name,
+        participantId: guide.id,
+      });
+    } else {
+      // Show contact modal for new conversation
+      setShowContactModal(true);
     }
   };
 
@@ -520,7 +542,7 @@ export const GuideDetailScreen: React.FC<Props> = ({ route, navigation }) => {
         <View style={styles.ctaButtons}>
           <TouchableOpacity
             style={styles.contactButton}
-            onPress={() => setShowContactModal(true)}
+            onPress={handleOpenChat}
           >
             <Text style={styles.contactButtonText}>💬</Text>
           </TouchableOpacity>

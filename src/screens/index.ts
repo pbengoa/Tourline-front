@@ -16,3 +16,6 @@ export {
   BookingDetailScreen,
 } from './booking';
 
+// Chat screens
+export { ChatListScreen, ChatScreen } from './chat';
+

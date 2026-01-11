@@ -24,3 +24,13 @@ export type {
 } from './booking';
 
 export { BOOKING_STATUS_CONFIG } from './booking';
+
+export type {
+  Message,
+  Conversation,
+  MessageStatus,
+  MessageType,
+  ChatState,
+} from './chat';
+
+export { MESSAGE_STATUS_CONFIG } from './chat';

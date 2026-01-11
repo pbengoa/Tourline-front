@@ -18,6 +18,7 @@ type Props = MainTabScreenProps<'Profile'>;
 
 const MENU_ITEMS = [
   { id: 'bookings', icon: '📋', label: 'Mis Reservas' },
+  { id: 'messages', icon: '💬', label: 'Mensajes' },
   { id: 'favorites', icon: '❤️', label: 'Favoritos' },
   { id: 'payments', icon: '💳', label: 'Métodos de Pago' },
   { id: 'notifications', icon: '🔔', label: 'Notificaciones' },
@@ -33,6 +34,9 @@ export const ProfileScreen: React.FC<Props> = () => {
     switch (id) {
       case 'bookings':
         navigation.navigate('MyBookings');
+        break;
+      case 'messages':
+        navigation.navigate('ChatList');
         break;
       case 'favorites':
         Alert.alert('Próximamente', 'Esta función estará disponible pronto');
