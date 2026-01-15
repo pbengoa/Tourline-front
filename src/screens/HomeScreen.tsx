@@ -10,18 +10,21 @@ import {
   Dimensions,
   Animated,
   Image,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, Typography } from '../theme';
-import { GuideCard, TourCard, CategoryPill } from '../components';
-import { CATEGORIES, MOCK_GUIDES } from '../constants/mockData';
-import { useFeaturedGuides } from '../hooks';
+import { TourCard, CategoryPill } from '../components';
+import { CATEGORIES } from '../constants/mockData';
+import { useFavorites } from '../hooks/useFavorites';
 import { useAuth } from '../context';
-import { toursService, ApiTour } from '../services';
+import { toursService, ApiTour, bannersService, regionsService } from '../services';
+import type { Banner } from '../services/bannersService';
+import type { Region } from '../services/regionsService';
 import type { MainTabScreenProps, Tour } from '../types';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 const HEADER_HEIGHT = 280;
 
 type Props = MainTabScreenProps<'Home'>;
@@ -31,15 +34,23 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const scrollY = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const bannerScrollRef = useRef<FlatList>(null);
+  const [activeBannerIndex, setActiveBannerIndex] = useState(0);
 
-  // Fetch featured guides from API
-  const { guides: featuredGuides, loading: guidesLoading } = useFeaturedGuides();
+  // Favorites hook
+  const { favorites, isLoading: favoritesLoading } = useFavorites();
   
   // Tours state
   const [featuredTours, setFeaturedTours] = useState<Tour[]>([]);
   const [toursLoading, setToursLoading] = useState(true);
   
-  const allGuides = featuredGuides.length > 0 ? featuredGuides : MOCK_GUIDES;
+  // Banners state
+  const [banners, setBanners] = useState<Banner[]>([]);
+  const [bannersLoading, setBannersLoading] = useState(true);
+  
+  // Regions state
+  const [regions, setRegions] = useState<Region[]>([]);
+  const [regionsLoading, setRegionsLoading] = useState(true);
 
   // Helper to format duration from minutes to readable string
   const formatDuration = (minutes: number): string => {
@@ -98,6 +109,89 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     fetchTours();
   }, []);
 
+  // Fetch banners from API
+  useEffect(() => {
+    const fetchBanners = async () => {
+      setBannersLoading(true);
+      try {
+        const response = await bannersService.getByPlacement('home');
+        if (response.success && response.data) {
+          setBanners(response.data);
+        }
+      } catch (error) {
+        console.log('Error fetching banners:', error);
+        // Fallback banners
+        setBanners([
+          {
+            id: '1',
+            title: '¡Descubre Chile!',
+            subtitle: 'Tours con 20% de descuento',
+            imageUrl: 'https://images.unsplash.com/photo-1601000938259-9e92002320b2?w=800&h=400&fit=crop',
+            actionType: 'search',
+            actionValue: '',
+            isActive: true,
+            sortOrder: 1,
+          },
+          {
+            id: '2',
+            title: 'Torres del Paine',
+            subtitle: 'El mejor destino de Sudamérica',
+            imageUrl: 'https://images.unsplash.com/photo-1502602898669-a3873882021a?w=800&h=400&fit=crop',
+            actionType: 'region',
+            actionValue: 'torres-del-paine',
+            isActive: true,
+            sortOrder: 2,
+          },
+        ]);
+      } finally {
+        setBannersLoading(false);
+      }
+    };
+
+    fetchBanners();
+  }, []);
+
+  // Fetch regions from API
+  useEffect(() => {
+    const fetchRegions = async () => {
+      setRegionsLoading(true);
+      try {
+        const response = await regionsService.getFeatured();
+        if (response.success && response.data) {
+          setRegions(response.data);
+        }
+      } catch (error) {
+        console.log('Error fetching regions:', error);
+        // Fallback regions
+        setRegions([
+          { id: '1', name: 'Torres del Paine', slug: 'torres-del-paine', country: 'Chile', tourCount: 23, isFeatured: true, sortOrder: 1, coordinates: { latitude: -50.9423, longitude: -73.4068 } },
+          { id: '2', name: 'San Pedro de Atacama', slug: 'san-pedro-atacama', country: 'Chile', tourCount: 18, isFeatured: true, sortOrder: 2, coordinates: { latitude: -22.9087, longitude: -68.1997 } },
+          { id: '3', name: 'Valparaíso', slug: 'valparaiso', country: 'Chile', tourCount: 15, isFeatured: true, sortOrder: 3, coordinates: { latitude: -33.0472, longitude: -71.6127 } },
+          { id: '4', name: 'Pucón', slug: 'pucon', country: 'Chile', tourCount: 12, isFeatured: true, sortOrder: 4, coordinates: { latitude: -39.2823, longitude: -71.9544 } },
+        ]);
+      } finally {
+        setRegionsLoading(false);
+      }
+    };
+
+    fetchRegions();
+  }, []);
+
+  // Auto-scroll banners
+  useEffect(() => {
+    if (banners.length <= 1) return;
+    
+    const interval = setInterval(() => {
+      setActiveBannerIndex((prev) => {
+        const nextIndex = (prev + 1) % banners.length;
+        bannerScrollRef.current?.scrollToIndex({ index: nextIndex, animated: true });
+        return nextIndex;
+      });
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [banners.length]);
+
   // Entrance animation
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -122,6 +216,41 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const handleCategoryPress = (categoryId: string) => {
     setSelectedCategory(selectedCategory === categoryId ? null : categoryId);
     navigation.navigate('Search');
+  };
+
+  const handleBannerPress = async (banner: Banner) => {
+    // Track click for analytics
+    try {
+      await bannersService.trackClick(banner.id);
+    } catch (e) {}
+
+    switch (banner.actionType) {
+      case 'tour':
+        navigation.navigate('Details', { id: banner.actionValue });
+        break;
+      case 'region':
+        navigation.navigate('Search'); // TODO: Add region filter
+        break;
+      case 'category':
+        navigation.navigate('Search'); // TODO: Add category filter
+        break;
+      case 'url':
+        if (banner.actionValue) Linking.openURL(banner.actionValue);
+        break;
+      case 'search':
+      default:
+        navigation.navigate('Search');
+        break;
+    }
+  };
+
+  const handleFavoritePress = (tourId: string) => {
+    const favTour = favorites.find(f => f.id === tourId);
+    navigation.navigate('Details', { id: tourId, title: favTour?.title });
+  };
+
+  const handleRegionPress = (region: Region) => {
+    navigation.navigate('Search'); // TODO: Add region filter to search
   };
 
   // Greeting based on time
@@ -250,6 +379,65 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             </LinearGradient>
           </View>
 
+          {/* Promotional Banners */}
+          {banners.length > 0 && (
+            <View style={styles.bannersSection}>
+              <FlatList
+                ref={bannerScrollRef}
+                data={banners}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                keyExtractor={(item) => item.id}
+                onMomentumScrollEnd={(e) => {
+                  const index = Math.round(e.nativeEvent.contentOffset.x / (width - Spacing.lg * 2));
+                  setActiveBannerIndex(index);
+                }}
+                renderItem={({ item: banner }) => (
+                  <TouchableOpacity
+                    style={styles.bannerCard}
+                    onPress={() => handleBannerPress(banner)}
+                    activeOpacity={0.95}
+                  >
+                    <Image source={{ uri: banner.imageUrl }} style={styles.bannerImage} />
+                    <LinearGradient
+                      colors={['transparent', 'rgba(0,0,0,0.8)']}
+                      style={styles.bannerGradient}
+                    >
+                      <View style={styles.bannerContent}>
+                        <Text style={[styles.bannerTitle, banner.textColor && { color: banner.textColor }]}>
+                          {banner.title}
+                        </Text>
+                        {banner.subtitle && (
+                          <Text style={[styles.bannerSubtitle, banner.textColor && { color: banner.textColor }]}>
+                            {banner.subtitle}
+                          </Text>
+                        )}
+                      </View>
+                      <View style={styles.bannerCTA}>
+                        <Text style={styles.bannerCTAText}>Ver más →</Text>
+                      </View>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )}
+              />
+              {/* Banner Indicators */}
+              {banners.length > 1 && (
+                <View style={styles.bannerIndicators}>
+                  {banners.map((_, index) => (
+                    <View
+                      key={index}
+                      style={[
+                        styles.bannerDot,
+                        activeBannerIndex === index && styles.bannerDotActive,
+                      ]}
+                    />
+                  ))}
+                </View>
+              )}
+            </View>
+          )}
+
           {/* Categories */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -284,6 +472,64 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
               ))}
             </ScrollView>
           </View>
+
+          {/* Your Favorites Section */}
+          {!favoritesLoading && favorites.length > 0 && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <View>
+                  <Text style={styles.sectionTitle}>❤️ Tus Favoritos</Text>
+                  <Text style={styles.sectionSubtitle}>Tours guardados para ti</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.seeAllButton}
+                  onPress={() => navigation.navigate('Favorites')}
+                >
+                  <Text style={styles.seeAllText}>Ver todos</Text>
+                  <Text style={styles.seeAllArrow}>→</Text>
+                </TouchableOpacity>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.favoritesContainer}
+              >
+                {favorites.slice(0, 5).map((fav) => (
+                  <TouchableOpacity
+                    key={fav.id}
+                    style={styles.favoriteCard}
+                    onPress={() => handleFavoritePress(fav.id)}
+                    activeOpacity={0.9}
+                  >
+                    {fav.image ? (
+                      <Image source={{ uri: fav.image }} style={styles.favoriteImage} />
+                    ) : (
+                      <View style={styles.favoriteImagePlaceholder}>
+                        <Text style={styles.favoriteEmoji}>🏔️</Text>
+                      </View>
+                    )}
+                    <LinearGradient
+                      colors={['transparent', 'rgba(0,0,0,0.85)']}
+                      style={styles.favoriteGradient}
+                    >
+                      <View style={styles.favoriteHeart}>
+                        <Text style={styles.favoriteHeartIcon}>❤️</Text>
+                      </View>
+                      <View style={styles.favoriteInfo}>
+                        <Text style={styles.favoriteTitle} numberOfLines={2}>{fav.title}</Text>
+                        <View style={styles.favoriteMeta}>
+                          <Text style={styles.favoritePrice}>
+                            ${fav.price.toLocaleString('es-CL')}
+                          </Text>
+                          <Text style={styles.favoriteRating}>⭐ {fav.rating.toFixed(1)}</Text>
+                        </View>
+                      </View>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
 
           {/* Featured Tours */}
           <View style={styles.section}>
@@ -339,80 +585,15 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             )}
           </View>
 
-          {/* Popular Destinations */}
+          {/* Explore by Region */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <View>
-                <Text style={styles.sectionTitle}>Destinos Populares</Text>
-                <Text style={styles.sectionSubtitle}>Los favoritos de Chile</Text>
+                <Text style={styles.sectionTitle}>Explorar por Región</Text>
+                <Text style={styles.sectionSubtitle}>Destinos increíbles</Text>
               </View>
             </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.destinationsContainer}
-            >
-              {[
-                {
-                  name: 'Torres del Paine',
-                  image:
-                    'https://images.unsplash.com/photo-1502602898669-a3873882021a?w=300&h=400&fit=crop',
-                  tours: 23,
-                },
-                {
-                  name: 'San Pedro de Atacama',
-                  image:
-                    'https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=300&h=400&fit=crop',
-                  tours: 18,
-                },
-                {
-                  name: 'Valparaíso',
-                  image:
-                    'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=300&h=400&fit=crop',
-                  tours: 15,
-                },
-                {
-                  name: 'Pucón',
-                  image:
-                    'https://images.unsplash.com/photo-1591016486983-9ba71cea8c91?w=300&h=400&fit=crop',
-                  tours: 12,
-                },
-              ].map((destination, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.destinationCard}
-                  onPress={() => navigation.navigate('Search')}
-                  activeOpacity={0.9}
-                >
-                  <Image source={{ uri: destination.image }} style={styles.destinationImage} />
-                  <LinearGradient
-                    colors={['transparent', 'rgba(0,0,0,0.8)']}
-                    style={styles.destinationGradient}
-                  >
-                    <Text style={styles.destinationName}>{destination.name}</Text>
-                    <Text style={styles.destinationTours}>{destination.tours} tours</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-
-          {/* Top Guides */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View>
-                <Text style={styles.sectionTitle}>Guías Top</Text>
-                <Text style={styles.sectionSubtitle}>Expertos locales</Text>
-              </View>
-              <TouchableOpacity
-                style={styles.seeAllButton}
-                onPress={() => navigation.navigate('Search')}
-              >
-                <Text style={styles.seeAllText}>Ver todos</Text>
-                <Text style={styles.seeAllArrow}>→</Text>
-              </TouchableOpacity>
-            </View>
-            {guidesLoading ? (
+            {regionsLoading ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="small" color={Colors.primary} />
               </View>
@@ -420,48 +601,47 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.guidesContainer}
+                contentContainerStyle={styles.regionsContainer}
               >
-                {allGuides.slice(0, 5).map((guide: any, index: number) => (
-                  <TouchableOpacity
-                    key={guide.id}
-                    style={styles.guideCard}
-                    onPress={() => handleGuidePress(guide.id)}
-                    activeOpacity={0.9}
-                  >
-                    <View style={styles.guideAvatarContainer}>
-                      {guide.avatar ? (
-                        <Image source={{ uri: guide.avatar }} style={styles.guideAvatar} />
-                      ) : (
-                        <View style={styles.guideAvatarPlaceholder}>
-                          <Text style={styles.guideInitial}>
-                            {(guide.name || 'G').charAt(0)}
-                          </Text>
+                {regions.map((region, index) => {
+                  // Fallback images for regions
+                  const regionImages: { [key: string]: string } = {
+                    'torres-del-paine': 'https://images.unsplash.com/photo-1502602898669-a3873882021a?w=300&h=400&fit=crop',
+                    'san-pedro-atacama': 'https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=300&h=400&fit=crop',
+                    'valparaiso': 'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=300&h=400&fit=crop',
+                    'pucon': 'https://images.unsplash.com/photo-1591016486983-9ba71cea8c91?w=300&h=400&fit=crop',
+                  };
+                  const imageUrl = region.imageUrl || regionImages[region.slug] || 'https://images.unsplash.com/photo-1502602898669-a3873882021a?w=300&h=400&fit=crop';
+
+                  return (
+                    <TouchableOpacity
+                      key={region.id}
+                      style={styles.regionCard}
+                      onPress={() => handleRegionPress(region)}
+                      activeOpacity={0.9}
+                    >
+                      <Image source={{ uri: imageUrl }} style={styles.regionImage} />
+                      <LinearGradient
+                        colors={['transparent', 'rgba(0,0,0,0.85)']}
+                        style={styles.regionGradient}
+                      >
+                        <View style={styles.regionBadge}>
+                          <Text style={styles.regionBadgeText}>📍 {region.country}</Text>
                         </View>
-                      )}
-                      {guide.verified && (
-                        <View style={styles.verifiedBadge}>
-                          <Text style={styles.verifiedIcon}>✓</Text>
+                        <View style={styles.regionInfo}>
+                          <Text style={styles.regionName}>{region.name}</Text>
+                          <Text style={styles.regionTours}>{region.tourCount} tours disponibles</Text>
                         </View>
-                      )}
-                    </View>
-                    <Text style={styles.guideCardName} numberOfLines={1}>
-                      {guide.name?.split(' ')[0] || 'Guía'}
-                    </Text>
-                    <View style={styles.guideRatingRow}>
-                      <Text style={styles.guideStar}>★</Text>
-                      <Text style={styles.guideRating}>
-                        {(guide.rating || 0).toFixed(1)}
-                      </Text>
-                    </View>
-                    <Text style={styles.guideLocation} numberOfLines={1}>
-                      {guide.city || guide.location?.split(',')[0] || 'Chile'}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  );
+                })}
               </ScrollView>
             )}
           </View>
+
+          {/* Featured Companies - Coming soon with backend */}
+          {/* This section will be populated when companiesService.getFeatured() is available */}
 
           {/* CTA Banner */}
           <View style={styles.ctaSection}>
@@ -966,5 +1146,191 @@ const styles = StyleSheet.create({
     ...Typography.labelLarge,
     color: Colors.textInverse,
     fontWeight: '700',
+  },
+  // Banners
+  bannersSection: {
+    marginBottom: Spacing.lg,
+  },
+  bannerCard: {
+    width: width - Spacing.lg * 2,
+    height: 160,
+    marginHorizontal: Spacing.lg,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  bannerImage: {
+    width: '100%',
+    height: '100%',
+  },
+  bannerGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 120,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    padding: Spacing.md,
+  },
+  bannerContent: {
+    flex: 1,
+  },
+  bannerTitle: {
+    ...Typography.h3,
+    color: Colors.textInverse,
+    fontWeight: '700',
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  bannerSubtitle: {
+    ...Typography.body,
+    color: 'rgba(255,255,255,0.9)',
+    marginTop: 4,
+  },
+  bannerCTA: {
+    backgroundColor: Colors.secondary,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: 10,
+  },
+  bannerCTAText: {
+    ...Typography.labelSmall,
+    color: Colors.textInverse,
+    fontWeight: '600',
+  },
+  bannerIndicators: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: Spacing.sm,
+    gap: 6,
+  },
+  bannerDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.borderLight,
+  },
+  bannerDotActive: {
+    width: 20,
+    backgroundColor: Colors.primary,
+  },
+  // Favorites
+  favoritesContainer: {
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.md,
+  },
+  favoriteCard: {
+    width: 160,
+    height: 200,
+    borderRadius: 18,
+    overflow: 'hidden',
+    marginRight: Spacing.md,
+  },
+  favoriteImage: {
+    width: '100%',
+    height: '100%',
+  },
+  favoriteImagePlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: Colors.primaryMuted,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  favoriteEmoji: {
+    fontSize: 40,
+  },
+  favoriteGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 140,
+    justifyContent: 'space-between',
+    padding: Spacing.sm,
+  },
+  favoriteHeart: {
+    alignSelf: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    borderRadius: 20,
+    padding: 6,
+  },
+  favoriteHeartIcon: {
+    fontSize: 14,
+  },
+  favoriteInfo: {
+    gap: Spacing.xs,
+  },
+  favoriteTitle: {
+    ...Typography.labelLarge,
+    color: Colors.textInverse,
+    fontWeight: '600',
+    lineHeight: 18,
+  },
+  favoriteMeta: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  favoritePrice: {
+    ...Typography.label,
+    color: Colors.secondary,
+    fontWeight: '700',
+  },
+  favoriteRating: {
+    ...Typography.caption,
+    color: Colors.textInverse,
+  },
+  // Regions
+  regionsContainer: {
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.md,
+  },
+  regionCard: {
+    width: 160,
+    height: 200,
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginRight: Spacing.md,
+  },
+  regionImage: {
+    width: '100%',
+    height: '100%',
+  },
+  regionGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 140,
+    justifyContent: 'space-between',
+    padding: Spacing.sm,
+  },
+  regionBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  regionBadgeText: {
+    ...Typography.caption,
+    color: Colors.textInverse,
+    fontWeight: '500',
+  },
+  regionInfo: {
+    gap: 2,
+  },
+  regionName: {
+    ...Typography.labelLarge,
+    color: Colors.textInverse,
+    fontWeight: '700',
+  },
+  regionTours: {
+    ...Typography.caption,
+    color: 'rgba(255,255,255,0.8)',
   },
 });

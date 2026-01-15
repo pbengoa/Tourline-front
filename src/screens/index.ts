@@ -5,6 +5,7 @@ export { ProfileScreen } from './ProfileScreen';
 export { DetailsScreen } from './DetailsScreen';
 export { GuideDetailScreen } from './GuideDetailScreen';
 export { FavoritesScreen } from './FavoritesScreen';
+export { CompanyDetailScreen } from './CompanyDetailScreen';
 
 // Auth screens
 export { LoginScreen, RegisterScreen, ForgotPasswordScreen } from './auth';

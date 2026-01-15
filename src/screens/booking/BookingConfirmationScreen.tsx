@@ -48,19 +48,21 @@ export const BookingConfirmationScreen: React.FC<Props> = ({ route, navigation }
   const pricePerHour = guide?.pricePerHour || 0;
   const isMultiDay = dates.length > 1;
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return 'Fecha no disponible';
     const dateObj = new Date(dateString + 'T00:00:00');
-    const dayName = DAYS_ES[dateObj.getDay()];
+    const dayName = DAYS_ES[dateObj.getDay()] || 'Día';
     const day = dateObj.getDate();
-    const month = MONTHS_ES[dateObj.getMonth()];
+    const month = MONTHS_ES[dateObj.getMonth()] || 'mes';
     return `${dayName.charAt(0).toUpperCase() + dayName.slice(1)}, ${day} de ${month}`;
   };
 
-  const formatShortDate = (dateString: string) => {
+  const formatShortDate = (dateString: string | undefined) => {
+    if (!dateString) return '--';
     const dateObj = new Date(dateString + 'T00:00:00');
     const day = dateObj.getDate();
-    const month = MONTHS_ES[dateObj.getMonth()].slice(0, 3);
-    return `${day} ${month}`;
+    const monthName = MONTHS_ES[dateObj.getMonth()] || 'mes';
+    return `${day} ${monthName.slice(0, 3)}`;
   };
 
   const calculateHours = (slot: BookingDateSlot) => {

@@ -141,7 +141,7 @@ const MOCK_USERS: { [email: string]: { password: string; user: User } } = {
 
 // Auth Service
 export const authService = {
-  // Register new user
+  // Register new user - Always use real backend
   async register(data: RegisterRequest): Promise<ApiResponse<LoginResponse>> {
     // Transform role for backend if needed
     const backendData = {
@@ -150,6 +150,7 @@ export const authService = {
     };
 
     try {
+      console.log('📝 Attempting registration to backend for:', data.email);
       const response = await api.post<ApiResponse<LoginResponse>>('/auth/register', backendData);
 
       if (response.data.success) {
@@ -158,51 +159,21 @@ export const authService = {
         // Store token and user
         await AsyncStorage.setItem(TOKEN_KEY, response.data.data.token);
         await AsyncStorage.setItem(USER_KEY, JSON.stringify(response.data.data.user));
+        console.log('✅ Registration successful, token stored');
       }
 
       return response.data;
-    } catch (error) {
-      // Fallback to mock registration
-      const mockUser: User = {
-        id: `user-${Date.now()}`,
-        email: data.email,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        role: data.role || 'tourist',
-        companyId: data.role === 'admin' ? `company-${Date.now()}` : undefined,
-        companyName: data.companyName,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
-      const mockToken = `mock-token-${Date.now()}`;
-      await AsyncStorage.setItem(TOKEN_KEY, mockToken);
-      await AsyncStorage.setItem(USER_KEY, JSON.stringify(mockUser));
-
-      return {
-        success: true,
-        data: { user: mockUser, token: mockToken },
-      };
+    } catch (error: any) {
+      console.log('❌ Registration failed:', error?.response?.data || error.message);
+      const message = error?.response?.data?.error?.message || 'Error al registrar usuario';
+      throw new Error(message);
     }
   },
 
-  // Login
+  // Login - Always use real backend
   async login(data: LoginRequest): Promise<ApiResponse<LoginResponse>> {
-    // Check mock users first (for development/demo)
-    const mockUserData = MOCK_USERS[data.email.toLowerCase()];
-    if (mockUserData && mockUserData.password === data.password) {
-      const mockToken = `mock-token-${Date.now()}`;
-      await AsyncStorage.setItem(TOKEN_KEY, mockToken);
-      await AsyncStorage.setItem(USER_KEY, JSON.stringify(mockUserData.user));
-
-      return {
-        success: true,
-        data: { user: mockUserData.user, token: mockToken },
-      };
-    }
-
-    // Try real API
     try {
+      console.log('🔐 Attempting login to backend for:', data.email);
       const response = await api.post<ApiResponse<LoginResponse>>('/auth/login', data);
 
       if (response.data.success) {
@@ -211,12 +182,14 @@ export const authService = {
         // Store token and user
         await AsyncStorage.setItem(TOKEN_KEY, response.data.data.token);
         await AsyncStorage.setItem(USER_KEY, JSON.stringify(response.data.data.user));
+        console.log('✅ Login successful, token stored');
       }
 
       return response.data;
-    } catch (error) {
-      // If API fails and not a mock user, throw error
-      throw new Error('Credenciales incorrectas');
+    } catch (error: any) {
+      console.log('❌ Login failed:', error?.response?.data || error.message);
+      const message = error?.response?.data?.error?.message || 'Credenciales incorrectas';
+      throw new Error(message);
     }
   },
 

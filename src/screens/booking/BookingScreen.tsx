@@ -9,12 +9,14 @@ import {
   Alert,
   ActivityIndicator,
   Image,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, Typography } from '../../theme';
-import { Button } from '../../components';
 import { bookingsService, TourCalendarDay, TourCalendarSlot, TourCalendarResponse } from '../../services/bookingsService';
 import { toursService, ApiTour } from '../../services';
+import { useAuth } from '../../context/AuthContext';
 import type { RootStackScreenProps } from '../../types';
 
 type Props = RootStackScreenProps<'Booking'>;
@@ -28,6 +30,7 @@ const DAYS_ES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
 export const BookingScreen: React.FC<Props> = ({ route, navigation }) => {
   const { tourId } = route.params;
+  const { isAuthenticated, user } = useAuth();
 
   // State
   const [tour, setTour] = useState<ApiTour | null>(null);
@@ -49,14 +52,12 @@ export const BookingScreen: React.FC<Props> = ({ route, navigation }) => {
     const fetchTour = async () => {
       setLoadingTour(true);
       try {
-        console.log('📍 BookingScreen - Fetching tour:', tourId);
         const response = await toursService.getTour(tourId);
         if (response.success && response.data) {
           setTour(response.data);
-          console.log('✅ Tour loaded:', response.data.title);
         }
       } catch (err: any) {
-        console.log('❌ Error fetching tour:', err?.response?.data || err);
+        console.log('Error fetching tour:', err);
       } finally {
         setLoadingTour(false);
       }
@@ -70,13 +71,9 @@ export const BookingScreen: React.FC<Props> = ({ route, navigation }) => {
     try {
       const year = currentMonth.getFullYear();
       const month = currentMonth.getMonth() + 1;
-      console.log('📅 Fetching calendar for tour:', tourId, year, month);
       const data = await bookingsService.getTourCalendar(tourId, year, month);
       setCalendarData(data);
-      console.log('✅ Calendar loaded:', data.days?.length, 'days');
     } catch (err: any) {
-      console.log('❌ Error fetching calendar:', err?.response?.data || err);
-      // Generate mock calendar as fallback
       setCalendarData(generateMockCalendar(currentMonth.getFullYear(), currentMonth.getMonth() + 1));
     } finally {
       setLoadingCalendar(false);
@@ -108,17 +105,17 @@ export const BookingScreen: React.FC<Props> = ({ route, navigation }) => {
         slots: isAvailable ? [
           { 
             id: `${date}-1`, 
-            startTime: '08:00', 
+            startTime: '09:00', 
             endTime: '13:00', 
-            spotsAvailable: 10,
+            spotsAvailable: 12,
             spotsBooked: seed % 5,
             price: tour?.price || 45000
           },
           { 
             id: `${date}-2`, 
-            startTime: '14:00', 
-            endTime: '19:00', 
-            spotsAvailable: 10,
+            startTime: '14:30', 
+            endTime: '18:30', 
+            spotsAvailable: 12,
             spotsBooked: seed % 3,
             price: tour?.price || 45000
           },
@@ -171,7 +168,11 @@ export const BookingScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handleSlotSelect = (slot: TourCalendarSlot) => {
     if (slot.spotsAvailable - slot.spotsBooked < participants) {
-      Alert.alert('Cupos insuficientes', `Solo hay ${slot.spotsAvailable - slot.spotsBooked} cupos disponibles para este horario.`);
+      Alert.alert(
+        'Cupos limitados', 
+        `Solo quedan ${slot.spotsAvailable - slot.spotsBooked} cupos disponibles.`,
+        [{ text: 'Entendido' }]
+      );
       return;
     }
     setSelectedSlot(slot);
@@ -187,6 +188,21 @@ export const BookingScreen: React.FC<Props> = ({ route, navigation }) => {
   };
 
   const handleBooking = async () => {
+    if (!isAuthenticated) {
+      Alert.alert(
+        'Inicia sesión',
+        'Para completar tu reserva necesitas tener una cuenta',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { 
+            text: 'Iniciar sesión', 
+            onPress: () => navigation.navigate('Main', { screen: 'Profile' })
+          },
+        ]
+      );
+      return;
+    }
+
     if (!selectedDate || !selectedSlot) {
       Alert.alert('Error', 'Por favor selecciona una fecha y horario');
       return;
@@ -202,8 +218,6 @@ export const BookingScreen: React.FC<Props> = ({ route, navigation }) => {
         specialRequests: specialRequests.trim() || undefined,
         userPhone: userPhone.trim() || undefined,
       });
-
-      console.log('✅ Booking created:', booking.reference);
       
       navigation.replace('BookingSuccess', {
         bookingId: booking.id,
@@ -215,11 +229,26 @@ export const BookingScreen: React.FC<Props> = ({ route, navigation }) => {
         participants,
       });
     } catch (err: any) {
-      console.log('❌ Error creating booking:', err?.response?.data || err);
-      Alert.alert(
-        'Error al reservar',
-        err?.response?.data?.error?.message || 'No se pudo completar la reserva. Intenta de nuevo.'
-      );
+      const errorMessage = err?.response?.data?.error?.message || 
+                          err?.response?.data?.message ||
+                          err?.message ||
+                          'No se pudo completar la reserva.';
+      
+      if (err?.response?.status === 401 || errorMessage.toLowerCase().includes('token')) {
+        Alert.alert(
+          'Sesión expirada',
+          'Por favor inicia sesión nuevamente.',
+          [
+            { text: 'Cancelar', style: 'cancel' },
+            { 
+              text: 'Iniciar sesión', 
+              onPress: () => navigation.navigate('Main', { screen: 'Profile' })
+            },
+          ]
+        );
+      } else {
+        Alert.alert('Error', errorMessage);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -241,9 +270,10 @@ export const BookingScreen: React.FC<Props> = ({ route, navigation }) => {
     return `${hours}h ${mins}min`;
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDateLong = (dateString: string) => {
     const date = new Date(dateString + 'T00:00:00');
-    return `${date.getDate()} ${MONTHS_ES[date.getMonth()]}`;
+    const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    return `${dayNames[date.getDay()]}, ${date.getDate()} de ${MONTHS_ES[date.getMonth()]}`;
   };
 
   const getDaysInMonth = (date: Date) => {
@@ -285,16 +315,31 @@ export const BookingScreen: React.FC<Props> = ({ route, navigation }) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    const isPrevDisabled = (() => {
+      const prevMonth = new Date(currentMonth);
+      prevMonth.setMonth(prevMonth.getMonth() - 1);
+      const todayFirst = new Date();
+      todayFirst.setDate(1);
+      return prevMonth < todayFirst;
+    })();
+
     return (
       <View style={styles.calendar}>
         {/* Month navigation */}
         <View style={styles.calendarHeader}>
-          <TouchableOpacity onPress={handlePreviousMonth} style={styles.monthArrow}>
-            <Text style={styles.monthArrowText}>‹</Text>
+          <TouchableOpacity 
+            onPress={handlePreviousMonth} 
+            style={[styles.monthArrow, isPrevDisabled && styles.monthArrowDisabled]}
+            disabled={isPrevDisabled}
+          >
+            <Text style={[styles.monthArrowText, isPrevDisabled && styles.monthArrowTextDisabled]}>
+              ‹
+            </Text>
           </TouchableOpacity>
-          <Text style={styles.monthTitle}>
-            {MONTHS_ES[currentMonth.getMonth()]} {currentMonth.getFullYear()}
-          </Text>
+          <View style={styles.monthTitleContainer}>
+            <Text style={styles.monthTitle}>{MONTHS_ES[currentMonth.getMonth()]}</Text>
+            <Text style={styles.yearTitle}>{currentMonth.getFullYear()}</Text>
+          </View>
           <TouchableOpacity onPress={handleNextMonth} style={styles.monthArrow}>
             <Text style={styles.monthArrowText}>›</Text>
           </TouchableOpacity>
@@ -302,8 +347,15 @@ export const BookingScreen: React.FC<Props> = ({ route, navigation }) => {
 
         {/* Day headers */}
         <View style={styles.dayHeaders}>
-          {DAYS_ES.map((day) => (
-            <Text key={day} style={styles.dayHeader}>{day}</Text>
+          {DAYS_ES.map((day, index) => (
+            <View key={day} style={styles.dayHeaderCell}>
+              <Text style={[
+                styles.dayHeader,
+                (index === 0 || index === 6) && styles.dayHeaderWeekend
+              ]}>
+                {day}
+              </Text>
+            </View>
           ))}
         </View>
 
@@ -324,36 +376,32 @@ export const BookingScreen: React.FC<Props> = ({ route, navigation }) => {
               const isPast = dateObj < today;
               const isAvailable = !isPast && isDateAvailable(dateString);
               const isSelected = selectedDate === dateString;
+              const isToday = dateObj.getTime() === today.getTime();
 
               return (
                 <TouchableOpacity
                   key={day}
-                  style={[
-                    styles.calendarCell,
+                  style={styles.calendarCell}
+                  onPress={() => handleDateSelect(dateString)}
+                  disabled={isPast || !isAvailable}
+                  activeOpacity={0.7}
+                >
+                  <View style={[
                     styles.calendarDay,
                     isAvailable && styles.calendarDayAvailable,
                     isSelected && styles.calendarDaySelected,
                     isPast && styles.calendarDayPast,
-                  ]}
-                  onPress={() => handleDateSelect(dateString)}
-                  disabled={isPast || !isAvailable}
-                >
-                  <Text
-                    style={[
+                    isToday && !isSelected && styles.calendarDayToday,
+                  ]}>
+                    <Text style={[
                       styles.calendarDayText,
                       isAvailable && styles.calendarDayTextAvailable,
                       isSelected && styles.calendarDayTextSelected,
                       isPast && styles.calendarDayTextPast,
-                    ]}
-                  >
-                    {day}
-                  </Text>
-                  {isAvailable && !isPast && (
-                    <View style={[
-                      styles.availabilityDot,
-                      isSelected && styles.availabilityDotSelected,
-                    ]} />
-                  )}
+                    ]}>
+                      {day}
+                    </Text>
+                  </View>
                 </TouchableOpacity>
               );
             })}
@@ -366,10 +414,10 @@ export const BookingScreen: React.FC<Props> = ({ route, navigation }) => {
   // Loading state
   if (loadingTour) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['bottom']}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={styles.loadingText}>Cargando tour...</Text>
+          <Text style={styles.loadingText}>Cargando...</Text>
         </View>
       </SafeAreaView>
     );
@@ -377,13 +425,13 @@ export const BookingScreen: React.FC<Props> = ({ route, navigation }) => {
 
   if (!tour) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['bottom']}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorTitle}>😕 Tour no encontrado</Text>
-          <Text style={styles.errorText}>
-            No se pudo cargar la información del tour.
-          </Text>
-          <Button title="Volver" onPress={() => navigation.goBack()} style={{ marginTop: 16 }} />
+          <Text style={styles.errorIcon}>😕</Text>
+          <Text style={styles.errorTitle}>Tour no encontrado</Text>
+          <TouchableOpacity style={styles.errorButton} onPress={() => navigation.goBack()}>
+            <Text style={styles.errorButtonText}>Volver</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -391,49 +439,48 @@ export const BookingScreen: React.FC<Props> = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Tour Preview */}
-        <View style={styles.previewCard}>
-          {tour.images?.[0] && (
-            <Image source={{ uri: tour.images[0] }} style={styles.previewImage} />
-          )}
-          <View style={styles.previewInfo}>
-            <Text style={styles.previewTitle} numberOfLines={2}>{tour.title}</Text>
-            <Text style={styles.previewCompany}>
-              🏢 {tour.company?.name || 'Empresa'}
-            </Text>
-            <View style={styles.previewMeta}>
-              <Text style={styles.previewMetaItem}>⏱️ {formatDuration(tour.duration)}</Text>
-              <Text style={styles.previewMetaItem}>👥 Máx. {tour.maxParticipants}</Text>
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Tour Card */}
+        <View style={styles.tourCard}>
+          <Image 
+            source={{ uri: tour.images?.[0] || 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=400' }} 
+            style={styles.tourImage}
+          />
+          <View style={styles.tourInfo}>
+            <Text style={styles.tourTitle} numberOfLines={2}>{tour.title}</Text>
+            <Text style={styles.tourCompany}>{tour.company?.name}</Text>
+            <View style={styles.tourMeta}>
+              <View style={styles.tourMetaItem}>
+                <Text style={styles.tourMetaIcon}>⏱️</Text>
+                <Text style={styles.tourMetaText}>{formatDuration(tour.duration)}</Text>
+              </View>
+              <View style={styles.tourMetaItem}>
+                <Text style={styles.tourMetaIcon}>👥</Text>
+                <Text style={styles.tourMetaText}>Máx. {tour.maxParticipants}</Text>
+              </View>
             </View>
-            <Text style={styles.previewPrice}>
-              {formatPrice(tour.price, tour.currency)} <Text style={styles.previewPriceLabel}>/ persona</Text>
+            <Text style={styles.tourPrice}>
+              {formatPrice(tour.price, tour.currency)}
+              <Text style={styles.tourPriceLabel}> /persona</Text>
             </Text>
           </View>
         </View>
 
-        {/* Date Selection */}
+        {/* Calendar Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>📅 Selecciona una fecha</Text>
           {renderCalendar()}
-          
-          <View style={styles.legendRow}>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: Colors.primary }]} />
-              <Text style={styles.legendText}>Disponible</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: Colors.border }]} />
-              <Text style={styles.legendText}>No disponible</Text>
-            </View>
-          </View>
         </View>
 
-        {/* Time Slot Selection */}
+        {/* Time Slots */}
         {selectedDate && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>⏰ Selecciona un horario</Text>
-            <Text style={styles.sectionSubtitle}>{formatDate(selectedDate)}</Text>
+            <Text style={styles.sectionTitle}>⏰ Selecciona horario</Text>
+            <Text style={styles.sectionSubtitle}>{formatDateLong(selectedDate)}</Text>
             
             {getSlotsForDate(selectedDate).length > 0 ? (
               <View style={styles.slotsContainer}>
@@ -446,30 +493,26 @@ export const BookingScreen: React.FC<Props> = ({ route, navigation }) => {
                       key={slot.id}
                       style={[styles.slotCard, isSelected && styles.slotCardSelected]}
                       onPress={() => handleSlotSelect(slot)}
+                      activeOpacity={0.8}
                     >
-                      <View style={styles.slotTime}>
-                        <Text style={[styles.slotTimeText, isSelected && styles.slotTimeTextSelected]}>
-                          {slot.startTime}
+                      <View style={styles.slotLeft}>
+                        <Text style={[styles.slotTime, isSelected && styles.slotTimeSelected]}>
+                          {slot.startTime} - {slot.endTime}
                         </Text>
-                        <Text style={[styles.slotTimeEnd, isSelected && styles.slotTimeEndSelected]}>
-                          hasta {slot.endTime}
-                        </Text>
-                      </View>
-                      <View style={styles.slotInfo}>
                         <Text style={[styles.slotSpots, isSelected && styles.slotSpotsSelected]}>
-                          {availableSpots} cupos
-                        </Text>
-                        <Text style={[styles.slotPrice, isSelected && styles.slotPriceSelected]}>
-                          {formatPrice(slot.price, tour.currency)}
+                          {availableSpots} cupos disponibles
                         </Text>
                       </View>
+                      <Text style={[styles.slotPrice, isSelected && styles.slotPriceSelected]}>
+                        {formatPrice(slot.price, tour.currency)}
+                      </Text>
                     </TouchableOpacity>
                   );
                 })}
               </View>
             ) : (
               <View style={styles.noSlots}>
-                <Text style={styles.noSlotsText}>No hay horarios disponibles para esta fecha</Text>
+                <Text style={styles.noSlotsText}>No hay horarios disponibles</Text>
               </View>
             )}
           </View>
@@ -478,54 +521,45 @@ export const BookingScreen: React.FC<Props> = ({ route, navigation }) => {
         {/* Participants */}
         {selectedSlot && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>👥 Número de participantes</Text>
-            <View style={styles.participantsRow}>
+            <Text style={styles.sectionTitle}>👥 Participantes</Text>
+            <View style={styles.participantsCard}>
               <TouchableOpacity
-                style={[styles.participantButton, participants <= 1 && styles.participantButtonDisabled]}
+                style={[styles.participantBtn, participants <= 1 && styles.participantBtnDisabled]}
                 onPress={() => handleParticipantsChange(-1)}
                 disabled={participants <= 1}
               >
-                <Text style={styles.participantButtonText}>−</Text>
+                <Text style={[styles.participantBtnText, participants <= 1 && styles.participantBtnTextDisabled]}>−</Text>
               </TouchableOpacity>
-              <View style={styles.participantCount}>
+              
+              <View style={styles.participantValue}>
                 <Text style={styles.participantNumber}>{participants}</Text>
-                <Text style={styles.participantLabel}>
-                  {participants === 1 ? 'persona' : 'personas'}
-                </Text>
+                <Text style={styles.participantLabel}>{participants === 1 ? 'persona' : 'personas'}</Text>
               </View>
+              
               <TouchableOpacity
                 style={[
-                  styles.participantButton,
-                  participants >= Math.min(tour.maxParticipants, selectedSlot.spotsAvailable - selectedSlot.spotsBooked) && styles.participantButtonDisabled,
+                  styles.participantBtn,
+                  participants >= Math.min(tour.maxParticipants, selectedSlot.spotsAvailable - selectedSlot.spotsBooked) && styles.participantBtnDisabled,
                 ]}
                 onPress={() => handleParticipantsChange(1)}
                 disabled={participants >= Math.min(tour.maxParticipants, selectedSlot.spotsAvailable - selectedSlot.spotsBooked)}
               >
-                <Text style={styles.participantButtonText}>+</Text>
+                <Text style={[
+                  styles.participantBtnText,
+                  participants >= Math.min(tour.maxParticipants, selectedSlot.spotsAvailable - selectedSlot.spotsBooked) && styles.participantBtnTextDisabled,
+                ]}>+</Text>
               </TouchableOpacity>
             </View>
           </View>
         )}
 
-        {/* Additional Info */}
+        {/* Contact & Notes */}
         {selectedSlot && (
-          <>
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>📝 Peticiones especiales (opcional)</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder="¿Tienes alguna necesidad especial o preferencia?"
-                placeholderTextColor={Colors.textTertiary}
-                value={specialRequests}
-                onChangeText={setSpecialRequests}
-                multiline
-                numberOfLines={3}
-                textAlignVertical="top"
-              />
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>📱 Teléfono de contacto (opcional)</Text>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>📝 Información adicional</Text>
+            
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Teléfono (opcional)</Text>
               <TextInput
                 style={styles.input}
                 placeholder="+56 9 1234 5678"
@@ -536,52 +570,78 @@ export const BookingScreen: React.FC<Props> = ({ route, navigation }) => {
               />
             </View>
 
-            {/* Meeting Point Info */}
-            {tour.meetingPoint && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>📍 Punto de encuentro</Text>
-                <View style={styles.meetingPointCard}>
-                  <Text style={styles.meetingPointText}>{tour.meetingPoint}</Text>
-                  {tour.meetingPointInstructions && (
-                    <Text style={styles.meetingPointInstructions}>
-                      {tour.meetingPointInstructions}
-                    </Text>
-                  )}
-                </View>
-              </View>
-            )}
-          </>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Comentarios (opcional)</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Alergias, necesidades especiales..."
+                placeholderTextColor={Colors.textTertiary}
+                value={specialRequests}
+                onChangeText={setSpecialRequests}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+            </View>
+          </View>
         )}
 
-        {/* Spacer */}
-        <View style={{ height: 160 }} />
+        {/* Meeting Point */}
+        {selectedSlot && tour.meetingPoint && (
+          <View style={styles.section}>
+            <View style={styles.meetingPointCard}>
+              <Text style={styles.meetingPointIcon}>📍</Text>
+              <View style={styles.meetingPointContent}>
+                <Text style={styles.meetingPointLabel}>Punto de encuentro</Text>
+                <Text style={styles.meetingPointText}>{tour.meetingPoint}</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
+        <View style={{ height: 140 }} />
       </ScrollView>
 
       {/* Bottom Bar */}
       <View style={styles.bottomBar}>
         {selectedSlot ? (
           <>
-            <View style={styles.priceBreakdown}>
-              <Text style={styles.priceLabel}>
-                {formatPrice(selectedSlot.price, tour.currency)} × {participants} {participants === 1 ? 'persona' : 'personas'}
-              </Text>
-              <Text style={styles.priceTotal}>
-                {formatPrice(totalPrice, tour.currency)}
-              </Text>
+            <View style={styles.priceRow}>
+              <View>
+                <Text style={styles.priceLabel}>Total</Text>
+                <Text style={styles.priceDetail}>
+                  {formatPrice(selectedSlot.price, tour.currency)} × {participants}
+                </Text>
+              </View>
+              <Text style={styles.priceTotal}>{formatPrice(totalPrice, tour.currency)}</Text>
             </View>
-            <Button
-              title={submitting ? 'Reservando...' : 'Confirmar Reserva'}
+
+            <TouchableOpacity
+              style={[styles.bookButton, submitting && styles.bookButtonDisabled]}
               onPress={handleBooking}
               disabled={submitting}
-              fullWidth
-            />
+              activeOpacity={0.9}
+            >
+              <LinearGradient
+                colors={submitting ? [Colors.disabled, Colors.disabled] : [Colors.primary, Colors.primaryDark]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.bookButtonGradient}
+              >
+                {submitting ? (
+                  <ActivityIndicator color={Colors.textInverse} size="small" />
+                ) : (
+                  <Text style={styles.bookButtonText}>Confirmar reserva</Text>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
           </>
         ) : (
           <View style={styles.bottomHint}>
             <Text style={styles.bottomHintText}>
               {!selectedDate 
-                ? 'Selecciona una fecha para continuar'
-                : 'Selecciona un horario para continuar'
+                ? '📅 Selecciona una fecha'
+                : '⏰ Selecciona un horario'
               }
             </Text>
           </View>
@@ -596,6 +656,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.sm,
+  },
+
+  // Loading & Error
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -610,73 +679,90 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: Spacing.lg,
+    padding: Spacing.xl,
+  },
+  errorIcon: {
+    fontSize: 48,
+    marginBottom: Spacing.md,
   },
   errorTitle: {
-    ...Typography.h2,
+    ...Typography.h4,
     color: Colors.text,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.lg,
   },
-  errorText: {
-    ...Typography.body,
-    color: Colors.textSecondary,
-    textAlign: 'center',
+  errorButton: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    borderRadius: 12,
   },
-  // Preview card
-  previewCard: {
+  errorButtonText: {
+    ...Typography.button,
+    color: Colors.textInverse,
+  },
+
+  // Tour Card
+  tourCard: {
     flexDirection: 'row',
     backgroundColor: Colors.card,
-    margin: Spacing.lg,
     borderRadius: 16,
     overflow: 'hidden',
+    marginBottom: Spacing.md,
     shadowColor: Colors.text,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.06,
     shadowRadius: 8,
-    elevation: 2,
+    elevation: 3,
   },
-  previewImage: {
+  tourImage: {
     width: 100,
-    height: 120,
+    height: 100,
   },
-  previewInfo: {
+  tourInfo: {
     flex: 1,
-    padding: Spacing.md,
+    padding: Spacing.sm,
     justifyContent: 'space-between',
   },
-  previewTitle: {
+  tourTitle: {
     ...Typography.labelLarge,
     color: Colors.text,
     marginBottom: 2,
   },
-  previewCompany: {
+  tourCompany: {
     ...Typography.caption,
     color: Colors.textSecondary,
-    marginBottom: 4,
   },
-  previewMeta: {
+  tourMeta: {
     flexDirection: 'row',
-    gap: Spacing.sm,
-    marginBottom: 4,
+    gap: Spacing.md,
+    marginVertical: 4,
   },
-  previewMetaItem: {
+  tourMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  tourMetaIcon: {
+    fontSize: 12,
+    marginRight: 4,
+  },
+  tourMetaText: {
     ...Typography.caption,
     color: Colors.textTertiary,
   },
-  previewPrice: {
+  tourPrice: {
     ...Typography.labelLarge,
     color: Colors.primary,
     fontWeight: '700',
   },
-  previewPriceLabel: {
+  tourPriceLabel: {
     ...Typography.caption,
-    color: Colors.textSecondary,
     fontWeight: '400',
+    color: Colors.textSecondary,
   },
+
   // Sections
   section: {
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   sectionTitle: {
     ...Typography.h5,
@@ -684,10 +770,11 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   sectionSubtitle: {
-    ...Typography.body,
+    ...Typography.bodySmall,
     color: Colors.textSecondary,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
+
   // Calendar
   calendar: {
     backgroundColor: Colors.card,
@@ -698,7 +785,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   monthArrow: {
     width: 40,
@@ -706,26 +793,45 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 20,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.primaryMuted,
+  },
+  monthArrowDisabled: {
+    backgroundColor: Colors.border,
+    opacity: 0.5,
   },
   monthArrowText: {
     fontSize: 24,
     color: Colors.primary,
-    fontWeight: '600',
+    fontWeight: '500',
+  },
+  monthArrowTextDisabled: {
+    color: Colors.textTertiary,
+  },
+  monthTitleContainer: {
+    alignItems: 'center',
   },
   monthTitle: {
     ...Typography.h4,
     color: Colors.text,
   },
+  yearTitle: {
+    ...Typography.caption,
+    color: Colors.textSecondary,
+  },
   dayHeaders: {
     flexDirection: 'row',
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
+  },
+  dayHeaderCell: {
+    flex: 1,
+    alignItems: 'center',
   },
   dayHeader: {
-    flex: 1,
-    textAlign: 'center',
     ...Typography.labelSmall,
     color: Colors.textTertiary,
+  },
+  dayHeaderWeekend: {
+    opacity: 0.5,
   },
   calendarLoading: {
     height: 200,
@@ -739,12 +845,13 @@ const styles = StyleSheet.create({
   calendarCell: {
     width: '14.28%',
     aspectRatio: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    padding: 2,
   },
   calendarDay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     borderRadius: 10,
-    margin: 2,
   },
   calendarDayAvailable: {
     backgroundColor: Colors.primaryMuted,
@@ -754,6 +861,10 @@ const styles = StyleSheet.create({
   },
   calendarDayPast: {
     opacity: 0.3,
+  },
+  calendarDayToday: {
+    borderWidth: 2,
+    borderColor: Colors.secondary,
   },
   calendarDayText: {
     ...Typography.body,
@@ -770,36 +881,7 @@ const styles = StyleSheet.create({
   calendarDayTextPast: {
     color: Colors.textTertiary,
   },
-  availabilityDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Colors.success,
-    marginTop: 2,
-  },
-  availabilityDotSelected: {
-    backgroundColor: Colors.textInverse,
-  },
-  legendRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: Spacing.lg,
-    marginTop: Spacing.md,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  legendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: 6,
-  },
-  legendText: {
-    ...Typography.caption,
-    color: Colors.textSecondary,
-  },
+
   // Slots
   slotsContainer: {
     gap: Spacing.sm,
@@ -818,39 +900,25 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     borderColor: Colors.primary,
   },
+  slotLeft: {},
   slotTime: {
-    flex: 1,
-  },
-  slotTimeText: {
-    ...Typography.h4,
+    ...Typography.labelLarge,
     color: Colors.text,
+    marginBottom: 2,
   },
-  slotTimeTextSelected: {
+  slotTimeSelected: {
     color: Colors.textInverse,
-  },
-  slotTimeEnd: {
-    ...Typography.caption,
-    color: Colors.textTertiary,
-  },
-  slotTimeEndSelected: {
-    color: Colors.textInverse,
-    opacity: 0.8,
-  },
-  slotInfo: {
-    alignItems: 'flex-end',
   },
   slotSpots: {
     ...Typography.caption,
     color: Colors.success,
-    marginBottom: 2,
   },
   slotSpotsSelected: {
-    color: Colors.textInverse,
+    color: 'rgba(255,255,255,0.8)',
   },
   slotPrice: {
-    ...Typography.labelLarge,
+    ...Typography.price,
     color: Colors.primary,
-    fontWeight: '700',
   },
   slotPriceSelected: {
     color: Colors.textInverse,
@@ -865,16 +933,17 @@ const styles = StyleSheet.create({
     ...Typography.body,
     color: Colors.textSecondary,
   },
+
   // Participants
-  participantsRow: {
+  participantsCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Colors.card,
-    borderRadius: 16,
+    borderRadius: 14,
     padding: Spacing.md,
   },
-  participantButton: {
+  participantBtn: {
     width: 48,
     height: 48,
     borderRadius: 24,
@@ -882,17 +951,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  participantButtonDisabled: {
-    backgroundColor: Colors.disabled,
+  participantBtnDisabled: {
+    backgroundColor: Colors.border,
   },
-  participantButtonText: {
-    ...Typography.h3,
+  participantBtnText: {
+    fontSize: 24,
     color: Colors.textInverse,
+    fontWeight: '500',
   },
-  participantCount: {
+  participantBtnTextDisabled: {
+    color: Colors.textTertiary,
+  },
+  participantValue: {
     alignItems: 'center',
-    minWidth: 100,
-    marginHorizontal: Spacing.lg,
+    marginHorizontal: Spacing.xl,
   },
   participantNumber: {
     ...Typography.h1,
@@ -902,7 +974,16 @@ const styles = StyleSheet.create({
     ...Typography.caption,
     color: Colors.textSecondary,
   },
+
   // Inputs
+  inputGroup: {
+    marginBottom: Spacing.sm,
+  },
+  inputLabel: {
+    ...Typography.label,
+    color: Colors.text,
+    marginBottom: Spacing.xs,
+  },
   input: {
     backgroundColor: Colors.card,
     borderRadius: 12,
@@ -914,34 +995,43 @@ const styles = StyleSheet.create({
   },
   textArea: {
     minHeight: 80,
+    paddingTop: Spacing.md,
   },
-  // Meeting point
+
+  // Meeting Point
   meetingPointCard: {
-    backgroundColor: Colors.card,
+    flexDirection: 'row',
+    backgroundColor: Colors.infoLight,
     borderRadius: 12,
     padding: Spacing.md,
-    borderLeftWidth: 4,
-    borderLeftColor: Colors.primary,
+  },
+  meetingPointIcon: {
+    fontSize: 20,
+    marginRight: Spacing.sm,
+  },
+  meetingPointContent: {
+    flex: 1,
+  },
+  meetingPointLabel: {
+    ...Typography.labelSmall,
+    color: Colors.info,
+    marginBottom: 2,
   },
   meetingPointText: {
     ...Typography.body,
     color: Colors.text,
-    fontWeight: '600',
   },
-  meetingPointInstructions: {
-    ...Typography.bodySmall,
-    color: Colors.textSecondary,
-    marginTop: Spacing.xs,
-  },
-  // Bottom bar
+
+  // Bottom Bar
   bottomBar: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
     backgroundColor: Colors.card,
-    padding: Spacing.lg,
-    paddingBottom: Spacing.xl,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.md,
+    paddingBottom: Platform.OS === 'ios' ? 34 : Spacing.md,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
     shadowColor: Colors.text,
@@ -950,20 +1040,40 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
-  priceBreakdown: {
+  priceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: Spacing.sm,
   },
   priceLabel: {
-    ...Typography.body,
+    ...Typography.labelSmall,
+    color: Colors.textTertiary,
+  },
+  priceDetail: {
+    ...Typography.caption,
     color: Colors.textSecondary,
   },
   priceTotal: {
-    ...Typography.h3,
+    ...Typography.h2,
     color: Colors.primary,
     fontWeight: '700',
+  },
+  bookButton: {
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  bookButtonDisabled: {
+    opacity: 0.7,
+  },
+  bookButtonGradient: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.md,
+  },
+  bookButtonText: {
+    ...Typography.button,
+    color: Colors.textInverse,
   },
   bottomHint: {
     alignItems: 'center',

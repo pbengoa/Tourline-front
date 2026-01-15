@@ -1,7 +1,7 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { MainTabNavigator } from './MainTabNavigator';
-import { DetailsScreen, GuideDetailScreen, FavoritesScreen } from '../screens';
+import { DetailsScreen, GuideDetailScreen, FavoritesScreen, CompanyDetailScreen } from '../screens';
 import {
   BookingScreen,
   BookingConfirmationScreen,
@@ -55,6 +55,11 @@ export const RootNavigator: React.FC = () => {
             title: guide?.name || 'Perfil del Guía',
           };
         }}
+      />
+      <Stack.Screen
+        name="CompanyDetail"
+        component={CompanyDetailScreen}
+        options={{ headerShown: false }}
       />
       {/* Booking flow */}
       <Stack.Screen name="Booking" component={BookingScreen} options={{ title: 'Reservar' }} />

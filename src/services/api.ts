@@ -25,6 +25,11 @@ export const USER_KEY = '@tourline_user';
 api.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     const token = await AsyncStorage.getItem(TOKEN_KEY);
+    
+    // Debug logging
+    console.log(`🔑 API Request: ${config.method?.toUpperCase()} ${config.url}`);
+    console.log(`🔑 Token exists: ${!!token}`);
+    
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -37,12 +42,23 @@ api.interceptors.request.use(
 
 // Response interceptor - handle errors
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log(`✅ API Response: ${response.config.url} - ${response.status}`);
+    return response;
+  },
   async (error: AxiosError) => {
+    console.log(`❌ API Error: ${error.config?.url} - ${error.response?.status}`);
+    
+    // Only clear token on 401 for auth endpoints, not for all endpoints
     if (error.response?.status === 401) {
-      // Token expired or invalid - clear storage
-      await AsyncStorage.multiRemove([TOKEN_KEY, USER_KEY]);
-      // You might want to emit an event here to redirect to login
+      const url = error.config?.url || '';
+      // Only clear storage if it's an auth validation endpoint (getMe)
+      if (url.includes('/auth/me')) {
+        console.log('🔓 Token invalid on /auth/me - clearing storage');
+        await AsyncStorage.multiRemove([TOKEN_KEY, USER_KEY]);
+      } else {
+        console.log('⚠️ 401 on non-auth endpoint - NOT clearing token');
+      }
     }
     return Promise.reject(error);
   }

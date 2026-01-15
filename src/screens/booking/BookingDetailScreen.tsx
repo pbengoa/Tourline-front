@@ -1,77 +1,167 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
+  Image,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, Typography } from '../../theme';
 import { Button } from '../../components';
-import { MOCK_BOOKINGS } from '../../constants/bookingData';
-import { BOOKING_STATUS_CONFIG } from '../../types/booking';
+import { bookingsService, Booking, BookingStatus } from '../../services/bookingsService';
 import type { RootStackScreenProps } from '../../types';
 
 type Props = RootStackScreenProps<'BookingDetail'>;
 
 const MONTHS_ES = [
-  'enero',
-  'febrero',
-  'marzo',
-  'abril',
-  'mayo',
-  'junio',
-  'julio',
-  'agosto',
-  'septiembre',
-  'octubre',
-  'noviembre',
-  'diciembre',
+  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
 ];
 
 const DAYS_ES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 
+const STATUS_CONFIG: Record<BookingStatus, { icon: string; label: string; color: string; description: string }> = {
+  PENDING: { 
+    icon: '⏳', 
+    label: 'Pendiente', 
+    color: Colors.warning,
+    description: 'Esperando confirmación de la empresa'
+  },
+  CONFIRMED: { 
+    icon: '✅', 
+    label: 'Confirmada', 
+    color: Colors.success,
+    description: '¡Tu reserva está confirmada!'
+  },
+  CANCELLED_USER: { 
+    icon: '❌', 
+    label: 'Cancelada', 
+    color: Colors.error,
+    description: 'Cancelaste esta reserva'
+  },
+  CANCELLED_COMPANY: { 
+    icon: '❌', 
+    label: 'Cancelada', 
+    color: Colors.error,
+    description: 'La empresa canceló esta reserva'
+  },
+  COMPLETED: { 
+    icon: '🎉', 
+    label: 'Completada', 
+    color: Colors.primary,
+    description: '¡Esperamos que hayas disfrutado!'
+  },
+  NO_SHOW: { 
+    icon: '👻', 
+    label: 'No asistió', 
+    color: Colors.textTertiary,
+    description: 'No asististe a esta reserva'
+  },
+  REFUNDED: { 
+    icon: '💰', 
+    label: 'Reembolsada', 
+    color: Colors.accent,
+    description: 'Se ha procesado el reembolso'
+  },
+};
+
 export const BookingDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const { bookingId } = route.params;
-  const booking = MOCK_BOOKINGS.find((b) => b.id === bookingId);
 
+  const [booking, setBooking] = useState<Booking | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
 
-  if (!booking) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Reserva no encontrada</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  const fetchBooking = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await bookingsService.getBookingById(bookingId);
+      setBooking(data);
+    } catch (err: any) {
+      console.log('Error fetching booking:', err);
+      setError('No se pudo cargar la reserva');
+      // Mock booking for development
+      setBooking(getMockBooking());
+    } finally {
+      setLoading(false);
+    }
+  }, [bookingId]);
 
-  const statusConfig = BOOKING_STATUS_CONFIG[booking.status];
+  useEffect(() => {
+    fetchBooking();
+  }, [fetchBooking]);
+
+  // Mock booking for development
+  const getMockBooking = (): Booking => ({
+    id: bookingId,
+    reference: 'TL-ABC123',
+    tourId: 'tour-1',
+    userId: 'user-1',
+    date: '2026-01-20',
+    startTime: '09:00',
+    endTime: '14:00',
+    duration: 300,
+    participants: 2,
+    specialRequests: 'Vegetarian lunch please',
+    totalPrice: 90000,
+    currency: 'CLP',
+    status: 'CONFIRMED',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    tour: {
+      id: 'tour-1',
+      name: 'Cajón del Maipo Hiking',
+      slug: 'cajon-del-maipo',
+      coverImage: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800',
+      duration: 300,
+      price: 45000,
+      currency: 'CLP',
+      meetingPoint: 'Estación de Metro Baquedano, Salida Plaza Italia',
+      meetingPointInstructions: 'Busca al guía con bandera naranja',
+      city: 'Santiago',
+      country: 'Chile',
+      company: {
+        id: 'company-1',
+        name: 'Andes Adventures',
+        slug: 'andes-adventures',
+        logoUrl: 'https://via.placeholder.com/100',
+      },
+    },
+  });
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const bookingDate = new Date(booking.date);
-  const isUpcoming = bookingDate >= today;
-  const canCancel = booking.status === 'pending' || booking.status === 'confirmed';
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map((part) => part[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
-  const formatFullDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const dayName = DAYS_ES[date.getDay()];
+  const formatFullDate = (dateString: string | undefined) => {
+    if (!dateString) return 'Fecha no disponible';
+    const date = new Date(dateString + 'T00:00:00');
+    const dayName = DAYS_ES[date.getDay()] || 'Día';
     const day = date.getDate();
-    const month = MONTHS_ES[date.getMonth()];
+    const month = MONTHS_ES[date.getMonth()] || 'mes';
     const year = date.getFullYear();
     return `${dayName.charAt(0).toUpperCase() + dayName.slice(1)}, ${day} de ${month} de ${year}`;
+  };
+
+  const formatPrice = (price: number, currency: string = 'CLP') => {
+    if (currency === 'CLP') {
+      return `$${price.toLocaleString('es-CL')}`;
+    }
+    return `€${price}`;
+  };
+
+  const formatDuration = (minutes: number): string => {
+    if (minutes < 60) return `${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (mins === 0) return `${hours}h`;
+    return `${hours}h ${mins}min`;
   };
 
   const handleCancelBooking = () => {
@@ -86,12 +176,11 @@ export const BookingDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           onPress: async () => {
             setIsCancelling(true);
             try {
-              // TODO: Implement actual cancellation
-              await new Promise((resolve) => setTimeout(resolve, 1500));
+              await bookingsService.cancelBooking(bookingId, { reason: 'Cancelado por el usuario' });
               Alert.alert('Reserva cancelada', 'Tu reserva ha sido cancelada correctamente');
               navigation.goBack();
-            } catch (error) {
-              Alert.alert('Error', 'No se pudo cancelar la reserva');
+            } catch (error: any) {
+              Alert.alert('Error', error?.message || 'No se pudo cancelar la reserva');
             } finally {
               setIsCancelling(false);
             }
@@ -101,56 +190,107 @@ export const BookingDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     );
   };
 
-  const handleContactGuide = () => {
-    // TODO: Navigate to chat or contact modal
+  const handleContactCompany = () => {
+    // TODO: Navigate to chat
     Alert.alert('Próximamente', 'La función de chat estará disponible pronto');
   };
 
-  const handleGuidePress = () => {
-    navigation.navigate('GuideDetail', { guideId: booking.guideId });
+  const handleViewTour = () => {
+    if (booking?.tourId) {
+      navigation.navigate('Details', { id: booking.tourId });
+    }
   };
 
+  const handleViewCompany = () => {
+    if (booking?.tour?.company?.id) {
+      navigation.navigate('CompanyDetail', { companyId: booking.tour.company.id });
+    }
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>Cargando reserva...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Error state
+  if (error && !booking) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorIcon}>😕</Text>
+          <Text style={styles.errorTitle}>Reserva no encontrada</Text>
+          <Button title="Volver" onPress={() => navigation.goBack()} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!booking) return null;
+
+  const statusConfig = STATUS_CONFIG[booking.status] || STATUS_CONFIG.PENDING;
+  const bookingDate = new Date(booking.date);
+  const isUpcoming = bookingDate >= today;
+  const canCancel = (booking.status === 'PENDING' || booking.status === 'CONFIRMED') && isUpcoming;
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Tour Image Header */}
+        <View style={styles.heroContainer}>
+          {booking.tour?.coverImage ? (
+            <Image source={{ uri: booking.tour.coverImage }} style={styles.heroImage} />
+          ) : (
+            <LinearGradient
+              colors={[Colors.primaryLight, Colors.primary]}
+              style={styles.heroPlaceholder}
+            >
+              <Text style={styles.heroEmoji}>🏔️</Text>
+            </LinearGradient>
+          )}
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.7)']}
+            style={styles.heroGradient}
+          />
+          <View style={styles.heroContent}>
+            <Text style={styles.heroTitle}>{booking.tour?.name || 'Tour'}</Text>
+            <TouchableOpacity style={styles.heroCompany} onPress={handleViewCompany}>
+              <Text style={styles.heroCompanyText}>
+                🏢 {booking.tour?.company?.name || 'Empresa'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* Status Banner */}
         <View style={[styles.statusBanner, { backgroundColor: statusConfig.color + '15' }]}>
-          <Text style={[styles.statusIcon, { color: statusConfig.color }]}>
-            {statusConfig.icon}
-          </Text>
+          <Text style={styles.statusIcon}>{statusConfig.icon}</Text>
           <View style={styles.statusContent}>
             <Text style={[styles.statusLabel, { color: statusConfig.color }]}>
               {statusConfig.label}
             </Text>
-            {booking.status === 'pending' && (
-              <Text style={styles.statusDescription}>Esperando confirmación del guía</Text>
-            )}
-            {booking.status === 'confirmed' && (
-              <Text style={styles.statusDescription}>¡Tu reserva está confirmada!</Text>
-            )}
+            <Text style={styles.statusDescription}>{statusConfig.description}</Text>
           </View>
         </View>
 
-        {/* Guide Info */}
-        <TouchableOpacity style={styles.guideCard} onPress={handleGuidePress}>
-          <View style={styles.guideAvatar}>
-            <Text style={styles.guideAvatarText}>{getInitials(booking.guideName)}</Text>
-          </View>
-          <View style={styles.guideInfo}>
-            <Text style={styles.guideName}>{booking.guideName}</Text>
-            <Text style={styles.guideLocation}>📍 {booking.location}</Text>
-          </View>
-          <Text style={styles.viewGuide}>Ver perfil →</Text>
-        </TouchableOpacity>
+        {/* Reference */}
+        <View style={styles.referenceCard}>
+          <Text style={styles.referenceLabel}>Código de reserva</Text>
+          <Text style={styles.referenceValue}>
+            {booking.reference || `#${booking.id.slice(-8).toUpperCase()}`}
+          </Text>
+        </View>
 
         {/* Booking Details */}
         <View style={styles.detailsCard}>
-          {booking.tourTitle && (
-            <View style={styles.tourTitleRow}>
-              <Text style={styles.tourTitle}>{booking.tourTitle}</Text>
-            </View>
-          )}
-
+          <Text style={styles.cardTitle}>Detalles de la reserva</Text>
+          
           <View style={styles.detailRow}>
             <View style={styles.detailIcon}>
               <Text style={styles.detailIconText}>📅</Text>
@@ -163,12 +303,12 @@ export const BookingDetailScreen: React.FC<Props> = ({ route, navigation }) => {
 
           <View style={styles.detailRow}>
             <View style={styles.detailIcon}>
-              <Text style={styles.detailIconText}>🕐</Text>
+              <Text style={styles.detailIconText}>⏰</Text>
             </View>
             <View style={styles.detailContent}>
               <Text style={styles.detailLabel}>Horario</Text>
               <Text style={styles.detailValue}>
-                {booking.startTime} - {booking.endTime} ({booking.duration})
+                {booking.startTime} - {booking.endTime} ({formatDuration(booking.duration)})
               </Text>
             </View>
           </View>
@@ -184,101 +324,106 @@ export const BookingDetailScreen: React.FC<Props> = ({ route, navigation }) => {
               </Text>
             </View>
           </View>
-
-          <View style={styles.detailRow}>
-            <View style={styles.detailIcon}>
-              <Text style={styles.detailIconText}>🎫</Text>
-            </View>
-            <View style={styles.detailContent}>
-              <Text style={styles.detailLabel}>Referencia</Text>
-              <Text style={styles.detailValue}>#{booking.id.slice(-8).toUpperCase()}</Text>
-            </View>
-          </View>
         </View>
 
-        {/* Messages */}
-        {(booking.userMessage || booking.guideResponse) && (
-          <View style={styles.messagesCard}>
-            <Text style={styles.messagesTitle}>Mensajes</Text>
-
-            {booking.userMessage && (
-              <View style={styles.messageItem}>
-                <Text style={styles.messageAuthor}>Tu mensaje:</Text>
-                <Text style={styles.messageText}>"{booking.userMessage}"</Text>
-              </View>
-            )}
-
-            {booking.guideResponse && (
-              <View style={[styles.messageItem, styles.guideMessage]}>
-                <Text style={styles.messageAuthor}>
-                  Respuesta de {booking.guideName.split(' ')[0]}:
-                </Text>
-                <Text style={styles.messageText}>"{booking.guideResponse}"</Text>
-              </View>
+        {/* Meeting Point */}
+        {booking.tour?.meetingPoint && (
+          <View style={styles.meetingCard}>
+            <Text style={styles.cardTitle}>📍 Punto de encuentro</Text>
+            <Text style={styles.meetingAddress}>{booking.tour.meetingPoint}</Text>
+            {booking.tour.meetingPointInstructions && (
+              <Text style={styles.meetingInstructions}>
+                💡 {booking.tour.meetingPointInstructions}
+              </Text>
             )}
           </View>
         )}
 
-        {/* Price Breakdown */}
+        {/* Special Requests */}
+        {booking.specialRequests && (
+          <View style={styles.requestsCard}>
+            <Text style={styles.cardTitle}>📝 Peticiones especiales</Text>
+            <Text style={styles.requestsText}>"{booking.specialRequests}"</Text>
+          </View>
+        )}
+
+        {/* Price Summary */}
         <View style={styles.priceCard}>
-          <Text style={styles.priceTitle}>Resumen del pago</Text>
+          <Text style={styles.cardTitle}>💰 Resumen del precio</Text>
           <View style={styles.priceRow}>
             <Text style={styles.priceLabel}>
-              {booking.pricePerPerson}€ × {booking.participants}{' '}
-              {booking.participants === 1 ? 'persona' : 'personas'}
+              {formatPrice(booking.tour?.price || 0, booking.currency)} × {booking.participants} {booking.participants === 1 ? 'persona' : 'personas'}
             </Text>
-            <Text style={styles.priceValue}>{booking.pricePerPerson * booking.participants}€</Text>
+            <Text style={styles.priceValue}>
+              {formatPrice((booking.tour?.price || 0) * booking.participants, booking.currency)}
+            </Text>
           </View>
           <View style={styles.priceDivider} />
           <View style={styles.priceRow}>
-            <Text style={styles.totalLabel}>Total pagado</Text>
-            <Text style={styles.totalValue}>{booking.totalPrice}€</Text>
+            <Text style={styles.totalLabel}>Total</Text>
+            <Text style={styles.totalValue}>{formatPrice(booking.totalPrice, booking.currency)}</Text>
           </View>
         </View>
 
-        {/* Cancellation Info */}
-        {booking.status === 'cancelled' && booking.cancellationReason && (
+        {/* Cancellation Reason */}
+        {booking.cancellationReason && (
           <View style={styles.cancellationCard}>
             <Text style={styles.cancellationTitle}>Motivo de cancelación</Text>
             <Text style={styles.cancellationReason}>{booking.cancellationReason}</Text>
           </View>
         )}
 
-        {/* Actions */}
-        {canCancel && isUpcoming && (
-          <View style={styles.actionsSection}>
-            <Button
-              title="Contactar al guía"
-              onPress={handleContactGuide}
-              variant="outline"
-              fullWidth
-              style={styles.actionButton}
-            />
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={handleCancelBooking}
-              disabled={isCancelling}
-            >
-              <Text style={styles.cancelButtonText}>
-                {isCancelling ? 'Cancelando...' : 'Cancelar reserva'}
-              </Text>
-            </TouchableOpacity>
+        {/* Notes from company */}
+        {booking.notes && (
+          <View style={styles.notesCard}>
+            <Text style={styles.cardTitle}>💬 Nota de la empresa</Text>
+            <Text style={styles.notesText}>"{booking.notes}"</Text>
           </View>
         )}
 
-        {/* Leave Review (for completed bookings) */}
-        {booking.status === 'completed' && (
-          <View style={styles.reviewSection}>
-            <Text style={styles.reviewTitle}>¿Cómo fue tu experiencia?</Text>
-            <Button
-              title="Dejar una reseña"
-              onPress={() =>
-                Alert.alert('Próximamente', 'La función de reseñas estará disponible pronto')
-              }
-              fullWidth
-            />
-          </View>
-        )}
+        {/* Actions */}
+        <View style={styles.actionsSection}>
+          <Button
+            title="Ver tour"
+            onPress={handleViewTour}
+            variant="outline"
+            fullWidth
+            style={styles.actionButton}
+          />
+          
+          {canCancel && (
+            <>
+              <Button
+                title="Contactar empresa"
+                onPress={handleContactCompany}
+                variant="outline"
+                fullWidth
+                style={styles.actionButton}
+              />
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={handleCancelBooking}
+                disabled={isCancelling}
+              >
+                <Text style={styles.cancelButtonText}>
+                  {isCancelling ? 'Cancelando...' : 'Cancelar reserva'}
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          {/* Leave Review */}
+          {booking.status === 'COMPLETED' && (
+            <View style={styles.reviewSection}>
+              <Text style={styles.reviewTitle}>¿Cómo fue tu experiencia?</Text>
+              <Button
+                title="Dejar una reseña"
+                onPress={() => Alert.alert('Próximamente', 'La función de reseñas estará disponible pronto')}
+                fullWidth
+              />
+            </View>
+          )}
+        </View>
 
         <View style={{ height: Spacing.xl }} />
       </ScrollView>
@@ -291,24 +436,87 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  errorContainer: {
+  loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  errorText: {
+  loadingText: {
     ...Typography.body,
     color: Colors.textSecondary,
+    marginTop: Spacing.md,
   },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.lg,
+  },
+  errorIcon: {
+    fontSize: 64,
+    marginBottom: Spacing.md,
+  },
+  errorTitle: {
+    ...Typography.h3,
+    color: Colors.text,
+    marginBottom: Spacing.lg,
+  },
+  // Hero
+  heroContainer: {
+    height: 200,
+    position: 'relative',
+  },
+  heroImage: {
+    width: '100%',
+    height: '100%',
+  },
+  heroPlaceholder: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  heroEmoji: {
+    fontSize: 48,
+    opacity: 0.5,
+  },
+  heroGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 120,
+  },
+  heroContent: {
+    position: 'absolute',
+    bottom: Spacing.md,
+    left: Spacing.lg,
+    right: Spacing.lg,
+  },
+  heroTitle: {
+    ...Typography.h3,
+    color: Colors.textInverse,
+    fontWeight: '700',
+    marginBottom: Spacing.xs,
+  },
+  heroCompany: {
+    alignSelf: 'flex-start',
+  },
+  heroCompanyText: {
+    ...Typography.body,
+    color: 'rgba(255,255,255,0.9)',
+  },
+  // Status Banner
   statusBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     margin: Spacing.lg,
+    marginBottom: Spacing.md,
     padding: Spacing.md,
-    borderRadius: 12,
+    borderRadius: 16,
   },
   statusIcon: {
-    fontSize: 28,
+    fontSize: 32,
     marginRight: Spacing.md,
   },
   statusContent: {
@@ -316,64 +524,47 @@ const styles = StyleSheet.create({
   },
   statusLabel: {
     ...Typography.h4,
+    fontWeight: '700',
   },
   statusDescription: {
     ...Typography.bodySmall,
     color: Colors.textSecondary,
+    marginTop: 2,
   },
-  guideCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface,
+  // Reference
+  referenceCard: {
+    backgroundColor: Colors.primaryMuted,
     marginHorizontal: Spacing.lg,
     marginBottom: Spacing.md,
     padding: Spacing.md,
-    borderRadius: 12,
-  },
-  guideAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.primary,
-    justifyContent: 'center',
+    borderRadius: 16,
     alignItems: 'center',
-    marginRight: Spacing.md,
   },
-  guideAvatarText: {
-    ...Typography.labelLarge,
-    color: Colors.textInverse,
-  },
-  guideInfo: {
-    flex: 1,
-  },
-  guideName: {
-    ...Typography.labelLarge,
-    color: Colors.text,
-  },
-  guideLocation: {
-    ...Typography.bodySmall,
+  referenceLabel: {
+    ...Typography.caption,
     color: Colors.textSecondary,
+    marginBottom: 4,
   },
-  viewGuide: {
-    ...Typography.label,
+  referenceValue: {
+    ...Typography.h3,
     color: Colors.primary,
+    fontWeight: '700',
+    letterSpacing: 1,
+    fontFamily: 'monospace',
   },
+  // Cards
   detailsCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.card,
     marginHorizontal: Spacing.lg,
     marginBottom: Spacing.md,
     padding: Spacing.lg,
-    borderRadius: 12,
+    borderRadius: 16,
   },
-  tourTitleRow: {
-    marginBottom: Spacing.md,
-    paddingBottom: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  tourTitle: {
-    ...Typography.h4,
+  cardTitle: {
+    ...Typography.labelLarge,
     color: Colors.text,
+    fontWeight: '600',
+    marginBottom: Spacing.md,
   },
   detailRow: {
     flexDirection: 'row',
@@ -381,70 +572,70 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   detailIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: Colors.primary + '15',
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: Colors.primaryMuted,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: Spacing.md,
   },
   detailIconText: {
-    fontSize: 18,
+    fontSize: 20,
   },
   detailContent: {
     flex: 1,
   },
   detailLabel: {
-    ...Typography.bodySmall,
+    ...Typography.caption,
     color: Colors.textSecondary,
+    marginBottom: 2,
   },
   detailValue: {
     ...Typography.labelLarge,
     color: Colors.text,
   },
-  messagesCard: {
-    backgroundColor: Colors.surface,
+  // Meeting Point
+  meetingCard: {
+    backgroundColor: Colors.card,
     marginHorizontal: Spacing.lg,
     marginBottom: Spacing.md,
     padding: Spacing.lg,
-    borderRadius: 12,
+    borderRadius: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.primary,
   },
-  messagesTitle: {
-    ...Typography.h4,
-    color: Colors.text,
-    marginBottom: Spacing.md,
-  },
-  messageItem: {
-    backgroundColor: Colors.background,
-    borderRadius: 8,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
-  },
-  guideMessage: {
-    backgroundColor: Colors.primary + '10',
-  },
-  messageAuthor: {
-    ...Typography.labelSmall,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.xs,
-  },
-  messageText: {
+  meetingAddress: {
     ...Typography.body,
     color: Colors.text,
+    fontWeight: '600',
+    marginBottom: Spacing.sm,
+  },
+  meetingInstructions: {
+    ...Typography.bodySmall,
+    color: Colors.textSecondary,
     fontStyle: 'italic',
   },
-  priceCard: {
-    backgroundColor: Colors.surface,
+  // Special Requests
+  requestsCard: {
+    backgroundColor: Colors.card,
     marginHorizontal: Spacing.lg,
     marginBottom: Spacing.md,
     padding: Spacing.lg,
-    borderRadius: 12,
+    borderRadius: 16,
   },
-  priceTitle: {
-    ...Typography.h4,
-    color: Colors.text,
+  requestsText: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    fontStyle: 'italic',
+  },
+  // Price
+  priceCard: {
+    backgroundColor: Colors.card,
+    marginHorizontal: Spacing.lg,
     marginBottom: Spacing.md,
+    padding: Spacing.lg,
+    borderRadius: 16,
   },
   priceRow: {
     flexDirection: 'row',
@@ -462,7 +653,7 @@ const styles = StyleSheet.create({
   },
   priceDivider: {
     height: 1,
-    backgroundColor: Colors.border,
+    backgroundColor: Colors.borderLight,
     marginVertical: Spacing.sm,
   },
   totalLabel: {
@@ -472,13 +663,15 @@ const styles = StyleSheet.create({
   totalValue: {
     ...Typography.h3,
     color: Colors.primary,
+    fontWeight: '700',
   },
+  // Cancellation
   cancellationCard: {
-    backgroundColor: Colors.error + '10',
+    backgroundColor: Colors.errorLight,
     marginHorizontal: Spacing.lg,
     marginBottom: Spacing.md,
     padding: Spacing.lg,
-    borderRadius: 12,
+    borderRadius: 16,
   },
   cancellationTitle: {
     ...Typography.labelLarge,
@@ -489,24 +682,44 @@ const styles = StyleSheet.create({
     ...Typography.body,
     color: Colors.text,
   },
+  // Notes
+  notesCard: {
+    backgroundColor: Colors.card,
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
+    padding: Spacing.lg,
+    borderRadius: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.accent,
+  },
+  notesText: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    fontStyle: 'italic',
+  },
+  // Actions
   actionsSection: {
     paddingHorizontal: Spacing.lg,
     marginTop: Spacing.md,
   },
   actionButton: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   cancelButton: {
     alignItems: 'center',
     padding: Spacing.md,
+    marginTop: Spacing.sm,
   },
   cancelButtonText: {
     ...Typography.label,
     color: Colors.error,
+    fontWeight: '600',
   },
   reviewSection: {
-    paddingHorizontal: Spacing.lg,
     marginTop: Spacing.lg,
+    paddingTop: Spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderLight,
   },
   reviewTitle: {
     ...Typography.h4,

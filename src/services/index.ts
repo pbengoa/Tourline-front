@@ -129,3 +129,14 @@ export type {
 // App Config Service
 export { appConfigService } from './appConfigService';
 export type { AppConfig, HomeFeedData } from './appConfigService';
+
+// Companies Service
+export { companiesService } from './companiesService';
+export type {
+  Company,
+  CompanyTour,
+  CompanyReview,
+  CompanyGuide,
+  SearchCompaniesParams,
+  CompaniesListResponse,
+} from './companiesService';

@@ -1,86 +1,176 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   FlatList,
   TouchableOpacity,
   RefreshControl,
+  ActivityIndicator,
+  Image,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing, Typography } from '../../theme';
-import { MOCK_BOOKINGS } from '../../constants/bookingData';
-import { BOOKING_STATUS_CONFIG } from '../../types/booking';
-import type { RootStackScreenProps, Booking, BookingStatus } from '../../types';
+import { bookingsService, Booking, BookingStatus } from '../../services/bookingsService';
+import type { RootStackScreenProps } from '../../types';
 
 type Props = RootStackScreenProps<'MyBookings'>;
 type BookingFilter = 'all' | 'upcoming' | 'past';
 
 const MONTHS_ES = [
-  'ene',
-  'feb',
-  'mar',
-  'abr',
-  'may',
-  'jun',
-  'jul',
-  'ago',
-  'sep',
-  'oct',
-  'nov',
-  'dic',
+  'ene', 'feb', 'mar', 'abr', 'may', 'jun',
+  'jul', 'ago', 'sep', 'oct', 'nov', 'dic',
 ];
+
+const STATUS_CONFIG: Record<BookingStatus, { icon: string; label: string; color: string }> = {
+  PENDING: { icon: '⏳', label: 'Pendiente', color: Colors.warning },
+  CONFIRMED: { icon: '✅', label: 'Confirmada', color: Colors.success },
+  CANCELLED_USER: { icon: '❌', label: 'Cancelada', color: Colors.error },
+  CANCELLED_COMPANY: { icon: '❌', label: 'Cancelada', color: Colors.error },
+  COMPLETED: { icon: '🎉', label: 'Completada', color: Colors.primary },
+  NO_SHOW: { icon: '👻', label: 'No asistió', color: Colors.textTertiary },
+  REFUNDED: { icon: '💰', label: 'Reembolsada', color: Colors.accent },
+};
 
 export const MyBookingsScreen: React.FC<Props> = ({ navigation }) => {
   const [filter, setFilter] = useState<BookingFilter>('all');
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const filteredBookings = MOCK_BOOKINGS.filter((booking) => {
+  const fetchBookings = useCallback(async () => {
+    try {
+      setError(null);
+      const response = await bookingsService.getMyBookings({ limit: 50 });
+      setBookings(response.data || []);
+    } catch (err: any) {
+      console.log('Error fetching bookings:', err);
+      setError('No se pudieron cargar las reservas');
+      // Use mock data as fallback
+      setBookings(getMockBookings());
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchBookings();
+  }, [fetchBookings]);
+
+  // Mock bookings for development/fallback
+  const getMockBookings = (): Booking[] => {
+    return [
+      {
+        id: 'mock-1',
+        reference: 'TL-ABC123',
+        tourId: 'tour-1',
+        userId: 'user-1',
+        date: '2026-01-20',
+        startTime: '09:00',
+        endTime: '14:00',
+        duration: 300,
+        participants: 2,
+        totalPrice: 90000,
+        currency: 'CLP',
+        status: 'CONFIRMED',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        tour: {
+          id: 'tour-1',
+          name: 'Cajón del Maipo Hiking',
+          slug: 'cajon-del-maipo',
+          coverImage: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=400',
+          duration: 300,
+          price: 45000,
+          currency: 'CLP',
+          city: 'Santiago',
+          country: 'Chile',
+          company: {
+            id: 'company-1',
+            name: 'Andes Adventures',
+            slug: 'andes-adventures',
+          },
+        },
+      },
+      {
+        id: 'mock-2',
+        reference: 'TL-DEF456',
+        tourId: 'tour-2',
+        userId: 'user-1',
+        date: '2026-01-25',
+        startTime: '08:00',
+        endTime: '18:00',
+        duration: 600,
+        participants: 4,
+        totalPrice: 240000,
+        currency: 'CLP',
+        status: 'PENDING',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        tour: {
+          id: 'tour-2',
+          name: 'Valle Nevado Snow Tour',
+          slug: 'valle-nevado',
+          coverImage: 'https://images.unsplash.com/photo-1551524559-8af4e6624178?w=400',
+          duration: 600,
+          price: 60000,
+          currency: 'CLP',
+          city: 'Santiago',
+          country: 'Chile',
+          company: {
+            id: 'company-2',
+            name: 'Snow Chile',
+            slug: 'snow-chile',
+          },
+        },
+      },
+    ];
+  };
+
+  const filteredBookings = bookings.filter((booking) => {
     const bookingDate = new Date(booking.date);
 
     switch (filter) {
       case 'upcoming':
         return (
-          bookingDate >= today && (booking.status === 'confirmed' || booking.status === 'pending')
+          bookingDate >= today && 
+          (booking.status === 'CONFIRMED' || booking.status === 'PENDING')
         );
       case 'past':
         return (
           bookingDate < today ||
-          booking.status === 'completed' ||
-          booking.status === 'cancelled' ||
-          booking.status === 'rejected'
+          booking.status === 'COMPLETED' ||
+          booking.status === 'CANCELLED_USER' ||
+          booking.status === 'CANCELLED_COMPANY'
         );
       default:
         return true;
     }
   }).sort((a, b) => {
-    // Sort by date descending (most recent first)
     return new Date(b.date).getTime() - new Date(a.date).getTime();
   });
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map((part) => part[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
+    const date = new Date(dateString + 'T00:00:00');
     const day = date.getDate();
     const month = MONTHS_ES[date.getMonth()];
     return `${day} ${month}`;
   };
 
+  const formatPrice = (price: number, currency: string = 'CLP') => {
+    if (currency === 'CLP') {
+      return `$${price.toLocaleString('es-CL')}`;
+    }
+    return `€${price}`;
+  };
+
   const handleRefresh = async () => {
     setRefreshing(true);
-    // TODO: Implement actual refresh
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await fetchBookings();
     setRefreshing(false);
   };
 
@@ -89,56 +179,69 @@ export const MyBookingsScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const renderBookingCard = ({ item: booking }: { item: Booking }) => {
-    const statusConfig = BOOKING_STATUS_CONFIG[booking.status];
+    const statusConfig = STATUS_CONFIG[booking.status] || STATUS_CONFIG.PENDING;
     const isUpcoming =
       new Date(booking.date) >= today &&
-      (booking.status === 'confirmed' || booking.status === 'pending');
+      (booking.status === 'CONFIRMED' || booking.status === 'PENDING');
+
+    const tourName = booking.tour?.name || 'Tour';
+    const companyName = booking.tour?.company?.name || 'Empresa';
+    const coverImage = booking.tour?.coverImage;
 
     return (
       <TouchableOpacity
         style={styles.bookingCard}
         onPress={() => handleBookingPress(booking)}
-        activeOpacity={0.7}
+        activeOpacity={0.9}
       >
-        <View style={styles.bookingHeader}>
-          <View style={styles.guideAvatar}>
-            <Text style={styles.guideAvatarText}>{getInitials(booking.guideName)}</Text>
-          </View>
-          <View style={styles.bookingInfo}>
-            <Text style={styles.bookingTitle} numberOfLines={1}>
-              {booking.tourTitle || `Tour con ${booking.guideName}`}
-            </Text>
-            <Text style={styles.bookingGuideName}>{booking.guideName}</Text>
-          </View>
-          <View style={[styles.statusBadge, { backgroundColor: statusConfig.color + '20' }]}>
-            <Text style={[styles.statusText, { color: statusConfig.color }]}>
-              {statusConfig.icon} {statusConfig.label}
-            </Text>
-          </View>
+        <View style={styles.bookingImageContainer}>
+          {coverImage ? (
+            <Image source={{ uri: coverImage }} style={styles.bookingImage} />
+          ) : (
+            <View style={styles.bookingImagePlaceholder}>
+              <Text style={styles.bookingImageEmoji}>🏔️</Text>
+            </View>
+          )}
         </View>
 
-        <View style={styles.bookingDetails}>
-          <View style={styles.detailItem}>
-            <Text style={styles.detailIcon}>📅</Text>
-            <Text style={styles.detailText}>{formatDate(booking.date)}</Text>
+        <View style={styles.bookingContent}>
+          <View style={styles.bookingHeader}>
+            <View style={styles.bookingInfo}>
+              <Text style={styles.bookingTitle} numberOfLines={1}>
+                {tourName}
+              </Text>
+              <Text style={styles.bookingCompany}>🏢 {companyName}</Text>
+            </View>
+            <View style={[styles.statusBadge, { backgroundColor: statusConfig.color + '20' }]}>
+              <Text style={[styles.statusText, { color: statusConfig.color }]}>
+                {statusConfig.icon} {statusConfig.label}
+              </Text>
+            </View>
           </View>
-          <View style={styles.detailItem}>
-            <Text style={styles.detailIcon}>🕐</Text>
-            <Text style={styles.detailText}>{booking.startTime}</Text>
-          </View>
-          <View style={styles.detailItem}>
-            <Text style={styles.detailIcon}>👥</Text>
-            <Text style={styles.detailText}>{booking.participants}</Text>
-          </View>
-          <View style={styles.detailItem}>
-            <Text style={styles.detailIcon}>📍</Text>
-            <Text style={styles.detailText}>{booking.location}</Text>
-          </View>
-        </View>
 
-        <View style={styles.bookingFooter}>
-          <Text style={styles.bookingPrice}>{booking.totalPrice}€</Text>
-          {isUpcoming && <Text style={styles.viewDetails}>Ver detalles →</Text>}
+          <View style={styles.bookingDetails}>
+            <View style={styles.detailItem}>
+              <Text style={styles.detailIcon}>📅</Text>
+              <Text style={styles.detailText}>{formatDate(booking.date)}</Text>
+            </View>
+            <View style={styles.detailItem}>
+              <Text style={styles.detailIcon}>⏰</Text>
+              <Text style={styles.detailText}>{booking.startTime}</Text>
+            </View>
+            <View style={styles.detailItem}>
+              <Text style={styles.detailIcon}>👥</Text>
+              <Text style={styles.detailText}>{booking.participants}</Text>
+            </View>
+          </View>
+
+          <View style={styles.bookingFooter}>
+            <Text style={styles.bookingPrice}>
+              {formatPrice(booking.totalPrice, booking.currency)}
+            </Text>
+            <Text style={styles.bookingReference}>
+              #{booking.reference || booking.id.slice(-8).toUpperCase()}
+            </Text>
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -155,7 +258,7 @@ export const MyBookingsScreen: React.FC<Props> = ({ navigation }) => {
             : 'No tienes reservas'}
       </Text>
       <Text style={styles.emptyText}>
-        Explora los guías y tours disponibles para planificar tu próxima aventura
+        Explora los tours disponibles para planificar tu próxima aventura
       </Text>
       <TouchableOpacity
         style={styles.exploreButton}
@@ -166,8 +269,19 @@ export const MyBookingsScreen: React.FC<Props> = ({ navigation }) => {
     </View>
   );
 
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>Cargando reservas...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* Filter Tabs */}
       <View style={styles.filterContainer}>
         <TouchableOpacity
@@ -196,6 +310,13 @@ export const MyBookingsScreen: React.FC<Props> = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
+      {/* Error message */}
+      {error && (
+        <View style={styles.errorBanner}>
+          <Text style={styles.errorText}>⚠️ {error}</Text>
+        </View>
+      )}
+
       {/* Bookings List */}
       <FlatList
         data={filteredBookings}
@@ -221,6 +342,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    marginTop: Spacing.md,
+  },
   filterContainer: {
     flexDirection: 'row',
     padding: Spacing.lg,
@@ -231,12 +362,15 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
-    borderRadius: 20,
-    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    backgroundColor: Colors.card,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
   },
   filterTabActive: {
     backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
   },
   filterText: {
     ...Typography.label,
@@ -245,61 +379,89 @@ const styles = StyleSheet.create({
   filterTextActive: {
     color: Colors.textInverse,
   },
+  errorBanner: {
+    backgroundColor: Colors.errorLight,
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
+    padding: Spacing.md,
+    borderRadius: 12,
+  },
+  errorText: {
+    ...Typography.bodySmall,
+    color: Colors.error,
+    textAlign: 'center',
+  },
   listContent: {
     padding: Spacing.lg,
     paddingTop: 0,
   },
   bookingCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.card,
     borderRadius: 16,
-    padding: Spacing.md,
+    overflow: 'hidden',
     marginBottom: Spacing.md,
+    shadowColor: Colors.text,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  bookingImageContainer: {
+    height: 120,
+    backgroundColor: Colors.primaryMuted,
+  },
+  bookingImage: {
+    width: '100%',
+    height: '100%',
+  },
+  bookingImagePlaceholder: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bookingImageEmoji: {
+    fontSize: 40,
+  },
+  bookingContent: {
+    padding: Spacing.md,
   },
   bookingHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  guideAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: Spacing.sm,
-  },
-  guideAvatarText: {
-    ...Typography.label,
-    color: Colors.textInverse,
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: Spacing.sm,
   },
   bookingInfo: {
     flex: 1,
+    marginRight: Spacing.sm,
   },
   bookingTitle: {
     ...Typography.labelLarge,
     color: Colors.text,
+    fontWeight: '600',
+    marginBottom: 2,
   },
-  bookingGuideName: {
-    ...Typography.bodySmall,
+  bookingCompany: {
+    ...Typography.caption,
     color: Colors.textSecondary,
   },
   statusBadge: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: 4,
-    borderRadius: 6,
+    borderRadius: 8,
   },
   statusText: {
     ...Typography.labelSmall,
+    fontWeight: '600',
   },
   bookingDetails: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: Spacing.md,
     marginBottom: Spacing.md,
     paddingBottom: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: Colors.borderLight,
   },
   detailItem: {
     flexDirection: 'row',
@@ -320,11 +482,13 @@ const styles = StyleSheet.create({
   },
   bookingPrice: {
     ...Typography.h4,
-    color: Colors.text,
-  },
-  viewDetails: {
-    ...Typography.label,
     color: Colors.primary,
+    fontWeight: '700',
+  },
+  bookingReference: {
+    ...Typography.caption,
+    color: Colors.textTertiary,
+    fontFamily: 'monospace',
   },
   emptyContainer: {
     alignItems: 'center',
@@ -348,13 +512,13 @@ const styles = StyleSheet.create({
   },
   exploreButton: {
     backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
     borderRadius: 12,
   },
   exploreButtonText: {
-    ...Typography.button,
+    ...Typography.labelLarge,
     color: Colors.textInverse,
-    textTransform: 'none',
+    fontWeight: '600',
   },
 });

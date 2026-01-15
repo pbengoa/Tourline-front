@@ -24,20 +24,19 @@ import {
   LOCATIONS,
   LOCATION_COORDINATES,
   DEFAULT_MAP_REGION,
-  MOCK_GUIDES,
 } from '../constants/mockData';
 import {
-  guidesService,
   toursService,
-  Guide as ApiGuide,
+  companiesService,
   ApiTour,
-  SearchGuidesParams,
   SearchToursParams,
 } from '../services';
+import type { Company as ApiCompany, SearchCompaniesParams } from '../services/companiesService';
+import { CompanyCard } from '../components';
 import type { MainTabScreenProps, Tour, Guide, SortOption } from '../types';
 
 type Props = MainTabScreenProps<'Search'>;
-type SearchTab = 'tours' | 'guides';
+type SearchTab = 'tours' | 'companies';
 type ViewMode = 'list' | 'map';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -66,8 +65,8 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
   } | null>(null);
   const cardAnimation = useRef(new Animated.Value(0)).current;
 
-  const [apiGuides, setApiGuides] = useState<ApiGuide[]>([]);
-  const [guidesLoading, setGuidesLoading] = useState(false);
+  const [apiCompanies, setApiCompanies] = useState<ApiCompany[]>([]);
+  const [companiesLoading, setCompaniesLoading] = useState(false);
   
   const [apiTours, setApiTours] = useState<ApiTour[]>([]);
   const [toursLoading, setToursLoading] = useState(false);
@@ -103,22 +102,22 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, [selectedMapItem, cardAnimation]);
 
-  const fetchGuides = useCallback(async () => {
-    setGuidesLoading(true);
+  const fetchCompanies = useCallback(async () => {
+    setCompaniesLoading(true);
     try {
-      const params: SearchGuidesParams = { limit: 50 };
+      const params: SearchCompaniesParams = { limit: 50 };
       if (searchQuery.trim()) params.query = searchQuery.trim();
       if (selectedLocation) params.city = selectedLocation;
       if (minRating) params.minRating = minRating;
 
-      const response = await guidesService.searchGuides(params);
-      if (response.success) {
-        setApiGuides(response.data);
+      const response = await companiesService.searchCompanies(params);
+      if (response.success && response.data?.companies) {
+        setApiCompanies(response.data.companies);
       }
     } catch (err) {
-      setApiGuides([]);
+      setApiCompanies([]);
     } finally {
-      setGuidesLoading(false);
+      setCompaniesLoading(false);
     }
   }, [searchQuery, selectedLocation, minRating]);
 
@@ -166,11 +165,11 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
   }, [searchQuery, selectedLocation, minRating, selectedCategory, sortBy]);
 
   useEffect(() => {
-    if (activeTab === 'guides') {
-      const timeoutId = setTimeout(fetchGuides, 300);
+    if (activeTab === 'companies') {
+      const timeoutId = setTimeout(fetchCompanies, 300);
       return () => clearTimeout(timeoutId);
     }
-  }, [activeTab, fetchGuides]);
+  }, [activeTab, fetchCompanies]);
 
   useEffect(() => {
     if (activeTab === 'tours') {
@@ -179,27 +178,7 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, [activeTab, fetchTours]);
 
-  const transformedGuides: Guide[] = useMemo(() => {
-    if (apiGuides.length > 0) {
-      return apiGuides.map((guide) => ({
-        id: guide.id,
-        name: guide.user ? `${guide.user.firstName} ${guide.user.lastName}` : guide.name || 'Guía',
-        avatar: guide.user?.avatar || guide.avatar || undefined,
-        rating: guide.rating ?? 0,
-        reviewCount: guide.reviewCount ?? 0,
-        location: `${guide.city || ''}, ${guide.country || ''}`,
-        languages: guide.languages || [],
-        specialties: guide.specialties || [],
-        bio: guide.bio || '',
-        pricePerHour: guide.pricePerHour ?? 0,
-        currency: guide.currency || 'CLP',
-        verified: guide.verified ?? false,
-        featured: guide.featured ?? false,
-        available: guide.available ?? true,
-      }));
-    }
-    return MOCK_GUIDES;
-  }, [apiGuides]);
+  // Companies are used directly without transformation
 
   // Helper to format duration from minutes to readable string
   const formatDuration = (minutes: number): string => {
@@ -291,84 +270,65 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
     []
   );
 
+  // Map markers only for tours (companies don't use map view)
   const mapMarkers = useMemo(() => {
     const markers: {
       id: string;
       coordinate: { latitude: number; longitude: number };
-      item: Tour | Guide;
-      type: 'tour' | 'guide';
+      item: Tour;
+      type: 'tour';
     }[] = [];
 
-    if (activeTab === 'tours') {
-      transformedTours.forEach((tour) => {
-        let coords: { latitude: number; longitude: number } | null = null;
+    // Only create markers for tours
+    transformedTours.forEach((tour) => {
+      let coords: { latitude: number; longitude: number } | null = null;
 
-        // First try: use backend coordinates if available
-        const backendCoords = tourCoordinatesMap[tour.id];
-        if (backendCoords) {
-          coords = { latitude: backendCoords.lat, longitude: backendCoords.lng };
-        }
+      // First try: use backend coordinates if available
+      const backendCoords = tourCoordinatesMap[tour.id];
+      if (backendCoords) {
+        coords = { latitude: backendCoords.lat, longitude: backendCoords.lng };
+      }
 
-        // Second try: find from location string
-        if (!coords) {
-          coords = findCoordinates(tour.location);
-        }
+      // Second try: find from location string
+      if (!coords) {
+        coords = findCoordinates(tour.location);
+      }
 
-        if (coords) {
-          // Add small random offset to prevent overlapping markers
-          const offset = {
-            latitude: (Math.random() - 0.5) * 0.008,
-            longitude: (Math.random() - 0.5) * 0.008,
-          };
-          markers.push({
-            id: tour.id,
-            coordinate: {
-              latitude: coords.latitude + offset.latitude,
-              longitude: coords.longitude + offset.longitude,
-            },
-            item: tour,
-            type: 'tour',
-          });
-        }
-      });
-    } else {
-      transformedGuides.forEach((guide) => {
-        const coords = findCoordinates(guide.location);
-        if (coords) {
-          const offset = {
-            latitude: (Math.random() - 0.5) * 0.008,
-            longitude: (Math.random() - 0.5) * 0.008,
-          };
-          markers.push({
-            id: guide.id,
-            coordinate: {
-              latitude: coords.latitude + offset.latitude,
-              longitude: coords.longitude + offset.longitude,
-            },
-            item: guide,
-            type: 'guide',
-          });
-        }
-      });
-    }
+      if (coords) {
+        // Add small random offset to prevent overlapping markers
+        const offset = {
+          latitude: (Math.random() - 0.5) * 0.008,
+          longitude: (Math.random() - 0.5) * 0.008,
+        };
+        markers.push({
+          id: tour.id,
+          coordinate: {
+            latitude: coords.latitude + offset.latitude,
+            longitude: coords.longitude + offset.longitude,
+          },
+          item: tour,
+          type: 'tour',
+        });
+      }
+    });
 
     // Debug: log markers info
-    console.log(`🗺️ Map markers: ${markers.length} of ${activeTab === 'tours' ? transformedTours.length : transformedGuides.length} ${activeTab}`);
-    if (activeTab === 'tours' && markers.length === 0 && transformedTours.length > 0) {
+    console.log(`🗺️ Map markers: ${markers.length} of ${transformedTours.length} tours`);
+    if (markers.length === 0 && transformedTours.length > 0) {
       console.log('⚠️ Tours without coordinates:');
       transformedTours.forEach((t) => console.log(`  - ${t.title}: "${t.location}"`));
     }
     
     return markers;
-  }, [activeTab, transformedGuides, transformedTours, tourCoordinatesMap, findCoordinates]);
+  }, [transformedTours, tourCoordinatesMap, findCoordinates]);
 
   const handleTourPress = (tour: Tour) => {
     console.log('🎯 handleTourPress called with tour:', tour.id, tour.title);
     navigation.navigate('Details', { id: tour.id, title: tour.title });
   };
 
-  const handleGuidePress = (guide: Guide) => {
-    navigation.navigate('GuideDetail', { guideId: guide.id });
+  const handleCompanyPress = (company: ApiCompany) => {
+    navigation.navigate('CompanyDetail', { companyId: company.id });
   };
 
   const fitToMarkers = () => {
@@ -431,49 +391,7 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
     </TouchableOpacity>
   );
 
-  // Guide Card Component
-  const GuideListCard = ({ item }: { item: Guide }) => {
-    const name = item.name || 'Guía';
-    const location = item.location || '';
-    const rating = item.rating ?? 0;
-    const reviewCount = item.reviewCount ?? 0;
-    const pricePerHour = item.pricePerHour ?? 0;
-    const currency = item.currency || 'CLP';
-    const verified = item.verified === true;
-    
-    return (
-      <TouchableOpacity
-        style={styles.guideCard}
-        onPress={() => handleGuidePress(item)}
-        activeOpacity={0.9}
-      >
-        <Avatar 
-          uri={item.avatar} 
-          name={name} 
-          size="large" 
-          showBadge={verified} 
-          badgeType="verified" 
-        />
-        <View style={styles.guideContent}>
-          <Text style={styles.guideName}>{name}</Text>
-          <Text style={styles.guideLocation}>📍 {location}</Text>
-          <View style={styles.guideMeta}>
-            <View style={styles.guideRating}>
-              <Text style={styles.guideStar}>★</Text>
-              <Text style={styles.guideRatingText}>{rating.toFixed(1)}</Text>
-            </View>
-            <Text style={styles.guideReviews}>({reviewCount})</Text>
-          </View>
-        </View>
-        <View style={styles.guidePriceContainer}>
-          <Text style={styles.guidePrice}>{formatPrice(pricePerHour, currency)}</Text>
-          <Text style={styles.guidePriceLabel}>/hora</Text>
-        </View>
-      </TouchableOpacity>
-    );
-  };
-
-  // Map View
+  // Map View (only for tours)
   const renderMapView = () => (
     <View style={styles.mapContainer}>
       <MapView
@@ -488,12 +406,7 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
       >
         {mapMarkers.map((marker) => {
           const isSelected = selectedMapItem?.id === marker.id;
-          const price = marker.type === 'guide'
-            ? (marker.item as Guide).pricePerHour
-            : (marker.item as Tour).price;
-          const currency = marker.type === 'guide'
-            ? (marker.item as Guide).currency
-            : (marker.item as Tour).currency;
+          const tour = marker.item;
 
           return (
             <Marker
@@ -502,20 +415,20 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
               tracksViewChanges={false}
               onPress={(e) => {
                 e.stopPropagation();
-                console.log('🗺️ Marker pressed:', marker.id, marker.type);
-                setSelectedMapItem(marker.item);
+                console.log('🗺️ Marker pressed:', marker.id);
+                setSelectedMapItem(tour);
               }}
             >
               <TouchableOpacity
                 activeOpacity={0.8}
                 onPress={() => {
                   console.log('🗺️ TouchableOpacity pressed:', marker.id);
-                  setSelectedMapItem(marker.item);
+                  setSelectedMapItem(tour);
                 }}
               >
                 <View style={[styles.priceMarker, isSelected && styles.priceMarkerSelected]}>
                   <Text style={[styles.priceMarkerText, isSelected && styles.priceMarkerTextSelected]}>
-                    {formatPrice(price, currency)}
+                    {formatPrice(tour.price, tour.currency)}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -547,7 +460,7 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
 
       {/* Results Badge */}
       <View style={styles.mapBadge}>
-        <Text style={styles.mapBadgeText}>{mapMarkers.length} {activeTab === 'guides' ? 'guías' : 'tours'}</Text>
+        <Text style={styles.mapBadgeText}>{mapMarkers.length} tours</Text>
       </View>
 
       {/* Selected Card - Diseño inmersivo */}
@@ -574,180 +487,94 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
             },
           ]}
         >
-          {activeTab === 'tours' ? (
-            // Tour Card - Diseño con imagen hero
-            <TouchableOpacity
-              activeOpacity={0.95}
-              onPress={() => {
-                console.log('🎯 Selected card pressed, tour:', (selectedMapItem as Tour)?.id);
-                handleTourPress(selectedMapItem as Tour);
-              }}
-              style={styles.selectedTourCard}
-            >
-              {/* Imagen Hero */}
-              <View style={styles.selectedHeroContainer}>
-                {(selectedMapItem as Tour).image ? (
-                  <Image
-                    source={{ uri: (selectedMapItem as Tour).image }}
-                    style={styles.selectedHeroImage}
-                  />
-                ) : (
-                  <LinearGradient
-                    colors={[Colors.primaryLight, Colors.primary]}
-                    style={styles.selectedHeroPlaceholder}
-                  >
-                    <Text style={styles.selectedHeroEmoji}>🏔️</Text>
-                  </LinearGradient>
-                )}
-                {/* Gradiente sobre imagen */}
-                <LinearGradient
-                  colors={['transparent', 'rgba(0,0,0,0.7)']}
-                  style={styles.selectedHeroGradient}
+          {/* Tour Card - Diseño con imagen hero */}
+          <TouchableOpacity
+            activeOpacity={0.95}
+            onPress={() => {
+              console.log('🎯 Selected card pressed, tour:', (selectedMapItem as Tour)?.id);
+              handleTourPress(selectedMapItem as Tour);
+            }}
+            style={styles.selectedTourCard}
+          >
+            {/* Imagen Hero */}
+            <View style={styles.selectedHeroContainer}>
+              {(selectedMapItem as Tour).image ? (
+                <Image
+                  source={{ uri: (selectedMapItem as Tour).image }}
+                  style={styles.selectedHeroImage}
                 />
-                {/* Badges sobre imagen */}
-                <View style={styles.selectedBadgesRow}>
-                  {(selectedMapItem as Tour).featured && (
-                    <View style={styles.selectedFeaturedBadge}>
-                      <Text style={styles.selectedFeaturedText}>⭐ Destacado</Text>
-                    </View>
-                  )}
-                  <View style={styles.selectedDurationBadge}>
-                    <Text style={styles.selectedDurationText}>
-                      ⏱️ {(selectedMapItem as Tour).duration}
-                    </Text>
-                  </View>
-                </View>
-                {/* Botón cerrar */}
-                <TouchableOpacity
-                  style={styles.selectedCloseBtn}
-                  onPress={() => setSelectedMapItem(null)}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              ) : (
+                <LinearGradient
+                  colors={[Colors.primaryLight, Colors.primary]}
+                  style={styles.selectedHeroPlaceholder}
                 >
-                  <Text style={styles.selectedCloseBtnText}>✕</Text>
-                </TouchableOpacity>
-                {/* Info sobre imagen */}
-                <View style={styles.selectedHeroInfo}>
-                  <Text style={styles.selectedHeroTitle} numberOfLines={2}>
-                    {(selectedMapItem as Tour).title}
-                  </Text>
-                  <View style={styles.selectedHeroMeta}>
-                    <Text style={styles.selectedHeroLocation}>
-                      📍 {(selectedMapItem as Tour).location}
-                    </Text>
-                    <View style={styles.selectedHeroRating}>
-                      <Text style={styles.selectedHeroStar}>⭐</Text>
-                      <Text style={styles.selectedHeroRatingText}>
-                        {(selectedMapItem as Tour).rating.toFixed(1)}
-                      </Text>
-                      <Text style={styles.selectedHeroReviews}>
-                        ({(selectedMapItem as Tour).reviewCount})
-                      </Text>
-                    </View>
+                  <Text style={styles.selectedHeroEmoji}>🏔️</Text>
+                </LinearGradient>
+              )}
+              {/* Gradiente sobre imagen */}
+              <LinearGradient
+                colors={['transparent', 'rgba(0,0,0,0.7)']}
+                style={styles.selectedHeroGradient}
+              />
+              {/* Badges sobre imagen */}
+              <View style={styles.selectedBadgesRow}>
+                {(selectedMapItem as Tour).featured && (
+                  <View style={styles.selectedFeaturedBadge}>
+                    <Text style={styles.selectedFeaturedText}>⭐ Destacado</Text>
                   </View>
+                )}
+                <View style={styles.selectedDurationBadge}>
+                  <Text style={styles.selectedDurationText}>
+                    ⏱️ {(selectedMapItem as Tour).duration}
+                  </Text>
                 </View>
               </View>
-              {/* Footer con precio y CTA */}
-              <View style={styles.selectedFooter}>
-                <View style={styles.selectedPriceBox}>
-                  <Text style={styles.selectedPriceAmount}>
-                    {formatPrice((selectedMapItem as Tour).price, (selectedMapItem as Tour).currency)}
-                  </Text>
-                  <Text style={styles.selectedPriceUnit}>por persona</Text>
-                </View>
-                <TouchableOpacity
-                  style={styles.selectedCTAButton}
-                  onPress={() => handleTourPress(selectedMapItem as Tour)}
-                >
-                  <Text style={styles.selectedCTAText}>Ver tour</Text>
-                  <Text style={styles.selectedCTAArrow}>→</Text>
-                </TouchableOpacity>
-              </View>
-            </TouchableOpacity>
-          ) : (
-            // Guide Card - Diseño compacto elegante
-            <TouchableOpacity
-              activeOpacity={0.95}
-              onPress={() => handleGuidePress(selectedMapItem as Guide)}
-              style={styles.selectedGuideCard}
-            >
               {/* Botón cerrar */}
               <TouchableOpacity
-                style={styles.selectedGuideClose}
+                style={styles.selectedCloseBtn}
                 onPress={() => setSelectedMapItem(null)}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Text style={styles.selectedGuideCloseText}>✕</Text>
+                <Text style={styles.selectedCloseBtnText}>✕</Text>
               </TouchableOpacity>
-              <View style={styles.selectedGuideRow}>
-                {/* Avatar grande */}
-                <View style={styles.selectedGuideAvatarContainer}>
-                  <Avatar
-                    uri={(selectedMapItem as Guide).avatar}
-                    name={(selectedMapItem as Guide).name}
-                    size="xlarge"
-                    showBadge={(selectedMapItem as Guide).verified}
-                    badgeType="verified"
-                  />
-                  {(selectedMapItem as Guide).available && (
-                    <View style={styles.selectedGuideOnline}>
-                      <View style={styles.selectedGuideOnlineDot} />
-                    </View>
-                  )}
-                </View>
-                {/* Info */}
-                <View style={styles.selectedGuideInfo}>
-                  <Text style={styles.selectedGuideName}>
-                    {(selectedMapItem as Guide).name}
+              {/* Info sobre imagen */}
+              <View style={styles.selectedHeroInfo}>
+                <Text style={styles.selectedHeroTitle} numberOfLines={2}>
+                  {(selectedMapItem as Tour).title}
+                </Text>
+                <View style={styles.selectedHeroMeta}>
+                  <Text style={styles.selectedHeroLocation}>
+                    📍 {(selectedMapItem as Tour).location}
                   </Text>
-                  <Text style={styles.selectedGuideLocation}>
-                    📍 {(selectedMapItem as Guide).location}
-                  </Text>
-                  <View style={styles.selectedGuideStats}>
-                    <View style={styles.selectedGuideStat}>
-                      <Text style={styles.selectedGuideStatIcon}>⭐</Text>
-                      <Text style={styles.selectedGuideStatValue}>
-                        {(selectedMapItem as Guide).rating?.toFixed(1) || 'N/A'}
-                      </Text>
-                    </View>
-                    <View style={styles.selectedGuideStat}>
-                      <Text style={styles.selectedGuideStatIcon}>💬</Text>
-                      <Text style={styles.selectedGuideStatValue}>
-                        {(selectedMapItem as Guide).reviewCount || 0}
-                      </Text>
-                    </View>
+                  <View style={styles.selectedHeroRating}>
+                    <Text style={styles.selectedHeroStar}>⭐</Text>
+                    <Text style={styles.selectedHeroRatingText}>
+                      {(selectedMapItem as Tour).rating.toFixed(1)}
+                    </Text>
+                    <Text style={styles.selectedHeroReviews}>
+                      ({(selectedMapItem as Tour).reviewCount})
+                    </Text>
                   </View>
-                  {/* Especialidades */}
-                  {(selectedMapItem as Guide).specialties?.length > 0 && (
-                    <View style={styles.selectedGuideSpecialties}>
-                      {(selectedMapItem as Guide).specialties.slice(0, 2).map((spec, i) => (
-                        <View key={i} style={styles.selectedGuideSpecBadge}>
-                          <Text style={styles.selectedGuideSpecText}>{spec}</Text>
-                        </View>
-                      ))}
-                    </View>
-                  )}
                 </View>
               </View>
-              {/* Footer */}
-              <View style={styles.selectedGuideFooter}>
-                <View style={styles.selectedGuidePriceBox}>
-                  <Text style={styles.selectedGuidePriceAmount}>
-                    {formatPrice(
-                      (selectedMapItem as Guide).pricePerHour,
-                      (selectedMapItem as Guide).currency
-                    )}
-                  </Text>
-                  <Text style={styles.selectedGuidePriceUnit}>/hora</Text>
-                </View>
-                <TouchableOpacity
-                  style={styles.selectedGuideCTAButton}
-                  onPress={() => handleGuidePress(selectedMapItem as Guide)}
-                >
-                  <Text style={styles.selectedGuideCTAText}>Ver perfil</Text>
-                </TouchableOpacity>
+            </View>
+            {/* Footer con precio y CTA */}
+            <View style={styles.selectedFooter}>
+              <View style={styles.selectedPriceBox}>
+                <Text style={styles.selectedPriceAmount}>
+                  {formatPrice((selectedMapItem as Tour).price, (selectedMapItem as Tour).currency)}
+                </Text>
+                <Text style={styles.selectedPriceUnit}>por persona</Text>
               </View>
-            </TouchableOpacity>
-          )}
+              <TouchableOpacity
+                style={styles.selectedCTAButton}
+                onPress={() => handleTourPress(selectedMapItem as Tour)}
+              >
+                <Text style={styles.selectedCTAText}>Ver tour</Text>
+                <Text style={styles.selectedCTAArrow}>→</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
         </Animated.View>
       )}
     </View>
@@ -808,7 +635,8 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
     </Modal>
   );
 
-  const currentData = activeTab === 'tours' ? transformedTours : transformedGuides;
+  // For tours we use transformedTours, for companies we use apiCompanies directly
+  const isLoading = activeTab === 'tours' ? toursLoading : companiesLoading;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -850,31 +678,40 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.tabs}>
           <TouchableOpacity
             style={[styles.tab, activeTab === 'tours' && styles.tabActive]}
-            onPress={() => setActiveTab('tours')}
+            onPress={() => {
+              setActiveTab('tours');
+              // Reset to list view when switching to tours (map available)
+            }}
           >
             <Text style={[styles.tabText, activeTab === 'tours' && styles.tabTextActive]}>🏔️ Tours</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.tab, activeTab === 'guides' && styles.tabActive]}
-            onPress={() => setActiveTab('guides')}
+            style={[styles.tab, activeTab === 'companies' && styles.tabActive]}
+            onPress={() => {
+              setActiveTab('companies');
+              setViewMode('list'); // Companies only have list view
+            }}
           >
-            <Text style={[styles.tabText, activeTab === 'guides' && styles.tabTextActive]}>👤 Guías</Text>
+            <Text style={[styles.tabText, activeTab === 'companies' && styles.tabTextActive]}>🏢 Empresas</Text>
           </TouchableOpacity>
         </View>
-        <View style={styles.viewToggle}>
-          <TouchableOpacity
-            style={[styles.viewBtn, viewMode === 'list' && styles.viewBtnActive]}
-            onPress={() => setViewMode('list')}
-          >
-            <Text style={styles.viewBtnIcon}>📋</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.viewBtn, viewMode === 'map' && styles.viewBtnActive]}
-            onPress={() => setViewMode('map')}
-          >
-            <Text style={styles.viewBtnIcon}>🗺️</Text>
-          </TouchableOpacity>
-        </View>
+        {/* View toggle only for tours */}
+        {activeTab === 'tours' && (
+          <View style={styles.viewToggle}>
+            <TouchableOpacity
+              style={[styles.viewBtn, viewMode === 'list' && styles.viewBtnActive]}
+              onPress={() => setViewMode('list')}
+            >
+              <Text style={styles.viewBtnIcon}>📋</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.viewBtn, viewMode === 'map' && styles.viewBtnActive]}
+              onPress={() => setViewMode('map')}
+            >
+              <Text style={styles.viewBtnIcon}>🗺️</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
       {/* Categories */}
@@ -903,28 +740,45 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
       </ScrollView>
 
       {/* Content */}
-      {viewMode === 'map' ? (
+      {viewMode === 'map' && activeTab === 'tours' ? (
         renderMapView()
-      ) : (guidesLoading && activeTab === 'guides') || (toursLoading && activeTab === 'tours') ? (
+      ) : isLoading ? (
         <View style={styles.loading}>
           <ActivityIndicator size="large" color={Colors.primary} />
           <Text style={styles.loadingText}>
-            {activeTab === 'tours' ? 'Cargando tours...' : 'Cargando guías...'}
+            {activeTab === 'tours' ? 'Cargando tours...' : 'Cargando empresas...'}
           </Text>
         </View>
-      ) : (
+      ) : activeTab === 'tours' ? (
         <FlatList
-          data={currentData as any[]}
+          data={transformedTours}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) =>
-            activeTab === 'tours' ? <TourListCard item={item as Tour} /> : <GuideListCard item={item as Guide} />
-          }
+          renderItem={({ item }) => <TourListCard item={item} />}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.empty}>
               <Text style={styles.emptyIcon}>🔍</Text>
-              <Text style={styles.emptyText}>No se encontraron resultados</Text>
+              <Text style={styles.emptyText}>No se encontraron tours</Text>
+            </View>
+          }
+        />
+      ) : (
+        <FlatList
+          data={apiCompanies}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <CompanyCard
+              company={item}
+              onPress={() => handleCompanyPress(item)}
+            />
+          )}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Text style={styles.emptyIcon}>🏢</Text>
+              <Text style={styles.emptyText}>No se encontraron empresas</Text>
             </View>
           }
         />

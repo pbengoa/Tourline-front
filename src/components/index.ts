@@ -6,7 +6,11 @@ export { ImageCard } from './ImageCard';
 // Card Components
 export { GuideCard } from './GuideCard';
 export { TourCard } from './TourCard';
+export { CompanyCard } from './CompanyCard';
 export { CategoryPill } from './CategoryPill';
+
+// Interactive Components
+export { FavoriteButton } from './FavoriteButton';
 
 // Image Components
 export { ImagePickerModal } from './ImagePickerModal';
