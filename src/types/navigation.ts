@@ -1,7 +1,15 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { CompositeScreenProps, NavigatorScreenParams } from '@react-navigation/native';
-import type { TimeSlot } from './booking';
+
+/**
+ * Booking date slot type
+ */
+export interface BookingDateSlot {
+  date: string;
+  startTime: string;
+  endTime: string;
+}
 
 /**
  * Auth stack navigator param list
@@ -24,18 +32,22 @@ export type RootStackParamList = {
   BookingConfirmation: {
     guideId: string;
     tourId?: string;
-    date: string;
-    timeSlot: TimeSlot;
+    bookingType: 'single' | 'multi' | 'hourly';
+    dates: BookingDateSlot[];
     participants: number;
-    message?: string;
+    tourType?: string;
+    meetingPoint?: string;
+    specialRequests?: string;
+    userPhone?: string;
     totalPrice: number;
   };
   BookingSuccess: {
     bookingId: string;
+    bookingReference: string;
     guideName: string;
     tourTitle?: string;
-    date: string;
-    startTime: string;
+    dates: BookingDateSlot[];
+    isMultiDay: boolean;
   };
   MyBookings: undefined;
   BookingDetail: { bookingId: string };

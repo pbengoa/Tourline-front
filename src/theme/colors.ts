@@ -1,41 +1,64 @@
 /**
- * Tourline color palette
+ * Tourline Outdoor Adventure color palette
+ * Inspired by nature: forests, mountains, sunsets, and clear skies
  */
 export const Colors = {
-  // Primary colors
-  primary: '#0066FF',
-  primaryLight: '#4D94FF',
-  primaryDark: '#0047B3',
+  // Primary - Forest Green (trust, nature, growth)
+  primary: '#2D5A45',
+  primaryLight: '#4A7A62',
+  primaryDark: '#1E3D2F',
+  primaryMuted: 'rgba(45, 90, 69, 0.12)',
 
-  // Secondary colors
-  secondary: '#FF6B35',
-  secondaryLight: '#FF9166',
-  secondaryDark: '#CC4F1A',
+  // Secondary - Sunset Orange (energy, adventure, warmth)
+  secondary: '#E86A33',
+  secondaryLight: '#FF8A5C',
+  secondaryDark: '#C4501D',
+  secondaryMuted: 'rgba(232, 106, 51, 0.12)',
 
-  // Neutral colors
-  background: '#FAFBFC',
+  // Accent - Sky Blue (freedom, exploration)
+  accent: '#4A90A4',
+  accentLight: '#6BB3C9',
+  accentDark: '#356B7C',
+
+  // Neutral - Warm earthy tones
+  background: '#FAF8F5',
   surface: '#FFFFFF',
   card: '#FFFFFF',
+  cardElevated: '#FFFCF8',
 
   // Text colors
-  text: '#1A1D21',
-  textSecondary: '#6B7280',
-  textTertiary: '#9CA3AF',
+  text: '#2C2417',
+  textSecondary: '#6B5D4D',
+  textTertiary: '#9C8D7D',
   textInverse: '#FFFFFF',
+  textOnPrimary: '#FFFFFF',
+  textOnSecondary: '#FFFFFF',
 
-  // Status colors
-  success: '#10B981',
-  warning: '#F59E0B',
-  error: '#EF4444',
-  info: '#3B82F6',
+  // Status colors - Nature inspired
+  success: '#3B8A5A',
+  successLight: '#E8F5EC',
+  warning: '#D4A03A',
+  warningLight: '#FDF6E3',
+  error: '#C75450',
+  errorLight: '#FBEAEA',
+  info: '#4A7FA8',
+  infoLight: '#EBF4FA',
 
   // Border colors
-  border: '#E5E7EB',
-  borderFocused: '#0066FF',
+  border: '#E8E2D9',
+  borderLight: '#F2EDE6',
+  borderFocused: '#2D5A45',
 
-  // Others
-  disabled: '#D1D5DB',
-  overlay: 'rgba(0, 0, 0, 0.5)',
+  // Special
+  disabled: '#D4CCC2',
+  overlay: 'rgba(44, 36, 23, 0.6)',
+  shimmer: '#F5F0E8',
+
+  // Gradients (as reference)
+  gradientStart: '#2D5A45',
+  gradientEnd: '#4A7A62',
+  gradientSunsetStart: '#E86A33',
+  gradientSunsetEnd: '#F4A460',
 } as const;
 
 export type ColorKey = keyof typeof Colors;

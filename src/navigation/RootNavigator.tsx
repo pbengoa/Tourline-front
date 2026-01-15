@@ -10,7 +10,7 @@ import {
   BookingDetailScreen,
 } from '../screens/booking';
 import { ChatListScreen, ChatScreen } from '../screens/chat';
-import { Colors, Typography } from '../theme';
+import { Colors } from '../theme';
 import { MOCK_GUIDES } from '../constants/mockData';
 import type { RootStackParamList } from '../types';
 
@@ -25,20 +25,11 @@ export const RootNavigator: React.FC = () => {
         },
         headerTintColor: Colors.text,
         headerTitleStyle: {
-          fontFamily: Typography.h4.fontFamily,
-          fontSize: Typography.h4.fontSize,
-          fontWeight: Typography.h4.fontWeight as
-            | '100'
-            | '200'
-            | '300'
-            | '400'
-            | '500'
-            | '600'
-            | '700'
-            | '800'
-            | '900',
+          fontSize: 18,
+          fontWeight: '600',
         },
         headerShadowVisible: false,
+        animation: 'none',
       }}
     >
       <Stack.Screen name="Main" component={MainTabNavigator} options={{ headerShown: false }} />

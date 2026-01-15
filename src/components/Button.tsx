@@ -6,10 +6,11 @@ import {
   ActivityIndicator,
   ViewStyle,
   TextStyle,
+  View,
 } from 'react-native';
 import { Colors, Spacing, Typography } from '../theme';
 
-type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
+type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'accent';
 type ButtonSize = 'small' | 'medium' | 'large';
 
 interface ButtonProps {
@@ -20,6 +21,8 @@ interface ButtonProps {
   disabled?: boolean;
   loading?: boolean;
   fullWidth?: boolean;
+  icon?: string;
+  iconPosition?: 'left' | 'right';
   style?: ViewStyle;
   textStyle?: TextStyle;
 }
@@ -32,10 +35,42 @@ export const Button: React.FC<ButtonProps> = ({
   disabled = false,
   loading = false,
   fullWidth = false,
+  icon,
+  iconPosition = 'left',
   style,
   textStyle,
 }) => {
   const isDisabled = disabled || loading;
+
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <ActivityIndicator
+          testID="button-loading"
+          color={variant === 'outline' || variant === 'ghost' ? Colors.primary : Colors.textInverse}
+          size={20}
+        />
+      );
+    }
+
+    return (
+      <View style={styles.contentRow}>
+        {icon && iconPosition === 'left' && <Text style={styles.icon}>{icon}</Text>}
+        <Text
+          style={[
+            styles.text,
+            styles[`${variant}Text` as keyof typeof styles],
+            styles[`${size}Text` as keyof typeof styles],
+            isDisabled && styles.disabledText,
+            textStyle,
+          ]}
+        >
+          {title}
+        </Text>
+        {icon && iconPosition === 'right' && <Text style={styles.icon}>{icon}</Text>}
+      </View>
+    );
+  };
 
   return (
     <TouchableOpacity
@@ -49,37 +84,28 @@ export const Button: React.FC<ButtonProps> = ({
       ]}
       onPress={onPress}
       disabled={isDisabled}
-      activeOpacity={0.8}
+      activeOpacity={0.85}
     >
-      {loading ? (
-        <ActivityIndicator
-          testID="button-loading"
-          color={variant === 'primary' ? Colors.textInverse : Colors.primary}
-          size="small"
-        />
-      ) : (
-        <Text
-          style={[
-            styles.text,
-            styles[`${variant}Text` as keyof typeof styles],
-            styles[`${size}Text` as keyof typeof styles],
-            isDisabled && styles.disabledText,
-            textStyle,
-          ]}
-        >
-          {title}
-        </Text>
-      )}
+      {renderContent()}
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: 12,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
+  },
+  contentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  icon: {
+    fontSize: 18,
+    marginHorizontal: 6,
   },
   fullWidth: {
     width: '100%',
@@ -91,45 +117,65 @@ const styles = StyleSheet.create({
   // Variants
   primary: {
     backgroundColor: Colors.primary,
+    shadowColor: Colors.primaryDark,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
   },
   secondary: {
     backgroundColor: Colors.secondary,
+    shadowColor: Colors.secondaryDark,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  accent: {
+    backgroundColor: Colors.accent,
+    shadowColor: Colors.accentDark,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   outline: {
     backgroundColor: 'transparent',
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderColor: Colors.primary,
   },
   ghost: {
-    backgroundColor: 'transparent',
+    backgroundColor: Colors.primaryMuted,
   },
 
   // Sizes
   small: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    minHeight: 36,
+    minHeight: 40,
   },
   medium: {
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    minHeight: 48,
+    minHeight: 52,
   },
   large: {
     paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.md,
-    minHeight: 56,
+    paddingVertical: 18,
+    minHeight: 58,
   },
 
   // Text styles
   text: {
     ...Typography.button,
-    textTransform: 'none',
   },
   primaryText: {
     color: Colors.textInverse,
   },
   secondaryText: {
+    color: Colors.textInverse,
+  },
+  accentText: {
     color: Colors.textInverse,
   },
   outlineText: {
@@ -140,16 +186,13 @@ const styles = StyleSheet.create({
   },
   smallText: {
     ...Typography.buttonSmall,
-    textTransform: 'none',
   },
   mediumText: {
     ...Typography.button,
-    textTransform: 'none',
   },
   largeText: {
     ...Typography.button,
-    fontSize: 16,
-    textTransform: 'none',
+    fontSize: 17,
   },
   disabledText: {
     color: Colors.textTertiary,

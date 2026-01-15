@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   TouchableOpacity,
   FlatList,
@@ -12,9 +11,11 @@ import {
   Alert,
   Share,
   Dimensions,
+  Image,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing, Typography } from '../theme';
-import { TourCard, Button } from '../components';
+import { TourCard, Button, Avatar, ImageCard } from '../components';
 import { MOCK_GUIDES, MOCK_TOURS } from '../constants/mockData';
 import type { RootStackScreenProps } from '../types';
 
@@ -22,11 +23,12 @@ type Props = RootStackScreenProps<'GuideDetail'>;
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// Mock reviews data
+// Mock reviews data with avatars
 const MOCK_REVIEWS = [
   {
     id: '1',
     userName: 'Juan Martínez',
+    userAvatar: 'https://images.unsplash.com/photo-1599566150163-29194dcabd36?w=100&h=100&fit=crop&crop=face',
     rating: 5,
     date: '2025-12-28',
     text: 'Excelente guía, muy conocedor de la historia local. El tour superó mis expectativas. ¡Totalmente recomendado!',
@@ -35,6 +37,7 @@ const MOCK_REVIEWS = [
   {
     id: '2',
     userName: 'Ana López',
+    userAvatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=100&h=100&fit=crop&crop=face',
     rating: 5,
     date: '2025-12-15',
     text: 'Una experiencia inolvidable. Nos llevó a lugares que nunca habríamos descubierto por nuestra cuenta. Muy profesional y amable.',
@@ -43,6 +46,7 @@ const MOCK_REVIEWS = [
   {
     id: '3',
     userName: 'Carlos Ruiz',
+    userAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
     rating: 4,
     date: '2025-11-20',
     text: 'Muy buen tour, el guía conoce muy bien la ciudad. Solo le faltó un poco más de tiempo en algunos puntos de interés.',
@@ -50,14 +54,14 @@ const MOCK_REVIEWS = [
   },
 ];
 
-// Mock gallery images (represented as colors/icons for now)
+// Mock gallery images with real URLs
 const MOCK_GALLERY = [
-  { id: '1', icon: '🏛️', title: 'Plaza Mayor' },
-  { id: '2', icon: '🎨', title: 'Museo del Prado' },
-  { id: '3', icon: '👑', title: 'Palacio Real' },
-  { id: '4', icon: '🌳', title: 'Retiro' },
-  { id: '5', icon: '⛪', title: 'Catedral' },
-  { id: '6', icon: '🍷', title: 'Tapas Tour' },
+  { id: '1', image: 'https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=300&h=300&fit=crop', title: 'Plaza Mayor' },
+  { id: '2', image: 'https://images.unsplash.com/photo-1574182245530-967d9b3831af?w=300&h=300&fit=crop', title: 'Museo del Prado' },
+  { id: '3', image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=300&h=300&fit=crop', title: 'Palacio Real' },
+  { id: '4', image: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=300&h=300&fit=crop', title: 'Retiro' },
+  { id: '5', image: 'https://images.unsplash.com/photo-1515443961218-a51367888e4b?w=300&h=300&fit=crop', title: 'Catedral' },
+  { id: '6', image: 'https://images.unsplash.com/photo-1551632811-561732d1e306?w=300&h=300&fit=crop', title: 'Aventura' },
 ];
 
 export const GuideDetailScreen: React.FC<Props> = ({ route, navigation }) => {
@@ -212,9 +216,13 @@ export const GuideDetailScreen: React.FC<Props> = ({ route, navigation }) => {
         <ScrollView style={styles.modalContent}>
           {/* Guide preview */}
           <View style={styles.contactGuidePreview}>
-            <View style={styles.contactAvatar}>
-              <Text style={styles.contactAvatarText}>{getInitials(guide.name)}</Text>
-            </View>
+            <Avatar
+              uri={guide.avatar}
+              name={guide.name}
+              size="medium"
+              showBadge={guide.verified}
+              badgeType="verified"
+            />
             <View style={styles.contactGuideInfo}>
               <Text style={styles.contactGuideName}>{guide.name}</Text>
               <Text style={styles.contactGuideLocation}>📍 {guide.location}</Text>
@@ -314,14 +322,7 @@ export const GuideDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           {MOCK_REVIEWS.map((review) => (
             <View key={review.id} style={styles.reviewCardFull}>
               <View style={styles.reviewHeader}>
-                <View style={styles.reviewerAvatar}>
-                  <Text style={styles.reviewerInitials}>
-                    {review.userName
-                      .split(' ')
-                      .map((n) => n[0])
-                      .join('')}
-                  </Text>
-                </View>
+                <Avatar uri={review.userAvatar} name={review.userName} size="small" />
                 <View style={styles.reviewerInfo}>
                   <Text style={styles.reviewerName}>{review.userName}</Text>
                   <Text style={styles.reviewDate}>{getRelativeDate(review.date)}</Text>
@@ -355,14 +356,13 @@ export const GuideDetailScreen: React.FC<Props> = ({ route, navigation }) => {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.avatarContainer}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{getInitials(guide.name)}</Text>
-            </View>
-            {guide.verified && (
-              <View style={styles.verifiedBadge}>
-                <Text style={styles.verifiedIcon}>✓</Text>
-              </View>
-            )}
+            <Avatar
+              uri={guide.avatar}
+              name={guide.name}
+              size="xlarge"
+              showBadge={guide.verified}
+              badgeType="verified"
+            />
             {guide.available && (
               <View style={styles.onlineBadge}>
                 <View style={styles.onlineDot} />
@@ -426,9 +426,11 @@ export const GuideDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           >
             {MOCK_GALLERY.map((item) => (
               <TouchableOpacity key={item.id} style={styles.galleryItem}>
-                <View style={styles.galleryImage}>
-                  <Text style={styles.galleryIcon}>{item.icon}</Text>
-                </View>
+                <Image
+                  source={{ uri: item.image }}
+                  style={styles.galleryImage}
+                  resizeMode="cover"
+                />
                 <Text style={styles.galleryTitle}>{item.title}</Text>
               </TouchableOpacity>
             ))}
@@ -496,14 +498,7 @@ export const GuideDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           {MOCK_REVIEWS.slice(0, 2).map((review) => (
             <View key={review.id} style={styles.reviewCard}>
               <View style={styles.reviewHeader}>
-                <View style={styles.reviewerAvatar}>
-                  <Text style={styles.reviewerInitials}>
-                    {review.userName
-                      .split(' ')
-                      .map((n) => n[0])
-                      .join('')}
-                  </Text>
-                </View>
+                <Avatar uri={review.userAvatar} name={review.userName} size="small" />
                 <View style={styles.reviewerInfo}>
                   <Text style={styles.reviewerName}>{review.userName}</Text>
                   <Text style={styles.reviewDate}>{getRelativeDate(review.date)}</Text>
@@ -772,16 +767,11 @@ const styles = StyleSheet.create({
     marginRight: Spacing.sm,
   },
   galleryImage: {
-    width: 80,
-    height: 80,
+    width: 100,
+    height: 100,
     borderRadius: 12,
-    backgroundColor: Colors.primary + '15',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: Colors.primaryMuted,
     marginBottom: Spacing.xs,
-  },
-  galleryIcon: {
-    fontSize: 32,
   },
   galleryTitle: {
     ...Typography.labelSmall,

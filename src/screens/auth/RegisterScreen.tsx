@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TextInput,
   TouchableOpacity,
   KeyboardAvoidingView,
@@ -11,21 +10,26 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing, Typography } from '../../theme';
 import { Button } from '../../components';
+import { useAuth } from '../../context';
 import type { AuthStackScreenProps } from '../../types';
 
 type Props = AuthStackScreenProps<'Register'>;
 
 interface FormErrors {
-  name?: string;
+  firstName?: string;
+  lastName?: string;
   email?: string;
   password?: string;
   confirmPassword?: string;
 }
 
 export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
-  const [name, setName] = useState('');
+  const { signUp } = useAuth();
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -38,10 +42,16 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
 
-    if (!name.trim()) {
-      newErrors.name = 'El nombre es requerido';
-    } else if (name.trim().length < 2) {
-      newErrors.name = 'El nombre debe tener al menos 2 caracteres';
+    if (!firstName.trim()) {
+      newErrors.firstName = 'El nombre es requerido';
+    } else if (firstName.trim().length < 2) {
+      newErrors.firstName = 'El nombre debe tener al menos 2 caracteres';
+    }
+
+    if (!lastName.trim()) {
+      newErrors.lastName = 'El apellido es requerido';
+    } else if (lastName.trim().length < 2) {
+      newErrors.lastName = 'El apellido debe tener al menos 2 caracteres';
     }
 
     if (!email.trim()) {
@@ -54,8 +64,6 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
       newErrors.password = 'La contraseña es requerida';
     } else if (password.length < 8) {
       newErrors.password = 'La contraseña debe tener al menos 8 caracteres';
-    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
-      newErrors.password = 'Debe incluir mayúsculas, minúsculas y números';
     }
 
     if (!confirmPassword) {
@@ -81,13 +89,12 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
 
     setLoading(true);
     try {
-      // TODO: Implement actual registration logic
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      Alert.alert('Éxito', 'Cuenta creada exitosamente', [
-        { text: 'OK', onPress: () => navigation.navigate('Login') },
-      ]);
+      await signUp(firstName, lastName, email, password);
+      // On success, the auth context will update isAuthenticated
+      // and AppNavigator will automatically show the main app
     } catch (error) {
-      Alert.alert('Error', 'No se pudo crear la cuenta. Intenta de nuevo.');
+      const message = error instanceof Error ? error.message : 'Error al crear cuenta';
+      Alert.alert('Error', message);
     } finally {
       setLoading(false);
     }
@@ -121,25 +128,47 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
 
           {/* Form */}
           <View style={styles.form}>
-            {/* Name Input */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Nombre completo</Text>
-              <View style={[styles.inputContainer, errors.name && styles.inputError]}>
-                <Text style={styles.inputIcon}>👤</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Tu nombre"
-                  placeholderTextColor={Colors.textTertiary}
-                  value={name}
-                  onChangeText={(text) => {
-                    setName(text);
-                    clearError('name');
-                  }}
-                  autoCapitalize="words"
-                  autoComplete="name"
-                />
+            {/* Name Row */}
+            <View style={styles.nameRow}>
+              {/* First Name Input */}
+              <View style={[styles.inputGroup, styles.halfWidth]}>
+                <Text style={styles.label}>Nombre</Text>
+                <View style={[styles.inputContainer, errors.firstName && styles.inputError]}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Juan"
+                    placeholderTextColor={Colors.textTertiary}
+                    value={firstName}
+                    onChangeText={(text) => {
+                      setFirstName(text);
+                      clearError('firstName');
+                    }}
+                    autoCapitalize="words"
+                    autoComplete="given-name"
+                  />
+                </View>
+                {errors.firstName && <Text style={styles.errorText}>{errors.firstName}</Text>}
               </View>
-              {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
+
+              {/* Last Name Input */}
+              <View style={[styles.inputGroup, styles.halfWidth]}>
+                <Text style={styles.label}>Apellido</Text>
+                <View style={[styles.inputContainer, errors.lastName && styles.inputError]}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Pérez"
+                    placeholderTextColor={Colors.textTertiary}
+                    value={lastName}
+                    onChangeText={(text) => {
+                      setLastName(text);
+                      clearError('lastName');
+                    }}
+                    autoCapitalize="words"
+                    autoComplete="family-name"
+                  />
+                </View>
+                {errors.lastName && <Text style={styles.errorText}>{errors.lastName}</Text>}
+              </View>
             </View>
 
             {/* Email Input */}
@@ -299,6 +328,13 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   form: {
+    flex: 1,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+  },
+  halfWidth: {
     flex: 1,
   },
   inputGroup: {

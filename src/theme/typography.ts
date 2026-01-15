@@ -2,8 +2,17 @@ import { TextStyle } from 'react-native';
 
 /**
  * Tourline typography system
+ * Clean, readable typography with outdoor adventure personality
  */
 export const Typography: Record<string, TextStyle> = {
+  // Display - For hero sections
+  display: {
+    fontSize: 40,
+    fontWeight: '800',
+    lineHeight: 48,
+    letterSpacing: -1,
+  },
+
   // Headings
   h1: {
     fontSize: 32,
@@ -12,19 +21,25 @@ export const Typography: Record<string, TextStyle> = {
     letterSpacing: -0.5,
   },
   h2: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: '700',
-    lineHeight: 32,
-    letterSpacing: -0.25,
+    lineHeight: 34,
+    letterSpacing: -0.3,
   },
   h3: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '600',
-    lineHeight: 28,
-    letterSpacing: 0,
+    lineHeight: 30,
+    letterSpacing: -0.2,
   },
   h4: {
     fontSize: 18,
+    fontWeight: '600',
+    lineHeight: 26,
+    letterSpacing: 0,
+  },
+  h5: {
+    fontSize: 16,
     fontWeight: '600',
     lineHeight: 24,
     letterSpacing: 0,
@@ -32,58 +47,76 @@ export const Typography: Record<string, TextStyle> = {
 
   // Body text
   bodyLarge: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '400',
-    lineHeight: 24,
+    lineHeight: 26,
     letterSpacing: 0.15,
   },
   body: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '400',
-    lineHeight: 20,
-    letterSpacing: 0.25,
+    lineHeight: 22,
+    letterSpacing: 0.2,
   },
   bodySmall: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '400',
-    lineHeight: 16,
+    lineHeight: 18,
+    letterSpacing: 0.3,
+  },
+  caption: {
+    fontSize: 11,
+    fontWeight: '400',
+    lineHeight: 14,
     letterSpacing: 0.4,
   },
 
   // Labels
   labelLarge: {
-    fontSize: 14,
-    fontWeight: '500',
-    lineHeight: 20,
+    fontSize: 15,
+    fontWeight: '600',
+    lineHeight: 22,
     letterSpacing: 0.1,
   },
   label: {
-    fontSize: 12,
-    fontWeight: '500',
-    lineHeight: 16,
-    letterSpacing: 0.5,
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 18,
+    letterSpacing: 0.3,
   },
   labelSmall: {
-    fontSize: 10,
-    fontWeight: '500',
+    fontSize: 11,
+    fontWeight: '600',
     lineHeight: 14,
     letterSpacing: 0.5,
   },
 
   // Buttons
   button: {
-    fontSize: 14,
-    fontWeight: '600',
-    lineHeight: 20,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
+    fontSize: 15,
+    fontWeight: '700',
+    lineHeight: 22,
+    letterSpacing: 0.3,
   },
   buttonSmall: {
-    fontSize: 12,
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 18,
+    letterSpacing: 0.3,
+  },
+
+  // Special
+  price: {
+    fontSize: 20,
+    fontWeight: '700',
+    lineHeight: 26,
+    letterSpacing: -0.3,
+  },
+  rating: {
+    fontSize: 14,
     fontWeight: '600',
-    lineHeight: 16,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
+    lineHeight: 18,
+    letterSpacing: 0.2,
   },
 } as const;
 

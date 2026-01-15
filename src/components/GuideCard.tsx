@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Colors, Spacing, Typography } from '../theme';
+import { Avatar } from './Avatar';
 import type { Guide } from '../types';
 
 interface GuideCardProps {
@@ -10,92 +11,117 @@ interface GuideCardProps {
 }
 
 export const GuideCard: React.FC<GuideCardProps> = ({ guide, onPress, compact = false }) => {
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map((part) => part[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
+  // Safe values with defaults
+  const name = guide.name || 'Guía';
+  const rating = guide.rating ?? 0;
+  const reviewCount = guide.reviewCount ?? 0;
+  const specialties = guide.specialties || [];
+  const languages = guide.languages || [];
+  const pricePerHour = guide.pricePerHour ?? 0;
+  const currency = guide.currency || 'EUR';
 
   if (compact) {
     return (
-      <TouchableOpacity style={styles.compactCard} onPress={onPress} activeOpacity={0.7}>
-        <View style={styles.compactAvatar}>
-          <Text style={styles.compactAvatarText}>{getInitials(guide.name)}</Text>
-          {guide.verified && (
-            <View style={styles.verifiedBadgeSmall}>
-              <Text style={styles.verifiedIcon}>✓</Text>
-            </View>
-          )}
-        </View>
+      <TouchableOpacity style={styles.compactCard} onPress={onPress} activeOpacity={0.8}>
+        <Avatar
+          uri={guide.avatar}
+          name={name}
+          size="medium"
+          showBadge={guide.verified}
+          badgeType="verified"
+        />
         <Text style={styles.compactName} numberOfLines={1}>
-          {guide.name}
+          {name.split(' ')[0]}
         </Text>
         <View style={styles.compactRating}>
-          <Text style={styles.starIcon}>⭐</Text>
-          <Text style={styles.compactRatingText}>{guide.rating}</Text>
+          <Text style={styles.starIconSmall}>★</Text>
+          <Text style={styles.compactRatingText}>{rating.toFixed(1)}</Text>
         </View>
       </TouchableOpacity>
     );
   }
 
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
-      <View style={styles.cardHeader}>
-        <View style={styles.avatarContainer}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{getInitials(guide.name)}</Text>
-          </View>
-          {guide.verified && (
-            <View style={styles.verifiedBadge}>
-              <Text style={styles.verifiedIcon}>✓</Text>
-            </View>
-          )}
+    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.9}>
+      {/* Featured ribbon */}
+      {guide.featured && (
+        <View style={styles.featuredRibbon}>
+          <Text style={styles.featuredRibbonText}>⭐ Destacado</Text>
         </View>
-        <View style={styles.headerInfo}>
-          <View style={styles.nameRow}>
+      )}
+
+      <View style={styles.cardContent}>
+        <View style={styles.cardHeader}>
+          <Avatar
+            uri={guide.avatar}
+            name={name}
+            size="large"
+            showBadge={guide.verified}
+            badgeType="verified"
+          />
+
+          <View style={styles.headerInfo}>
             <Text style={styles.name} numberOfLines={1}>
-              {guide.name}
+              {name}
             </Text>
-            {guide.featured && (
-              <View style={styles.featuredBadge}>
-                <Text style={styles.featuredText}>Destacado</Text>
+            <View style={styles.locationRow}>
+              <Text style={styles.locationIcon}>📍</Text>
+              <Text style={styles.location} numberOfLines={1}>
+                {guide.location || 'Ubicación'}
+              </Text>
+            </View>
+            <View style={styles.ratingRow}>
+              <View style={styles.ratingBadge}>
+                <Text style={styles.starIcon}>★</Text>
+                <Text style={styles.rating}>{rating.toFixed(1)}</Text>
+              </View>
+              <Text style={styles.reviewCount}>{reviewCount} reseñas</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Specialties */}
+        {specialties.length > 0 && (
+          <View style={styles.specialtiesContainer}>
+            {specialties.slice(0, 3).map((specialty, index) => (
+              <View key={index} style={styles.specialtyTag}>
+                <Text style={styles.specialtyText}>{specialty}</Text>
+              </View>
+            ))}
+            {specialties.length > 3 && (
+              <View style={styles.moreTag}>
+                <Text style={styles.moreTagText}>+{specialties.length - 3}</Text>
               </View>
             )}
           </View>
-          <Text style={styles.location}>📍 {guide.location}</Text>
-          <View style={styles.ratingRow}>
-            <Text style={styles.starIcon}>⭐</Text>
-            <Text style={styles.rating}>{guide.rating}</Text>
-            <Text style={styles.reviewCount}>({guide.reviewCount} reseñas)</Text>
+        )}
+
+        {/* Languages */}
+        {languages.length > 0 && (
+          <View style={styles.languagesContainer}>
+            <Text style={styles.languagesIcon}>🗣️</Text>
+            <Text style={styles.languagesText} numberOfLines={1}>
+              {languages.join(' • ')}
+            </Text>
           </View>
-        </View>
-      </View>
+        )}
 
-      <View style={styles.specialtiesContainer}>
-        {guide.specialties.slice(0, 3).map((specialty, index) => (
-          <View key={index} style={styles.specialtyTag}>
-            <Text style={styles.specialtyText}>{specialty}</Text>
+        {/* Footer */}
+        <View style={styles.cardFooter}>
+          <View style={styles.priceContainer}>
+            <Text style={styles.priceLabel}>desde</Text>
+            <Text style={styles.price}>
+              {currency === 'EUR' ? '€' : '$'}
+              {pricePerHour}
+            </Text>
+            <Text style={styles.priceUnit}>/hora</Text>
           </View>
-        ))}
-      </View>
-
-      <View style={styles.languagesContainer}>
-        <Text style={styles.languagesLabel}>Idiomas: </Text>
-        <Text style={styles.languagesText}>{guide.languages.join(', ')}</Text>
-      </View>
-
-      <View style={styles.cardFooter}>
-        <View style={styles.priceContainer}>
-          <Text style={styles.price}>{guide.pricePerHour}€</Text>
-          <Text style={styles.priceUnit}>/hora</Text>
-        </View>
-        <View style={[styles.availabilityBadge, !guide.available && styles.unavailableBadge]}>
-          <Text style={[styles.availabilityText, !guide.available && styles.unavailableText]}>
-            {guide.available ? 'Disponible' : 'No disponible'}
-          </Text>
+          <View style={[styles.availabilityBadge, !guide.available && styles.unavailableBadge]}>
+            <View style={[styles.availabilityDot, !guide.available && styles.unavailableDot]} />
+            <Text style={[styles.availabilityText, !guide.available && styles.unavailableText]}>
+              {guide.available ? 'Disponible' : 'No disponible'}
+            </Text>
+          </View>
         </View>
       </View>
     </TouchableOpacity>
@@ -105,93 +131,81 @@ export const GuideCard: React.FC<GuideCardProps> = ({ guide, onPress, compact = 
 const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.card,
-    borderRadius: 16,
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: Colors.text,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+  },
+  cardContent: {
     padding: Spacing.md,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+  },
+  featuredRibbon: {
+    backgroundColor: Colors.secondary,
+    paddingVertical: 6,
+    paddingHorizontal: Spacing.md,
+    alignItems: 'center',
+  },
+  featuredRibbonText: {
+    ...Typography.labelSmall,
+    color: Colors.textInverse,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   cardHeader: {
     flexDirection: 'row',
     marginBottom: Spacing.md,
   },
-  avatarContainer: {
-    position: 'relative',
-    marginRight: Spacing.md,
-  },
-  avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    ...Typography.h4,
-    color: Colors.textInverse,
-  },
-  verifiedBadge: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: Colors.success,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: Colors.card,
-  },
-  verifiedIcon: {
-    color: Colors.textInverse,
-    fontSize: 10,
-    fontWeight: '700',
-  },
   headerInfo: {
     flex: 1,
-  },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 2,
+    justifyContent: 'center',
+    marginLeft: Spacing.md,
   },
   name: {
     ...Typography.h4,
     color: Colors.text,
-    flex: 1,
+    marginBottom: 4,
   },
-  featuredBadge: {
-    backgroundColor: Colors.secondary + '20',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginLeft: Spacing.sm,
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
   },
-  featuredText: {
-    ...Typography.labelSmall,
-    color: Colors.secondary,
+  locationIcon: {
+    fontSize: 12,
+    marginRight: 4,
   },
   location: {
     ...Typography.bodySmall,
     color: Colors.textSecondary,
-    marginBottom: 4,
+    flex: 1,
   },
   ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
+  ratingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.warningLight,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginRight: 8,
+  },
   starIcon: {
     fontSize: 12,
-    marginRight: 2,
+    color: Colors.warning,
+    marginRight: 3,
   },
   rating: {
-    ...Typography.labelLarge,
+    ...Typography.label,
     color: Colors.text,
-    marginRight: 4,
+    fontWeight: '700',
   },
   reviewCount: {
     ...Typography.bodySmall,
@@ -200,30 +214,46 @@ const styles = StyleSheet.create({
   specialtiesContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.xs,
+    gap: 8,
     marginBottom: Spacing.sm,
   },
   specialtyTag: {
-    backgroundColor: Colors.primary + '10',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: 6,
+    backgroundColor: Colors.primaryMuted,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
   },
   specialtyText: {
     ...Typography.labelSmall,
     color: Colors.primary,
+    fontWeight: '600',
+  },
+  moreTag: {
+    backgroundColor: Colors.border,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  moreTagText: {
+    ...Typography.labelSmall,
+    color: Colors.textSecondary,
   },
   languagesContainer: {
     flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: Spacing.md,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    backgroundColor: Colors.background,
+    borderRadius: 10,
   },
-  languagesLabel: {
-    ...Typography.bodySmall,
-    color: Colors.textSecondary,
+  languagesIcon: {
+    fontSize: 14,
+    marginRight: 8,
   },
   languagesText: {
     ...Typography.bodySmall,
-    color: Colors.text,
+    color: Colors.textSecondary,
     flex: 1,
   },
   cardFooter: {
@@ -238,9 +268,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'baseline',
   },
+  priceLabel: {
+    ...Typography.caption,
+    color: Colors.textTertiary,
+    marginRight: 4,
+  },
   price: {
-    ...Typography.h3,
-    color: Colors.text,
+    ...Typography.price,
+    color: Colors.primary,
   },
   priceUnit: {
     ...Typography.bodySmall,
@@ -248,65 +283,63 @@ const styles = StyleSheet.create({
     marginLeft: 2,
   },
   availabilityBadge: {
-    backgroundColor: Colors.success + '15',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.successLight,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
   unavailableBadge: {
-    backgroundColor: Colors.textTertiary + '15',
+    backgroundColor: Colors.border,
+  },
+  availabilityDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.success,
+    marginRight: 6,
+  },
+  unavailableDot: {
+    backgroundColor: Colors.textTertiary,
   },
   availabilityText: {
     ...Typography.labelSmall,
     color: Colors.success,
+    fontWeight: '600',
   },
   unavailableText: {
     color: Colors.textTertiary,
   },
+
   // Compact styles
   compactCard: {
     alignItems: 'center',
-    width: 80,
-  },
-  compactAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: Spacing.xs,
-    position: 'relative',
-  },
-  compactAvatarText: {
-    ...Typography.labelLarge,
-    color: Colors.textInverse,
-  },
-  verifiedBadgeSmall: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: Colors.success,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: Colors.background,
+    width: 85,
   },
   compactName: {
-    ...Typography.labelSmall,
+    ...Typography.label,
     color: Colors.text,
     textAlign: 'center',
-    marginBottom: 2,
+    marginTop: 8,
+    marginBottom: 4,
   },
   compactRating: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: Colors.warningLight,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  starIconSmall: {
+    fontSize: 10,
+    color: Colors.warning,
+    marginRight: 2,
   },
   compactRatingText: {
     ...Typography.labelSmall,
-    color: Colors.textSecondary,
+    color: Colors.text,
+    fontWeight: '600',
   },
 });

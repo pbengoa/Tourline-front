@@ -1,20 +1,15 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-  avatar?: string;
-}
+import { authService, User, getErrorMessage } from '../services';
 
 interface AuthContextData {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (name: string, email: string, password: string) => Promise<void>;
+  signUp: (firstName: string, lastName: string, email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
@@ -31,12 +26,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const loadStoredAuth = async () => {
       try {
-        // TODO: Implement actual token/session check
-        // Example: const storedUser = await AsyncStorage.getItem('@auth_user');
-        // if (storedUser) setUser(JSON.parse(storedUser));
-
-        // Simulate loading delay
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        // Check if we have a stored user
+        const storedUser = await authService.getStoredUser();
+        
+        if (storedUser) {
+          // Verify the token is still valid by fetching current user
+          try {
+            const response = await authService.getMe();
+            if (response.success) {
+              setUser(response.data);
+            } else {
+              // Token invalid, clear storage
+              await authService.logout();
+            }
+          } catch {
+            // Token expired or invalid
+            await authService.logout();
+          }
+        }
       } catch (error) {
         console.error('Error loading auth state:', error);
       } finally {
@@ -49,80 +56,73 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signIn = useCallback(async (email: string, password: string) => {
     try {
-      // TODO: Implement actual sign in with your backend
-      // Example:
-      // const response = await api.post('/auth/login', { email, password });
-      // const { user, token } = response.data;
-      // await AsyncStorage.setItem('@auth_token', token);
-      // await AsyncStorage.setItem('@auth_user', JSON.stringify(user));
-
-      // Simulated response
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      const mockUser: User = {
-        id: '1',
-        email,
-        name: email.split('@')[0],
-      };
-
-      setUser(mockUser);
+      const response = await authService.login({ email, password });
+      
+      if (response.success) {
+        setUser(response.data.user);
+      } else {
+        throw new Error('Error al iniciar sesión');
+      }
     } catch (error) {
       console.error('Sign in error:', error);
-      throw new Error('Error al iniciar sesión');
+      throw new Error(getErrorMessage(error));
     }
   }, []);
 
-  const signUp = useCallback(async (name: string, email: string, password: string) => {
-    try {
-      // TODO: Implement actual sign up with your backend
-      // Example:
-      // const response = await api.post('/auth/register', { name, email, password });
-      // const { user, token } = response.data;
-      // await AsyncStorage.setItem('@auth_token', token);
-      // await AsyncStorage.setItem('@auth_user', JSON.stringify(user));
+  const signUp = useCallback(
+    async (firstName: string, lastName: string, email: string, password: string) => {
+      try {
+        const response = await authService.register({
+          firstName,
+          lastName,
+          email,
+          password,
+        });
 
-      // Simulated response
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      const mockUser: User = {
-        id: '1',
-        email,
-        name,
-      };
-
-      setUser(mockUser);
-    } catch (error) {
-      console.error('Sign up error:', error);
-      throw new Error('Error al crear cuenta');
-    }
-  }, []);
+        if (response.success) {
+          setUser(response.data.user);
+        } else {
+          throw new Error('Error al crear cuenta');
+        }
+      } catch (error) {
+        console.error('Sign up error:', error);
+        throw new Error(getErrorMessage(error));
+      }
+    },
+    []
+  );
 
   const signOut = useCallback(async () => {
     try {
-      // TODO: Implement actual sign out
-      // Example:
-      // await api.post('/auth/logout');
-      // await AsyncStorage.removeItem('@auth_token');
-      // await AsyncStorage.removeItem('@auth_user');
-
+      await authService.logout();
       setUser(null);
     } catch (error) {
       console.error('Sign out error:', error);
-      throw new Error('Error al cerrar sesión');
+      throw new Error(getErrorMessage(error));
     }
   }, []);
 
   const resetPassword = useCallback(async (email: string) => {
     try {
-      // TODO: Implement actual password reset
-      // Example:
-      // await api.post('/auth/reset-password', { email });
-
-      // Simulated response
+      // Note: The backend doesn't have a forgot password endpoint yet
+      // This is a placeholder that can be implemented later
+      console.log('Reset password requested for:', email);
+      // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1500));
     } catch (error) {
       console.error('Reset password error:', error);
-      throw new Error('Error al enviar correo de recuperación');
+      throw new Error(getErrorMessage(error));
+    }
+  }, []);
+
+  const refreshUser = useCallback(async () => {
+    try {
+      const response = await authService.getMe();
+      if (response.success) {
+        setUser(response.data);
+      }
+    } catch (error) {
+      console.error('Refresh user error:', error);
     }
   }, []);
 
@@ -136,6 +136,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         signUp,
         signOut,
         resetPassword,
+        refreshUser,
       }}
     >
       {children}
@@ -152,3 +153,6 @@ export const useAuth = (): AuthContextData => {
 
   return context;
 };
+
+// Re-export User type for convenience
+export type { User };

@@ -3,21 +3,26 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TextInput,
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   Alert,
+  Dimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing, Typography } from '../../theme';
 import { Button } from '../../components';
+import { useAuth } from '../../context';
 import type { AuthStackScreenProps } from '../../types';
+
+const { width } = Dimensions.get('window');
 
 type Props = AuthStackScreenProps<'Login'>;
 
 export const LoginScreen: React.FC<Props> = ({ navigation }) => {
+  const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -48,12 +53,10 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
     setLoading(true);
     try {
-      // TODO: Implement actual login logic
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      // On success, the auth context should handle navigation
-      Alert.alert('Éxito', 'Inicio de sesión exitoso');
+      await signIn(email, password);
     } catch (error) {
-      Alert.alert('Error', 'No se pudo iniciar sesión. Verifica tus credenciales.');
+      const message = error instanceof Error ? error.message : 'Error al iniciar sesión';
+      Alert.alert('Error', message);
     } finally {
       setLoading(false);
     }
@@ -61,6 +64,12 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Decorative background */}
+      <View style={styles.backgroundDecor}>
+        <View style={styles.mountainShape1} />
+        <View style={styles.mountainShape2} />
+      </View>
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -73,19 +82,19 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.logoContainer}>
-              <Text style={styles.logoIcon}>🗺️</Text>
+              <Text style={styles.logoIcon}>⛰️</Text>
             </View>
-            <Text style={styles.title}>Bienvenido</Text>
-            <Text style={styles.subtitle}>Inicia sesión para continuar</Text>
+            <Text style={styles.title}>¡Bienvenido!</Text>
+            <Text style={styles.subtitle}>Tu próxima aventura te espera</Text>
           </View>
 
-          {/* Form */}
-          <View style={styles.form}>
+          {/* Form Card */}
+          <View style={styles.formCard}>
             {/* Email Input */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Correo electrónico</Text>
               <View style={[styles.inputContainer, errors.email && styles.inputError]}>
-                <Text style={styles.inputIcon}>✉️</Text>
+                <Text style={styles.inputIcon}>📧</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="tu@email.com"
@@ -107,7 +116,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Contraseña</Text>
               <View style={[styles.inputContainer, errors.password && styles.inputError]}>
-                <Text style={styles.inputIcon}>🔒</Text>
+                <Text style={styles.inputIcon}>🔐</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="••••••••"
@@ -123,8 +132,9 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
                 <TouchableOpacity
                   onPress={() => setShowPassword(!showPassword)}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  style={styles.eyeButton}
                 >
-                  <Text style={styles.showPasswordIcon}>{showPassword ? '👁️' : '👁️‍🗨️'}</Text>
+                  <Text style={styles.eyeIcon}>{showPassword ? '👁️' : '👁️‍🗨️'}</Text>
                 </TouchableOpacity>
               </View>
               {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
@@ -140,10 +150,12 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
             {/* Login Button */}
             <Button
-              title="Iniciar Sesión"
+              title="Iniciar Aventura"
               onPress={handleLogin}
               loading={loading}
               fullWidth
+              size="large"
+              icon="🚀"
               style={styles.loginButton}
             />
 
@@ -156,22 +168,28 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
             {/* Social Login */}
             <View style={styles.socialButtons}>
-              <TouchableOpacity style={styles.socialButton} activeOpacity={0.7}>
+              <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
                 <Text style={styles.socialIcon}>🍎</Text>
                 <Text style={styles.socialText}>Apple</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.socialButton} activeOpacity={0.7}>
+              <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
                 <Text style={styles.socialIcon}>G</Text>
                 <Text style={styles.socialText}>Google</Text>
               </TouchableOpacity>
             </View>
           </View>
 
+          {/* Test Credentials */}
+          <View style={styles.testCredentials}>
+            <Text style={styles.testCredentialsTitle}>🧪 Credenciales de prueba:</Text>
+            <Text style={styles.testCredentialsText}>user@tourline.com / user123456</Text>
+          </View>
+
           {/* Footer */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>¿No tienes cuenta? </Text>
+            <Text style={styles.footerText}>¿Nuevo explorador? </Text>
             <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-              <Text style={styles.footerLink}>Regístrate</Text>
+              <Text style={styles.footerLink}>Únete ahora</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -184,6 +202,34 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  backgroundDecor: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 200,
+    overflow: 'hidden',
+  },
+  mountainShape1: {
+    position: 'absolute',
+    top: -100,
+    left: -50,
+    width: width * 0.8,
+    height: 200,
+    backgroundColor: Colors.primaryMuted,
+    borderBottomRightRadius: 200,
+    transform: [{ rotate: '-15deg' }],
+  },
+  mountainShape2: {
+    position: 'absolute',
+    top: -80,
+    right: -100,
+    width: width * 0.7,
+    height: 180,
+    backgroundColor: Colors.secondaryMuted,
+    borderBottomLeftRadius: 180,
+    transform: [{ rotate: '10deg' }],
   },
   keyboardView: {
     flex: 1,
@@ -198,16 +244,21 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
   logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 20,
-    backgroundColor: Colors.primary + '15',
+    width: 90,
+    height: 90,
+    borderRadius: 28,
+    backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: Spacing.lg,
+    shadowColor: Colors.primaryDark,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
   },
   logoIcon: {
-    fontSize: 40,
+    fontSize: 44,
   },
   title: {
     ...Typography.h1,
@@ -218,28 +269,39 @@ const styles = StyleSheet.create({
     ...Typography.bodyLarge,
     color: Colors.textSecondary,
   },
-  form: {
-    flex: 1,
+  formCard: {
+    backgroundColor: Colors.card,
+    borderRadius: 24,
+    padding: Spacing.lg,
+    shadowColor: Colors.text,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 20,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
   },
   inputGroup: {
     marginBottom: Spacing.md,
   },
   label: {
-    ...Typography.labelLarge,
+    ...Typography.label,
     color: Colors.text,
     marginBottom: Spacing.sm,
+    marginLeft: 4,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    borderWidth: 1,
+    backgroundColor: Colors.background,
+    borderRadius: 14,
+    borderWidth: 1.5,
     borderColor: Colors.border,
     paddingHorizontal: Spacing.md,
   },
   inputError: {
     borderColor: Colors.error,
+    backgroundColor: Colors.errorLight,
   },
   inputIcon: {
     fontSize: 18,
@@ -251,13 +313,17 @@ const styles = StyleSheet.create({
     color: Colors.text,
     paddingVertical: Spacing.md,
   },
-  showPasswordIcon: {
+  eyeButton: {
+    padding: 4,
+  },
+  eyeIcon: {
     fontSize: 18,
   },
   errorText: {
     ...Typography.bodySmall,
     color: Colors.error,
-    marginTop: Spacing.xs,
+    marginTop: 6,
+    marginLeft: 4,
   },
   forgotPassword: {
     alignSelf: 'flex-end',
@@ -294,9 +360,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    borderWidth: 1,
+    backgroundColor: Colors.background,
+    borderRadius: 14,
+    borderWidth: 1.5,
     borderColor: Colors.border,
     paddingVertical: Spacing.md,
     gap: Spacing.sm,
@@ -307,6 +373,25 @@ const styles = StyleSheet.create({
   socialText: {
     ...Typography.labelLarge,
     color: Colors.text,
+  },
+  testCredentials: {
+    marginTop: Spacing.lg,
+    padding: Spacing.md,
+    backgroundColor: Colors.primaryMuted,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.primary + '30',
+  },
+  testCredentialsTitle: {
+    ...Typography.labelSmall,
+    color: Colors.primary,
+    marginBottom: 4,
+    fontWeight: '600',
+  },
+  testCredentialsText: {
+    ...Typography.bodySmall,
+    color: Colors.textSecondary,
   },
   footer: {
     flexDirection: 'row',
@@ -321,6 +406,6 @@ const styles = StyleSheet.create({
   },
   footerLink: {
     ...Typography.labelLarge,
-    color: Colors.primary,
+    color: Colors.secondary,
   },
 });

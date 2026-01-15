@@ -1,34 +1,41 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   ScrollView,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Colors, Spacing, Typography } from '../theme';
 import { useAuth } from '../context';
+import { Avatar, ImageUploader } from '../components';
+import { profileService } from '../services';
 import type { MainTabScreenProps, RootStackParamList } from '../types';
 
 type Props = MainTabScreenProps<'Profile'>;
 
 const MENU_ITEMS = [
-  { id: 'bookings', icon: '📋', label: 'Mis Reservas' },
-  { id: 'messages', icon: '💬', label: 'Mensajes' },
-  { id: 'favorites', icon: '❤️', label: 'Favoritos' },
-  { id: 'payments', icon: '💳', label: 'Métodos de Pago' },
-  { id: 'notifications', icon: '🔔', label: 'Notificaciones' },
-  { id: 'settings', icon: '⚙️', label: 'Configuración' },
-  { id: 'help', icon: '❓', label: 'Ayuda y Soporte' },
+  { id: 'bookings', icon: '📋', label: 'Mis Reservas', badge: null },
+  { id: 'messages', icon: '💬', label: 'Mensajes', badge: 2 },
+  { id: 'favorites', icon: '❤️', label: 'Favoritos', badge: null },
+  { id: 'payments', icon: '💳', label: 'Métodos de Pago', badge: null },
+  { id: 'notifications', icon: '🔔', label: 'Notificaciones', badge: 5 },
+  { id: 'settings', icon: '⚙️', label: 'Configuración', badge: null },
+  { id: 'help', icon: '❓', label: 'Ayuda y Soporte', badge: null },
 ];
 
 export const ProfileScreen: React.FC<Props> = () => {
   const { user, signOut } = useAuth();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const [avatarUri, setAvatarUri] = useState<string | undefined>(user?.avatar);
+  const [isEditingAvatar, setIsEditingAvatar] = useState(false);
+
+  // Get full name from firstName and lastName
+  const fullName = user ? `${user.firstName} ${user.lastName}` : 'Usuario';
 
   const handleMenuPress = (id: string) => {
     switch (id) {
@@ -73,66 +80,135 @@ export const ProfileScreen: React.FC<Props> = () => {
     ]);
   };
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map((part) => part[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
+  const handleAvatarUploaded = async (imageUrl: string) => {
+    try {
+      // Update avatar in backend
+      await profileService.updateAvatar(imageUrl);
+      setAvatarUri(imageUrl);
+      Alert.alert('Éxito', 'Foto de perfil actualizada');
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo actualizar la foto de perfil');
+    }
   };
 
+  const getRoleBadge = () => {
+    if (!user) return null;
+    if (user.role === 'ADMIN') return { label: 'Admin', color: Colors.error, icon: '👑' };
+    if (user.role === 'GUIDE') return { label: 'Guía Verificado', color: Colors.success, icon: '✓' };
+    return null;
+  };
+
+  const roleBadge = getRoleBadge();
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Header */}
         <View style={styles.header}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{user?.name ? getInitials(user.name) : 'U'}</Text>
+          <View style={styles.headerBackground} />
+          
+          <View style={styles.avatarSection}>
+            {isEditingAvatar ? (
+              <ImageUploader
+                currentImageUri={avatarUri}
+                onImageUploaded={(url) => {
+                  handleAvatarUploaded(url);
+                  setIsEditingAvatar(false);
+                }}
+                type="avatar"
+                size="large"
+                placeholder={fullName}
+              />
+            ) : (
+              <TouchableOpacity
+                style={styles.avatarContainer}
+                onPress={() => setIsEditingAvatar(true)}
+                activeOpacity={0.8}
+              >
+                <Avatar uri={avatarUri} name={fullName} size="xlarge" />
+                <View style={styles.cameraButton}>
+                  <Text style={styles.cameraIcon}>📷</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+
+            <View style={styles.nameContainer}>
+              <Text style={styles.userName}>{fullName}</Text>
+              {roleBadge && (
+                <View style={[styles.roleBadge, { backgroundColor: roleBadge.color + '15' }]}>
+                  <Text style={styles.roleBadgeIcon}>{roleBadge.icon}</Text>
+                  <Text style={[styles.roleBadgeText, { color: roleBadge.color }]}>
+                    {roleBadge.label}
+                  </Text>
+                </View>
+              )}
+            </View>
+            <Text style={styles.userEmail}>{user?.email || 'usuario@example.com'}</Text>
+
+            <TouchableOpacity style={styles.editButton} activeOpacity={0.7}>
+              <Text style={styles.editButtonIcon}>✏️</Text>
+              <Text style={styles.editButtonText}>Editar Perfil</Text>
+            </TouchableOpacity>
           </View>
-          <Text style={styles.userName}>{user?.name || 'Usuario'}</Text>
-          <Text style={styles.userEmail}>{user?.email || 'usuario@example.com'}</Text>
-          <TouchableOpacity style={styles.editButton} activeOpacity={0.7}>
-            <Text style={styles.editButtonText}>Editar Perfil</Text>
+        </View>
+
+        {/* Stats */}
+        <View style={styles.statsContainer}>
+          <TouchableOpacity style={styles.statItem} activeOpacity={0.7}>
+            <Text style={styles.statValue}>12</Text>
+            <Text style={styles.statLabel}>Tours</Text>
+          </TouchableOpacity>
+          <View style={styles.statDivider} />
+          <TouchableOpacity style={styles.statItem} activeOpacity={0.7}>
+            <Text style={styles.statValue}>8</Text>
+            <Text style={styles.statLabel}>Reseñas</Text>
+          </TouchableOpacity>
+          <View style={styles.statDivider} />
+          <TouchableOpacity style={styles.statItem} activeOpacity={0.7}>
+            <Text style={styles.statValue}>24</Text>
+            <Text style={styles.statLabel}>Favoritos</Text>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.statsContainer}>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>0</Text>
-            <Text style={styles.statLabel}>Tours</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>0</Text>
-            <Text style={styles.statLabel}>Reseñas</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>0</Text>
-            <Text style={styles.statLabel}>Favoritos</Text>
-          </View>
-        </View>
-
+        {/* Menu */}
         <View style={styles.menuContainer}>
-          {MENU_ITEMS.map((item) => (
+          <Text style={styles.menuTitle}>Cuenta</Text>
+          {MENU_ITEMS.map((item, index) => (
             <TouchableOpacity
               key={item.id}
-              style={styles.menuItem}
+              style={[
+                styles.menuItem,
+                index === MENU_ITEMS.length - 1 && styles.menuItemLast,
+              ]}
               activeOpacity={0.7}
               onPress={() => handleMenuPress(item.id)}
             >
               <View style={styles.menuItemLeft}>
-                <Text style={styles.menuIcon}>{item.icon}</Text>
+                <View style={styles.menuIconContainer}>
+                  <Text style={styles.menuIcon}>{item.icon}</Text>
+                </View>
                 <Text style={styles.menuLabel}>{item.label}</Text>
               </View>
-              <Text style={styles.menuArrow}>›</Text>
+              <View style={styles.menuItemRight}>
+                {item.badge && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>{item.badge}</Text>
+                  </View>
+                )}
+                <Text style={styles.menuArrow}>›</Text>
+              </View>
             </TouchableOpacity>
           ))}
         </View>
 
+        {/* Logout */}
         <TouchableOpacity style={styles.logoutButton} activeOpacity={0.7} onPress={handleLogout}>
+          <Text style={styles.logoutIcon}>🚪</Text>
           <Text style={styles.logoutText}>Cerrar Sesión</Text>
         </TouchableOpacity>
+
+        {/* Version */}
+        <Text style={styles.version}>Tourline v1.0.0</Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -144,27 +220,68 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   header: {
+    position: 'relative',
+    paddingBottom: Spacing.lg,
+  },
+  headerBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 120,
+    backgroundColor: Colors.primary,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  avatarSection: {
     alignItems: 'center',
-    paddingVertical: Spacing.xl,
+    paddingTop: Spacing.xl,
     paddingHorizontal: Spacing.lg,
   },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
+  avatarContainer: {
+    position: 'relative',
     marginBottom: Spacing.md,
   },
-  avatarText: {
-    ...Typography.h1,
-    color: Colors.textInverse,
+  cameraButton: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.secondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: Colors.card,
+  },
+  cameraIcon: {
+    fontSize: 16,
+  },
+  nameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: 4,
   },
   userName: {
     ...Typography.h3,
     color: Colors.text,
-    marginBottom: Spacing.xs,
+  },
+  roleBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  roleBadgeIcon: {
+    fontSize: 12,
+  },
+  roleBadgeText: {
+    ...Typography.labelSmall,
+    fontWeight: '700',
   },
   userEmail: {
     ...Typography.body,
@@ -172,23 +289,35 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
     borderRadius: 20,
+    backgroundColor: Colors.card,
     borderWidth: 1,
-    borderColor: Colors.primary,
+    borderColor: Colors.border,
+    gap: 6,
+  },
+  editButtonIcon: {
+    fontSize: 14,
   },
   editButtonText: {
-    ...Typography.labelLarge,
-    color: Colors.primary,
+    ...Typography.label,
+    color: Colors.text,
   },
   statsContainer: {
     flexDirection: 'row',
     backgroundColor: Colors.card,
     marginHorizontal: Spacing.lg,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: Spacing.lg,
     marginBottom: Spacing.lg,
+    shadowColor: Colors.text,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   statItem: {
     flex: 1,
@@ -196,54 +325,115 @@ const styles = StyleSheet.create({
   },
   statValue: {
     ...Typography.h2,
-    color: Colors.text,
+    color: Colors.primary,
+    marginBottom: 2,
   },
   statLabel: {
-    ...Typography.bodySmall,
+    ...Typography.labelSmall,
     color: Colors.textSecondary,
   },
   statDivider: {
     width: 1,
     backgroundColor: Colors.border,
+    marginVertical: 4,
   },
   menuContainer: {
     backgroundColor: Colors.card,
     marginHorizontal: Spacing.lg,
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: 'hidden',
+    shadowColor: Colors.text,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  menuTitle: {
+    ...Typography.labelSmall,
+    color: Colors.textTertiary,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.sm,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: Spacing.md,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: Colors.borderLight,
+  },
+  menuItemLast: {
+    borderBottomWidth: 0,
   },
   menuItemLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  menuIcon: {
-    fontSize: 20,
+  menuIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: Colors.background,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginRight: Spacing.md,
+  },
+  menuIcon: {
+    fontSize: 18,
   },
   menuLabel: {
     ...Typography.body,
     color: Colors.text,
+  },
+  menuItemRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  badge: {
+    backgroundColor: Colors.error,
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+  },
+  badgeText: {
+    ...Typography.labelSmall,
+    color: Colors.textInverse,
+    fontWeight: '700',
   },
   menuArrow: {
     ...Typography.h3,
     color: Colors.textTertiary,
   },
   logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     margin: Spacing.lg,
     marginTop: Spacing.xl,
     padding: Spacing.md,
-    alignItems: 'center',
+    backgroundColor: Colors.errorLight,
+    borderRadius: 16,
+    gap: Spacing.sm,
+  },
+  logoutIcon: {
+    fontSize: 18,
   },
   logoutText: {
-    ...Typography.labelLarge,
+    ...Typography.button,
     color: Colors.error,
+  },
+  version: {
+    ...Typography.caption,
+    color: Colors.textTertiary,
+    textAlign: 'center',
+    marginBottom: Spacing.xl,
   },
 });

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Text, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Colors, Spacing, Typography } from '../theme';
 import type { Category } from '../types';
 
@@ -19,12 +19,13 @@ export const CategoryPill: React.FC<CategoryPillProps> = ({
       style={[
         styles.pill,
         selected && styles.pillSelected,
-        selected && { backgroundColor: category.color },
       ]}
       onPress={onPress}
-      activeOpacity={0.7}
+      activeOpacity={0.85}
     >
-      <Text style={styles.icon}>{category.icon}</Text>
+      <View style={[styles.iconContainer, selected && styles.iconContainerSelected]}>
+        <Text style={styles.icon}>{category.icon}</Text>
+      </View>
       <Text style={[styles.label, selected && styles.labelSelected]}>{category.name}</Text>
     </TouchableOpacity>
   );
@@ -34,27 +35,49 @@ const styles = StyleSheet.create({
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: 20,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
+    paddingRight: Spacing.md,
+    paddingLeft: 6,
+    paddingVertical: 6,
+    borderRadius: 24,
+    backgroundColor: Colors.card,
+    borderWidth: 1.5,
     borderColor: Colors.border,
     marginRight: Spacing.sm,
+    shadowColor: Colors.text,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
   },
   pillSelected: {
-    borderColor: 'transparent',
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+    shadowColor: Colors.primaryDark,
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  iconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Spacing.xs,
+  },
+  iconContainerSelected: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
   icon: {
     fontSize: 16,
-    marginRight: Spacing.xs,
   },
   label: {
     ...Typography.label,
     color: Colors.text,
+    fontWeight: '600',
   },
   labelSelected: {
     color: Colors.textInverse,
-    fontWeight: '600',
   },
 });
