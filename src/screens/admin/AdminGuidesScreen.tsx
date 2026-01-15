@@ -27,14 +27,18 @@ export const AdminGuidesScreen: React.FC<Props> = ({ navigation }) => {
 
   const fetchGuides = useCallback(async () => {
     try {
+      console.log('📋 Fetching guides...');
       const params: { search?: string; isActive?: boolean } = {};
       if (searchQuery) params.search = searchQuery;
       if (showActiveOnly) params.isActive = true;
 
       const result = await adminService.getGuides(params);
-      setGuides(result.data);
-    } catch (error) {
-      console.error('Error fetching guides:', error);
+      console.log('✅ Guides result:', JSON.stringify(result, null, 2));
+      setGuides(result.data || []);
+    } catch (error: any) {
+      console.error('❌ Error fetching guides:', error);
+      console.error('❌ Response:', error?.response?.data);
+      setGuides([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -85,9 +89,9 @@ export const AdminGuidesScreen: React.FC<Props> = ({ navigation }) => {
           onPress: async () => {
             try {
               if (guide.isActive) {
-                await adminService.deleteGuide(guide.id);
+                await adminService.deactivateGuide(guide.id);
               } else {
-                await adminService.updateGuide(guide.id, {});
+                await adminService.activateGuide(guide.id);
               }
               Alert.alert('Éxito', `Guía ${guide.isActive ? 'desactivado' : 'activado'}`);
               fetchGuides();
@@ -100,11 +104,12 @@ export const AdminGuidesScreen: React.FC<Props> = ({ navigation }) => {
     );
   };
 
-  const formatPrice = (price: number, currency: string) => {
+  const formatPrice = (price: number | undefined, currency: string) => {
+    const p = price || 0;
     if (currency === 'CLP') {
-      return `$${price.toLocaleString('es-CL')}/hora`;
+      return `$${p.toLocaleString('es-CL')}/hora`;
     }
-    return `${price}€/hora`;
+    return `${p}€/hora`;
   };
 
   const renderGuideCard = ({ item: guide }: { item: AdminGuide }) => (
@@ -115,7 +120,7 @@ export const AdminGuidesScreen: React.FC<Props> = ({ navigation }) => {
             <Image source={{ uri: guide.avatar }} style={styles.guideAvatar} />
           ) : (
             <View style={styles.guideAvatarPlaceholder}>
-              <Text style={styles.guideAvatarText}>{guide.name.charAt(0)}</Text>
+              <Text style={styles.guideAvatarText}>{(guide.name || 'G').charAt(0)}</Text>
             </View>
           )}
           {guide.isVerified && (
@@ -127,40 +132,40 @@ export const AdminGuidesScreen: React.FC<Props> = ({ navigation }) => {
 
         <View style={styles.guideInfo}>
           <View style={styles.guideNameRow}>
-            <Text style={styles.guideName}>{guide.name}</Text>
+            <Text style={styles.guideName}>{guide.name || 'Sin nombre'}</Text>
             {!guide.isActive && (
               <View style={styles.inactiveBadge}>
                 <Text style={styles.inactiveBadgeText}>Inactivo</Text>
               </View>
             )}
           </View>
-          <Text style={styles.guideEmail}>{guide.email}</Text>
-          <Text style={styles.guideLocation}>📍 {guide.location}</Text>
+          <Text style={styles.guideEmail}>{guide.email || ''}</Text>
+          <Text style={styles.guideLocation}>📍 {guide.location || 'Sin ubicación'}</Text>
         </View>
       </View>
 
       <View style={styles.guideStats}>
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>⭐ {guide.rating.toFixed(1)}</Text>
-          <Text style={styles.statLabel}>{guide.reviewCount} reseñas</Text>
+          <Text style={styles.statValue}>⭐ {Number(guide.rating || 0).toFixed(1)}</Text>
+          <Text style={styles.statLabel}>{guide.reviewCount || 0} reseñas</Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>🎯 {guide.toursCount}</Text>
+          <Text style={styles.statValue}>🎯 {guide.toursCount || 0}</Text>
           <Text style={styles.statLabel}>Tours</Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>📅 {guide.bookingsCount}</Text>
+          <Text style={styles.statValue}>📅 {guide.bookingsCount || 0}</Text>
           <Text style={styles.statLabel}>Reservas</Text>
         </View>
       </View>
 
       <View style={styles.guideLanguages}>
         <Text style={styles.languagesLabel}>Idiomas: </Text>
-        <Text style={styles.languagesText}>{guide.languages.join(', ')}</Text>
+        <Text style={styles.languagesText}>{(guide.languages || []).join(', ') || 'No especificado'}</Text>
       </View>
 
       <View style={styles.guideSpecialties}>
-        {guide.specialties.slice(0, 3).map((specialty, index) => (
+        {(guide.specialties || []).slice(0, 3).map((specialty, index) => (
           <View key={index} style={styles.specialtyTag}>
             <Text style={styles.specialtyText}>{specialty}</Text>
           </View>

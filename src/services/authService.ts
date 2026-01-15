@@ -6,14 +6,23 @@ export type UserRole = 'tourist' | 'guide' | 'admin' | 'super_admin';
 
 // Map backend roles to frontend roles
 const mapBackendRole = (backendRole: string): UserRole => {
+  console.log('🎭 Raw backend role:', backendRole);
   const roleMap: { [key: string]: UserRole } = {
     USER: 'tourist',
     TOURIST: 'tourist',
     GUIDE: 'guide',
     ADMIN: 'admin',
     SUPER_ADMIN: 'super_admin',
+    // Also handle lowercase
+    user: 'tourist',
+    tourist: 'tourist',
+    guide: 'guide',
+    admin: 'admin',
+    super_admin: 'super_admin',
   };
-  return roleMap[backendRole] || 'tourist';
+  const mappedRole = roleMap[backendRole] || 'tourist';
+  console.log('🎭 Mapped role:', mappedRole);
+  return mappedRole;
 };
 
 // Types
@@ -43,6 +52,7 @@ export interface Company {
   slug: string;
   description?: string;
   logo?: string;
+  logoUrl?: string;
   coverImage?: string;
   email: string;
   phone?: string;
@@ -52,6 +62,12 @@ export interface Company {
   country: string;
   isVerified: boolean;
   isActive: boolean;
+  status?: string;
+  rating?: number;
+  reviewCount?: number;
+  tourCount?: number;
+  socialLinks?: Record<string, string>;
+  operatingHours?: Record<string, { open: string; close: string }>;
 }
 
 export interface LoginRequest {
@@ -81,10 +97,19 @@ export interface ChangePasswordRequest {
 
 // Transform user from backend format
 const transformUser = (backendUser: any): User => {
-  return {
-    ...backendUser,
-    role: mapBackendRole(backendUser.role),
+  console.log('🔄 Transforming user from backend:', JSON.stringify(backendUser, null, 2));
+  
+  // Handle nested user object (from /auth/me endpoint)
+  const userData = backendUser.user ? backendUser.user : backendUser;
+  
+  console.log('📦 Extracted user data, role:', userData.role);
+  
+  const transformed = {
+    ...userData,
+    role: mapBackendRole(userData.role),
   };
+  console.log('✅ Transformed user:', JSON.stringify(transformed, null, 2));
+  return transformed;
 };
 
 // Mock users for demo/development

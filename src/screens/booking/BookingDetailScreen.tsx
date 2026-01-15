@@ -86,9 +86,13 @@ export const BookingDetailScreen: React.FC<Props> = ({ route, navigation }) => {
       setBooking(data);
     } catch (err: any) {
       console.log('Error fetching booking:', err);
-      setError('No se pudo cargar la reserva');
-      // Mock booking for development
-      setBooking(getMockBooking());
+      if (err?.response?.status === 401) {
+        setError('Necesitas iniciar sesión para ver esta reserva');
+      } else if (err?.response?.status === 404) {
+        setError('Reserva no encontrada');
+      } else {
+        setError('No se pudo cargar la reserva');
+      }
     } finally {
       setLoading(false);
     }
@@ -97,44 +101,6 @@ export const BookingDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   useEffect(() => {
     fetchBooking();
   }, [fetchBooking]);
-
-  // Mock booking for development
-  const getMockBooking = (): Booking => ({
-    id: bookingId,
-    reference: 'TL-ABC123',
-    tourId: 'tour-1',
-    userId: 'user-1',
-    date: '2026-01-20',
-    startTime: '09:00',
-    endTime: '14:00',
-    duration: 300,
-    participants: 2,
-    specialRequests: 'Vegetarian lunch please',
-    totalPrice: 90000,
-    currency: 'CLP',
-    status: 'CONFIRMED',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    tour: {
-      id: 'tour-1',
-      name: 'Cajón del Maipo Hiking',
-      slug: 'cajon-del-maipo',
-      coverImage: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800',
-      duration: 300,
-      price: 45000,
-      currency: 'CLP',
-      meetingPoint: 'Estación de Metro Baquedano, Salida Plaza Italia',
-      meetingPointInstructions: 'Busca al guía con bandera naranja',
-      city: 'Santiago',
-      country: 'Chile',
-      company: {
-        id: 'company-1',
-        name: 'Andes Adventures',
-        slug: 'andes-adventures',
-        logoUrl: 'https://via.placeholder.com/100',
-      },
-    },
-  });
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);

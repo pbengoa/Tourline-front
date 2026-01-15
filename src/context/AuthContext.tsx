@@ -78,6 +78,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const response = await authService.login({ email, password });
 
       if (response.success) {
+        console.log('🔑 Login successful!');
+        console.log('👤 User data:', JSON.stringify(response.data.user, null, 2));
+        console.log('🎭 Role:', response.data.user.role);
+        const isAdminRole =
+          response.data.user.role === 'admin' || response.data.user.role === 'super_admin';
+        console.log('🔐 Is Admin?:', isAdminRole);
         setUser(response.data.user);
       } else {
         throw new Error('Error al iniciar sesión');

@@ -10,20 +10,169 @@ import {
   RefreshControl,
   Alert,
   ActivityIndicator,
+  Switch,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, Typography } from '../../theme';
 import { adminService, AdminTour, TourStatus } from '../../services';
 import type { AdminTabScreenProps } from '../../types';
 
 type Props = AdminTabScreenProps<'AdminTours'>;
 
-const STATUS_FILTERS: { label: string; value: TourStatus | 'all' }[] = [
-  { label: 'Todos', value: 'all' },
-  { label: 'Publicados', value: 'published' },
-  { label: 'Borrador', value: 'draft' },
-  { label: 'Archivados', value: 'archived' },
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+const STATUS_CONFIG: Record<TourStatus, { label: string; color: string; icon: string }> = {
+  PUBLISHED: { label: 'Publicado', color: Colors.success, icon: '🟢' },
+  DRAFT: { label: 'Borrador', color: Colors.warning, icon: '🟡' },
+  ARCHIVED: { label: 'Archivado', color: Colors.textTertiary, icon: '⚫' },
+};
+
+const STATUS_FILTERS: { label: string; value: TourStatus | 'all'; icon: string }[] = [
+  { label: 'Todos', value: 'all', icon: '📋' },
+  { label: 'Publicados', value: 'PUBLISHED', icon: '🟢' },
+  { label: 'Borrador', value: 'DRAFT', icon: '🟡' },
+  { label: 'Archivados', value: 'ARCHIVED', icon: '⚫' },
 ];
+
+// Tour Card Component
+const TourCard: React.FC<{
+  tour: AdminTour;
+  onEdit: () => void;
+  onTogglePublish: () => void;
+  onDelete: () => void;
+  onView: () => void;
+}> = ({ tour, onEdit, onTogglePublish, onDelete, onView }) => {
+  const config = STATUS_CONFIG[tour.status] || STATUS_CONFIG.DRAFT;
+  const isPublished = tour.status === 'PUBLISHED';
+
+  // Get first guide from guides array
+  const primaryGuide = tour.guides?.[0];
+
+  const formatPrice = (price: number | undefined, currency: string) => {
+    const p = price || 0;
+    if (currency === 'CLP') {
+      return `$${p.toLocaleString('es-CL')}`;
+    }
+    return `€${p}`;
+  };
+
+  const formatDuration = (duration: number | string) => {
+    if (typeof duration === 'string') return duration;
+    if (duration < 60) return `${duration} min`;
+    const hours = Math.floor(duration / 60);
+    const mins = duration % 60;
+    return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`;
+  };
+
+  return (
+    <TouchableOpacity style={styles.tourCard} onPress={onView} activeOpacity={0.9}>
+      {/* Image Section */}
+      <View style={styles.tourImageContainer}>
+        {tour.image ? (
+          <Image source={{ uri: tour.image }} style={styles.tourImage} />
+        ) : (
+          <LinearGradient
+            colors={[Colors.primaryLight, Colors.primary]}
+            style={styles.tourImagePlaceholder}
+          >
+            <Text style={styles.tourImagePlaceholderText}>🏔️</Text>
+          </LinearGradient>
+        )}
+        
+        {/* Status Badge */}
+        <View style={[styles.statusBadge, { backgroundColor: config.color }]}>
+          <Text style={styles.statusBadgeText}>{config.label}</Text>
+        </View>
+
+        {/* Featured Badge */}
+        {(tour.isFeatured || tour.featured) && (
+          <View style={styles.featuredBadge}>
+            <Text style={styles.featuredBadgeText}>⭐ Destacado</Text>
+          </View>
+        )}
+
+        {/* Quick Toggle */}
+        <View style={styles.quickToggle}>
+          <Switch
+            value={isPublished}
+            onValueChange={onTogglePublish}
+            trackColor={{ false: Colors.borderLight, true: Colors.success + '50' }}
+            thumbColor={isPublished ? Colors.success : Colors.textTertiary}
+            style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
+          />
+        </View>
+      </View>
+
+      {/* Content */}
+      <View style={styles.tourContent}>
+        <Text style={styles.tourTitle} numberOfLines={2}>
+          {tour.title}
+        </Text>
+
+        <View style={styles.tourLocation}>
+          <Text style={styles.locationIcon}>📍</Text>
+          <Text style={styles.locationText}>{tour.location}</Text>
+        </View>
+
+        {/* Stats Row */}
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Text style={styles.statIcon}>⏱️</Text>
+            <Text style={styles.statText}>{tour.durationFormatted || formatDuration(tour.duration)}</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statIcon}>👥</Text>
+            <Text style={styles.statText}>Max {tour.maxParticipants}</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statIcon}>📅</Text>
+            <Text style={styles.statText}>{tour.bookingsCount || 0}</Text>
+          </View>
+        </View>
+
+        {/* Guide */}
+        {primaryGuide && (
+          <View style={styles.guideRow}>
+            {primaryGuide.avatar ? (
+              <Image source={{ uri: primaryGuide.avatar }} style={styles.guideAvatar} />
+            ) : (
+              <View style={styles.guideAvatarPlaceholder}>
+                <Text style={styles.guideAvatarText}>{primaryGuide.name?.charAt(0) || 'G'}</Text>
+              </View>
+            )}
+            <Text style={styles.guideName}>{primaryGuide.name}</Text>
+            {tour.guides && tour.guides.length > 1 && (
+              <Text style={styles.moreGuides}>+{tour.guides.length - 1} más</Text>
+            )}
+          </View>
+        )}
+
+        {/* Footer */}
+        <View style={styles.tourFooter}>
+          <View>
+            <Text style={styles.tourPrice}>{formatPrice(tour.price, tour.currency)}</Text>
+            <View style={styles.ratingRow}>
+              <Text style={styles.ratingStar}>⭐</Text>
+              <Text style={styles.ratingText}>{Number(tour.rating || 0).toFixed(1)}</Text>
+              <Text style={styles.reviewCount}>({tour.reviewCount})</Text>
+            </View>
+          </View>
+
+          <View style={styles.actionButtons}>
+            <TouchableOpacity style={styles.editButton} onPress={onEdit}>
+              <Text style={styles.editButtonText}>✏️</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.deleteButton} onPress={onDelete}>
+              <Text style={styles.deleteButtonText}>🗑️</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+};
 
 export const AdminToursScreen: React.FC<Props> = ({ navigation }) => {
   const [tours, setTours] = useState<AdminTour[]>([]);
@@ -57,14 +206,14 @@ export const AdminToursScreen: React.FC<Props> = ({ navigation }) => {
     fetchTours();
   };
 
-  const handlePublish = async (tour: AdminTour) => {
+  const handleTogglePublish = async (tour: AdminTour) => {
     try {
-      if (tour.status === 'published') {
+      if (tour.status === 'PUBLISHED') {
         await adminService.unpublishTour(tour.id);
-        Alert.alert('Éxito', 'Tour despublicado');
+        Alert.alert('Tour despublicado', 'El tour ya no es visible para los clientes');
       } else {
         await adminService.publishTour(tour.id);
-        Alert.alert('Éxito', 'Tour publicado');
+        Alert.alert('Tour publicado', '¡El tour ahora está visible para todos!');
       }
       fetchTours();
     } catch (error) {
@@ -73,147 +222,50 @@ export const AdminToursScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleDelete = (tour: AdminTour) => {
-    Alert.alert('Eliminar Tour', `¿Estás seguro de eliminar "${tour.title}"?`, [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Eliminar',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await adminService.deleteTour(tour.id);
-            Alert.alert('Éxito', 'Tour eliminado');
-            fetchTours();
-          } catch (error) {
-            Alert.alert('Error', 'No se pudo eliminar el tour');
-          }
+    Alert.alert(
+      'Archivar Tour',
+      `¿Estás seguro de archivar "${tour.title}"? Podrás restaurarlo después.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Archivar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await adminService.deleteTour(tour.id);
+              Alert.alert('Tour archivado', 'Puedes restaurarlo desde la sección de archivados');
+              fetchTours();
+            } catch (error) {
+              Alert.alert('Error', 'No se pudo archivar el tour');
+            }
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
-  const formatPrice = (price: number, currency: string) => {
-    if (currency === 'CLP') {
-      return `$${price.toLocaleString('es-CL')}`;
-    }
-    return `${price}€`;
+  const handleEdit = (tour: AdminTour) => {
+    Alert.alert('Editar Tour', `Editar "${tour.title}"\n\nPróximamente...`);
   };
 
-  const getStatusColor = (status: TourStatus) => {
-    switch (status) {
-      case 'published':
-        return Colors.success;
-      case 'draft':
-        return Colors.warning;
-      case 'archived':
-        return Colors.textTertiary;
-    }
+  const handleView = (tour: AdminTour) => {
+    Alert.alert('Vista previa', `Ver tour "${tour.title}"\n\nPróximamente...`);
   };
 
-  const getStatusLabel = (status: TourStatus) => {
-    switch (status) {
-      case 'published':
-        return 'Publicado';
-      case 'draft':
-        return 'Borrador';
-      case 'archived':
-        return 'Archivado';
-    }
+  const handleCreateTour = () => {
+    Alert.alert('Nuevo Tour', 'Crear nuevo tour\n\nPróximamente...');
   };
 
-  const renderTourCard = ({ item: tour }: { item: AdminTour }) => (
-    <View style={styles.tourCard}>
-      <View style={styles.tourImageContainer}>
-        {tour.image ? (
-          <Image source={{ uri: tour.image }} style={styles.tourImage} />
-        ) : (
-          <View style={styles.tourImagePlaceholder}>
-            <Text style={styles.tourImagePlaceholderText}>🏔️</Text>
-          </View>
-        )}
-        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(tour.status) }]}>
-          <Text style={styles.statusBadgeText}>{getStatusLabel(tour.status)}</Text>
-        </View>
-        {tour.featured && (
-          <View style={styles.featuredBadge}>
-            <Text style={styles.featuredBadgeText}>⭐</Text>
-          </View>
-        )}
-      </View>
-
-      <View style={styles.tourContent}>
-        <Text style={styles.tourTitle} numberOfLines={2}>
-          {tour.title}
-        </Text>
-        <Text style={styles.tourLocation}>📍 {tour.location}</Text>
-
-        <View style={styles.tourMeta}>
-          <View style={styles.tourMetaItem}>
-            <Text style={styles.tourMetaIcon}>⏱️</Text>
-            <Text style={styles.tourMetaText}>{tour.duration}</Text>
-          </View>
-          <View style={styles.tourMetaItem}>
-            <Text style={styles.tourMetaIcon}>👥</Text>
-            <Text style={styles.tourMetaText}>{tour.maxParticipants}</Text>
-          </View>
-          <View style={styles.tourMetaItem}>
-            <Text style={styles.tourMetaIcon}>📅</Text>
-            <Text style={styles.tourMetaText}>{tour.bookingsCount}</Text>
-          </View>
-        </View>
-
-        <View style={styles.tourGuide}>
-          {tour.guideAvatar ? (
-            <Image source={{ uri: tour.guideAvatar }} style={styles.guideAvatar} />
-          ) : (
-            <View style={styles.guideAvatarPlaceholder}>
-              <Text style={styles.guideAvatarText}>{tour.guideName.charAt(0)}</Text>
-            </View>
-          )}
-          <Text style={styles.guideName}>{tour.guideName}</Text>
-        </View>
-
-        <View style={styles.tourFooter}>
-          <Text style={styles.tourPrice}>{formatPrice(tour.price, tour.currency)}</Text>
-          <View style={styles.tourRating}>
-            <Text style={styles.tourRatingText}>⭐ {tour.rating.toFixed(1)}</Text>
-            <Text style={styles.tourReviews}>({tour.reviewCount})</Text>
-          </View>
-        </View>
-
-        <View style={styles.tourActions}>
-          <TouchableOpacity
-            style={[styles.actionButton, styles.editButton]}
-            onPress={() => Alert.alert('Editar', 'Funcionalidad próximamente')}
-          >
-            <Text style={styles.actionButtonText}>✏️ Editar</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.actionButton,
-              tour.status === 'published' ? styles.unpublishButton : styles.publishButton,
-            ]}
-            onPress={() => handlePublish(tour)}
-          >
-            <Text style={styles.actionButtonText}>
-              {tour.status === 'published' ? '📴 Despublicar' : '📢 Publicar'}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.actionButton, styles.deleteButton]}
-            onPress={() => handleDelete(tour)}
-          >
-            <Text style={styles.deleteButtonText}>🗑️</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
-  );
+  // Stats
+  const publishedCount = tours.filter((t) => t.status === 'PUBLISHED').length;
+  const draftCount = tours.filter((t) => t.status === 'DRAFT').length;
 
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>Cargando tours...</Text>
         </View>
       </SafeAreaView>
     );
@@ -223,12 +275,21 @@ export const AdminToursScreen: React.FC<Props> = ({ navigation }) => {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Tours</Text>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => Alert.alert('Nuevo Tour', 'Funcionalidad próximamente')}
-        >
-          <Text style={styles.addButtonText}>+ Nuevo</Text>
+        <View>
+          <Text style={styles.headerTitle}>Tours</Text>
+          <Text style={styles.headerSubtitle}>
+            {publishedCount} publicados • {draftCount} en borrador
+          </Text>
+        </View>
+        <TouchableOpacity style={styles.addButton} onPress={handleCreateTour}>
+          <LinearGradient
+            colors={[Colors.primary, Colors.primaryDark]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.addButtonGradient}
+          >
+            <Text style={styles.addButtonText}>+ Nuevo</Text>
+          </LinearGradient>
         </TouchableOpacity>
       </View>
 
@@ -238,46 +299,75 @@ export const AdminToursScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
             style={styles.searchInput}
-            placeholder="Buscar tours..."
+            placeholder="Buscar por nombre, ubicación o guía..."
             placeholderTextColor={Colors.textTertiary}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Text style={styles.clearIcon}>✕</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
       {/* Status Filter */}
       <View style={styles.filterContainer}>
-        {STATUS_FILTERS.map((filter) => (
-          <TouchableOpacity
-            key={filter.value}
-            style={[styles.filterButton, statusFilter === filter.value && styles.filterButtonActive]}
-            onPress={() => setStatusFilter(filter.value)}
-          >
-            <Text
-              style={[
-                styles.filterButtonText,
-                statusFilter === filter.value && styles.filterButtonTextActive,
-              ]}
+        <FlatList
+          horizontal
+          data={STATUS_FILTERS}
+          keyExtractor={(item) => item.value}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterList}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={[styles.filterButton, statusFilter === item.value && styles.filterButtonActive]}
+              onPress={() => setStatusFilter(item.value)}
             >
-              {filter.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <Text style={styles.filterIcon}>{item.icon}</Text>
+              <Text
+                style={[
+                  styles.filterButtonText,
+                  statusFilter === item.value && styles.filterButtonTextActive,
+                ]}
+              >
+                {item.label}
+              </Text>
+            </TouchableOpacity>
+          )}
+        />
       </View>
 
       {/* Tours List */}
       <FlatList
         data={tours}
-        renderItem={renderTourCard}
+        renderItem={({ item }) => (
+          <TourCard
+            tour={item}
+            onEdit={() => handleEdit(item)}
+            onTogglePublish={() => handleTogglePublish(item)}
+            onDelete={() => handleDelete(item)}
+            onView={() => handleView(item)}
+          />
+        )}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
+        }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyIcon}>🏔️</Text>
             <Text style={styles.emptyTitle}>No hay tours</Text>
-            <Text style={styles.emptyText}>Crea tu primer tour para empezar</Text>
+            <Text style={styles.emptyText}>
+              {statusFilter !== 'all'
+                ? `No tienes tours ${STATUS_CONFIG[statusFilter]?.label.toLowerCase() || ''}`
+                : 'Crea tu primer tour para empezar a recibir reservas'}
+            </Text>
+            <TouchableOpacity style={styles.emptyButton} onPress={handleCreateTour}>
+              <Text style={styles.emptyButtonText}>+ Crear tour</Text>
+            </TouchableOpacity>
           </View>
         }
       />
@@ -295,6 +385,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  loadingText: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    marginTop: Spacing.md,
+  },
+
   // Header
   header: {
     flexDirection: 'row',
@@ -307,16 +403,25 @@ const styles = StyleSheet.create({
     ...Typography.h2,
     color: Colors.text,
   },
+  headerSubtitle: {
+    ...Typography.caption,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
   addButton: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.md,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  addButtonGradient: {
+    paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
-    borderRadius: 8,
   },
   addButtonText: {
     ...Typography.labelLarge,
     color: Colors.textInverse,
+    fontWeight: '600',
   },
+
   // Search
   searchContainer: {
     paddingHorizontal: Spacing.lg,
@@ -326,8 +431,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.card,
-    borderRadius: 12,
+    borderRadius: 14,
     paddingHorizontal: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
   },
   searchIcon: {
     fontSize: 16,
@@ -339,21 +446,34 @@ const styles = StyleSheet.create({
     color: Colors.text,
     paddingVertical: Spacing.md,
   },
+  clearIcon: {
+    fontSize: 14,
+    color: Colors.textTertiary,
+    padding: Spacing.xs,
+  },
+
   // Filter
   filterContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: Spacing.lg,
     marginBottom: Spacing.md,
-    gap: Spacing.sm,
+  },
+  filterList: {
+    paddingHorizontal: Spacing.lg,
   },
   filterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: 20,
+    paddingVertical: Spacing.sm,
+    borderRadius: 12,
     backgroundColor: Colors.card,
+    marginRight: Spacing.sm,
+    gap: 6,
   },
   filterButtonActive: {
     backgroundColor: Colors.primary,
+  },
+  filterIcon: {
+    fontSize: 12,
   },
   filterButtonText: {
     ...Typography.labelSmall,
@@ -362,35 +482,43 @@ const styles = StyleSheet.create({
   filterButtonTextActive: {
     color: Colors.textInverse,
   },
+
   // List
   listContent: {
     paddingHorizontal: Spacing.lg,
-    paddingBottom: 100,
+    paddingBottom: 120,
   },
+
   // Tour Card
   tourCard: {
     backgroundColor: Colors.card,
-    borderRadius: 16,
+    borderRadius: 20,
     marginBottom: Spacing.md,
     overflow: 'hidden',
+    shadowColor: Colors.text,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   tourImageContainer: {
     position: 'relative',
+    height: 180,
   },
   tourImage: {
     width: '100%',
-    height: 160,
+    height: '100%',
     resizeMode: 'cover',
   },
   tourImagePlaceholder: {
     width: '100%',
-    height: 160,
-    backgroundColor: Colors.primaryMuted,
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
   },
   tourImagePlaceholderText: {
-    fontSize: 48,
+    fontSize: 56,
+    opacity: 0.5,
   },
   statusBadge: {
     position: 'absolute',
@@ -398,7 +526,7 @@ const styles = StyleSheet.create({
     left: Spacing.sm,
     paddingHorizontal: Spacing.sm,
     paddingVertical: 4,
-    borderRadius: 6,
+    borderRadius: 8,
   },
   statusBadgeText: {
     ...Typography.caption,
@@ -409,15 +537,25 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: Spacing.sm,
     right: Spacing.sm,
-    backgroundColor: Colors.secondary,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backdropFilter: 'blur(4px)',
   },
   featuredBadgeText: {
-    fontSize: 14,
+    ...Typography.caption,
+    color: Colors.textInverse,
+    fontWeight: '600',
+  },
+  quickToggle: {
+    position: 'absolute',
+    bottom: Spacing.sm,
+    right: Spacing.sm,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    borderRadius: 20,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
   },
   tourContent: {
     padding: Spacing.md,
@@ -428,46 +566,59 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   tourLocation: {
-    ...Typography.bodySmall,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.sm,
-  },
-  tourMeta: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-    marginBottom: Spacing.sm,
-  },
-  tourMetaItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: Spacing.sm,
   },
-  tourMetaIcon: {
+  locationIcon: {
     fontSize: 12,
     marginRight: 4,
   },
-  tourMetaText: {
+  locationText: {
+    ...Typography.bodySmall,
+    color: Colors.textSecondary,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderLight,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.borderLight,
+    marginBottom: Spacing.sm,
+  },
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statIcon: {
+    fontSize: 12,
+    marginRight: 4,
+  },
+  statText: {
     ...Typography.caption,
     color: Colors.textSecondary,
   },
-  tourGuide: {
+  guideRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.md,
   },
   guideAvatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    marginRight: Spacing.xs,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    marginRight: Spacing.sm,
   },
   guideAvatarPlaceholder: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: Spacing.xs,
+    marginRight: Spacing.sm,
   },
   guideAvatarText: {
     ...Typography.caption,
@@ -477,62 +628,68 @@ const styles = StyleSheet.create({
   guideName: {
     ...Typography.bodySmall,
     color: Colors.textSecondary,
+    flex: 1,
+  },
+  moreGuides: {
+    ...Typography.caption,
+    color: Colors.primary,
+    fontWeight: '600',
   },
   tourFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
+    alignItems: 'flex-end',
   },
   tourPrice: {
-    ...Typography.h4,
+    ...Typography.h3,
     color: Colors.primary,
     fontWeight: '700',
   },
-  tourRating: {
+  ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  tourRatingText: {
+  ratingStar: {
+    fontSize: 12,
+    marginRight: 2,
+  },
+  ratingText: {
     ...Typography.labelSmall,
     color: Colors.text,
+    fontWeight: '600',
   },
-  tourReviews: {
+  reviewCount: {
     ...Typography.caption,
     color: Colors.textTertiary,
-    marginLeft: 4,
+    marginLeft: 2,
   },
-  tourActions: {
+  actionButtons: {
     flexDirection: 'row',
     gap: Spacing.sm,
   },
-  actionButton: {
-    flex: 1,
-    paddingVertical: Spacing.sm,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
   editButton: {
     backgroundColor: Colors.infoLight,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  publishButton: {
-    backgroundColor: Colors.successLight,
-  },
-  unpublishButton: {
-    backgroundColor: Colors.warningLight,
+  editButtonText: {
+    fontSize: 18,
   },
   deleteButton: {
-    width: 44,
-    flex: 0,
     backgroundColor: Colors.errorLight,
-  },
-  actionButtonText: {
-    ...Typography.caption,
-    fontWeight: '600',
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   deleteButtonText: {
-    fontSize: 16,
+    fontSize: 18,
   },
+
   // Empty
   emptyContainer: {
     alignItems: 'center',
@@ -550,6 +707,19 @@ const styles = StyleSheet.create({
   emptyText: {
     ...Typography.body,
     color: Colors.textSecondary,
+    textAlign: 'center',
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.lg,
+  },
+  emptyButton: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    borderRadius: 12,
+  },
+  emptyButtonText: {
+    ...Typography.labelLarge,
+    color: Colors.textInverse,
+    fontWeight: '600',
   },
 });
-

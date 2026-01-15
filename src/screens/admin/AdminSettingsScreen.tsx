@@ -153,9 +153,9 @@ export const AdminSettingsScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           <View style={styles.companyCard}>
-            {company?.logo && (
+            {(company?.logo || company?.logoUrl) && (
               <View style={styles.logoContainer}>
-                <Image source={{ uri: company.logo }} style={styles.companyLogo} />
+                <Image source={{ uri: company.logo || company.logoUrl }} style={styles.companyLogo} />
                 {editMode && (
                   <TouchableOpacity style={styles.changeLogoButton}>
                     <Text style={styles.changeLogoText}>Cambiar logo</Text>

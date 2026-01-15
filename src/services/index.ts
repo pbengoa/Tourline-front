@@ -22,10 +22,13 @@ export type {
   AdminBooking,
   DashboardStats,
   DashboardData,
-  BookingStats,
+  BookingStats as AdminBookingStats,
   TourStatus,
+  GuideStatus,
+  BookingStatus as AdminBookingStatus,
   CreateTourRequest,
   CreateGuideRequest,
+  PaginatedResponse,
 } from './adminService';
 
 // Profile Service

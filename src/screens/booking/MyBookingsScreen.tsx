@@ -10,8 +10,10 @@ import {
   Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, Typography } from '../../theme';
 import { bookingsService, Booking, BookingStatus } from '../../services/bookingsService';
+import { useAuth } from '../../context/AuthContext';
 import type { RootStackScreenProps } from '../../types';
 
 type Props = RootStackScreenProps<'MyBookings'>;
@@ -33,6 +35,7 @@ const STATUS_CONFIG: Record<BookingStatus, { icon: string; label: string; color:
 };
 
 export const MyBookingsScreen: React.FC<Props> = ({ navigation }) => {
+  const { isAuthenticated, user } = useAuth();
   const [filter, setFilter] = useState<BookingFilter>('all');
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -43,93 +46,32 @@ export const MyBookingsScreen: React.FC<Props> = ({ navigation }) => {
   today.setHours(0, 0, 0, 0);
 
   const fetchBookings = useCallback(async () => {
+    // Si no está autenticado, no hacer fetch
+    if (!isAuthenticated) {
+      setLoading(false);
+      return;
+    }
+    
     try {
       setError(null);
       const response = await bookingsService.getMyBookings({ limit: 50 });
       setBookings(response.data || []);
     } catch (err: any) {
       console.log('Error fetching bookings:', err);
-      setError('No se pudieron cargar las reservas');
-      // Use mock data as fallback
-      setBookings(getMockBookings());
+      // Solo mostrar error si es algo diferente a 401
+      if (err?.response?.status !== 401) {
+        setError('No se pudieron cargar las reservas');
+      }
+      setBookings([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     fetchBookings();
   }, [fetchBookings]);
 
-  // Mock bookings for development/fallback
-  const getMockBookings = (): Booking[] => {
-    return [
-      {
-        id: 'mock-1',
-        reference: 'TL-ABC123',
-        tourId: 'tour-1',
-        userId: 'user-1',
-        date: '2026-01-20',
-        startTime: '09:00',
-        endTime: '14:00',
-        duration: 300,
-        participants: 2,
-        totalPrice: 90000,
-        currency: 'CLP',
-        status: 'CONFIRMED',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        tour: {
-          id: 'tour-1',
-          name: 'Cajón del Maipo Hiking',
-          slug: 'cajon-del-maipo',
-          coverImage: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=400',
-          duration: 300,
-          price: 45000,
-          currency: 'CLP',
-          city: 'Santiago',
-          country: 'Chile',
-          company: {
-            id: 'company-1',
-            name: 'Andes Adventures',
-            slug: 'andes-adventures',
-          },
-        },
-      },
-      {
-        id: 'mock-2',
-        reference: 'TL-DEF456',
-        tourId: 'tour-2',
-        userId: 'user-1',
-        date: '2026-01-25',
-        startTime: '08:00',
-        endTime: '18:00',
-        duration: 600,
-        participants: 4,
-        totalPrice: 240000,
-        currency: 'CLP',
-        status: 'PENDING',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        tour: {
-          id: 'tour-2',
-          name: 'Valle Nevado Snow Tour',
-          slug: 'valle-nevado',
-          coverImage: 'https://images.unsplash.com/photo-1551524559-8af4e6624178?w=400',
-          duration: 600,
-          price: 60000,
-          currency: 'CLP',
-          city: 'Santiago',
-          country: 'Chile',
-          company: {
-            id: 'company-2',
-            name: 'Snow Chile',
-            slug: 'snow-chile',
-          },
-        },
-      },
-    ];
-  };
 
   const filteredBookings = bookings.filter((booking) => {
     const bookingDate = new Date(booking.date);
@@ -255,16 +197,47 @@ export const MyBookingsScreen: React.FC<Props> = ({ navigation }) => {
           ? 'No tienes reservas próximas'
           : filter === 'past'
             ? 'No tienes reservas pasadas'
-            : 'No tienes reservas'}
+            : 'No tienes reservas aún'}
       </Text>
       <Text style={styles.emptyText}>
-        Explora los tours disponibles para planificar tu próxima aventura
+        Explora los tours disponibles y reserva tu próxima aventura
       </Text>
       <TouchableOpacity
         style={styles.exploreButton}
-        onPress={() => navigation.navigate('Main', { screen: 'Home' })}
+        onPress={() => navigation.navigate('Main', { screen: 'Search' })}
       >
-        <Text style={styles.exploreButtonText}>Explorar tours</Text>
+        <LinearGradient
+          colors={[Colors.primary, Colors.primaryDark]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.exploreButtonGradient}
+        >
+          <Text style={styles.exploreButtonText}>🔍 Explorar tours</Text>
+        </LinearGradient>
+      </TouchableOpacity>
+    </View>
+  );
+
+  // Si no está autenticado, mostrar CTA para login
+  const renderLoginPrompt = () => (
+    <View style={styles.loginContainer}>
+      <Text style={styles.loginIcon}>🔐</Text>
+      <Text style={styles.loginTitle}>Inicia sesión</Text>
+      <Text style={styles.loginText}>
+        Para ver tus reservas necesitas tener una cuenta
+      </Text>
+      <TouchableOpacity
+        style={styles.loginButton}
+        onPress={() => navigation.navigate('Main', { screen: 'Profile' })}
+      >
+        <LinearGradient
+          colors={[Colors.primary, Colors.primaryDark]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.loginButtonGradient}
+        >
+          <Text style={styles.loginButtonText}>Iniciar sesión</Text>
+        </LinearGradient>
       </TouchableOpacity>
     </View>
   );
@@ -276,6 +249,15 @@ export const MyBookingsScreen: React.FC<Props> = ({ navigation }) => {
           <ActivityIndicator size="large" color={Colors.primary} />
           <Text style={styles.loadingText}>Cargando reservas...</Text>
         </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Si no está autenticado, mostrar prompt de login
+  if (!isAuthenticated) {
+    return (
+      <SafeAreaView style={styles.container} edges={['bottom']}>
+        {renderLoginPrompt()}
       </SafeAreaView>
     );
   }
@@ -511,14 +493,53 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
   },
   exploreButton: {
-    backgroundColor: Colors.primary,
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  exploreButtonGradient: {
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
-    borderRadius: 12,
   },
   exploreButtonText: {
     ...Typography.labelLarge,
     color: Colors.textInverse,
     fontWeight: '600',
+    textAlign: 'center',
+  },
+  // Login prompt
+  loginContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.xl,
+  },
+  loginIcon: {
+    fontSize: 64,
+    marginBottom: Spacing.md,
+  },
+  loginTitle: {
+    ...Typography.h3,
+    color: Colors.text,
+    marginBottom: Spacing.xs,
+  },
+  loginText: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: Spacing.lg,
+  },
+  loginButton: {
+    borderRadius: 14,
+    overflow: 'hidden',
+    minWidth: 200,
+  },
+  loginButtonGradient: {
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    alignItems: 'center',
+  },
+  loginButtonText: {
+    ...Typography.button,
+    color: Colors.textInverse,
   },
 });

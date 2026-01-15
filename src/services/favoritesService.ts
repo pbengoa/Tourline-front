@@ -37,17 +37,33 @@ export const favoritesService = {
    * GET /api/favorites
    */
   async getAll(): Promise<ApiResponse<Favorite[]>> {
-    const response = await api.get<ApiResponse<Favorite[]>>('/favorites');
-    return response.data;
+    try {
+      const response = await api.get<ApiResponse<Favorite[]>>('/favorites');
+      return response.data;
+    } catch (error: any) {
+      // Si no está autenticado, devolver lista vacía
+      if (error?.response?.status === 401) {
+        return { success: true, data: [] };
+      }
+      throw error;
+    }
   },
 
   /**
    * Add tour to favorites
    * POST /api/favorites
    */
-  async add(tourId: string): Promise<ApiResponse<Favorite>> {
-    const response = await api.post<ApiResponse<Favorite>>('/favorites', { tourId });
-    return response.data;
+  async add(tourId: string): Promise<ApiResponse<Favorite> | null> {
+    try {
+      const response = await api.post<ApiResponse<Favorite>>('/favorites', { tourId });
+      return response.data;
+    } catch (error: any) {
+      if (error?.response?.status === 401) {
+        console.log('Cannot add favorite: not authenticated');
+        return null;
+      }
+      throw error;
+    }
   },
 
   /**
@@ -55,7 +71,15 @@ export const favoritesService = {
    * DELETE /api/favorites/:tourId
    */
   async remove(tourId: string): Promise<void> {
-    await api.delete(`/favorites/${tourId}`);
+    try {
+      await api.delete(`/favorites/${tourId}`);
+    } catch (error: any) {
+      if (error?.response?.status === 401) {
+        console.log('Cannot remove favorite: not authenticated');
+        return;
+      }
+      throw error;
+    }
   },
 
   /**
@@ -63,10 +87,17 @@ export const favoritesService = {
    * GET /api/favorites/check/:tourId
    */
   async check(tourId: string): Promise<{ isFavorite: boolean }> {
-    const response = await api.get<{ success: boolean; data: { isFavorite: boolean } }>(
-      `/favorites/check/${tourId}`
-    );
-    return response.data.data;
+    try {
+      const response = await api.get<{ success: boolean; data: { isFavorite: boolean } }>(
+        `/favorites/check/${tourId}`
+      );
+      return response.data.data;
+    } catch (error: any) {
+      if (error?.response?.status === 401) {
+        return { isFavorite: false };
+      }
+      throw error;
+    }
   },
 
   /**
@@ -87,10 +118,17 @@ export const favoritesService = {
    * GET /api/favorites/count
    */
   async getCount(): Promise<number> {
-    const response = await api.get<{ success: boolean; data: { count: number } }>(
-      '/favorites/count'
-    );
-    return response.data.data.count;
+    try {
+      const response = await api.get<{ success: boolean; data: { count: number } }>(
+        '/favorites/count'
+      );
+      return response.data.data.count;
+    } catch (error: any) {
+      if (error?.response?.status === 401) {
+        return 0;
+      }
+      throw error;
+    }
   },
 };
 
