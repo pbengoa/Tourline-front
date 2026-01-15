@@ -1,17 +1,25 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, Typography } from '../theme';
-import { Avatar } from './Avatar';
 import type { Tour } from '../types';
+
+const { width } = Dimensions.get('window');
+const CARD_WIDTH = width * 0.78;
 
 interface TourCardProps {
   tour: Tour;
   onPress: () => void;
   horizontal?: boolean;
+  compact?: boolean;
 }
 
-export const TourCard: React.FC<TourCardProps> = ({ tour, onPress, horizontal = false }) => {
+export const TourCard: React.FC<TourCardProps> = ({
+  tour,
+  onPress,
+  horizontal = false,
+  compact = false,
+}) => {
   // Safe values with defaults
   const title = tour.title || 'Tour';
   const location = tour.location || '';
@@ -19,24 +27,30 @@ export const TourCard: React.FC<TourCardProps> = ({ tour, onPress, horizontal = 
   const rating = tour.rating ?? 0;
   const reviewCount = tour.reviewCount ?? 0;
   const price = tour.price ?? 0;
-  const currency = tour.currency || 'EUR';
+  const currency = tour.currency || 'CLP';
   const guideName = tour.guideName || 'Guía';
   const guideRating = tour.guideRating ?? 0;
+  const maxParticipants = tour.maxParticipants ?? 10;
 
+  // Format price for CLP
   const formatPrice = (amount: number, curr: string) => {
+    if (curr === 'CLP') {
+      return `$${amount.toLocaleString('es-CL')}`;
+    }
     const symbol = curr === 'EUR' ? '€' : '$';
     return `${symbol}${amount}`;
   };
 
+  // Horizontal variant (for search results)
   if (horizontal) {
     return (
-      <TouchableOpacity style={styles.horizontalCard} onPress={onPress} activeOpacity={0.9}>
+      <TouchableOpacity style={styles.horizontalCard} onPress={onPress} activeOpacity={0.95}>
         <View style={styles.horizontalImageContainer}>
           {tour.image ? (
             <Image source={{ uri: tour.image }} style={styles.horizontalImage} resizeMode="cover" />
           ) : (
             <View style={styles.horizontalImagePlaceholder}>
-              <Text style={styles.imagePlaceholderIcon}>🏛️</Text>
+              <Text style={styles.imagePlaceholderIcon}>🏔️</Text>
             </View>
           )}
           {tour.featured && (
@@ -44,22 +58,40 @@ export const TourCard: React.FC<TourCardProps> = ({ tour, onPress, horizontal = 
               <Text style={styles.featuredTextSmall}>⭐</Text>
             </View>
           )}
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.4)']}
+            style={styles.horizontalImageGradient}
+          />
         </View>
         <View style={styles.horizontalContent}>
-          <Text style={styles.horizontalTitle} numberOfLines={2}>
-            {title}
-          </Text>
+          <View style={styles.horizontalHeader}>
+            <Text style={styles.horizontalTitle} numberOfLines={2}>
+              {title}
+            </Text>
+            <View style={styles.horizontalRating}>
+              <Text style={styles.starIcon}>★</Text>
+              <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
+            </View>
+          </View>
           <View style={styles.horizontalLocationRow}>
             <Text style={styles.locationIcon}>📍</Text>
-            <Text style={styles.horizontalLocation}>{location}</Text>
+            <Text style={styles.horizontalLocation} numberOfLines={1}>
+              {location}
+            </Text>
           </View>
           <View style={styles.horizontalMeta}>
-            <Text style={styles.durationText}>⏱️ {duration}</Text>
+            <View style={styles.metaItem}>
+              <Text style={styles.metaIcon}>⏱️</Text>
+              <Text style={styles.metaText}>{duration}</Text>
+            </View>
+            <View style={styles.metaItem}>
+              <Text style={styles.metaIcon}>👥</Text>
+              <Text style={styles.metaText}>máx {maxParticipants}</Text>
+            </View>
           </View>
           <View style={styles.horizontalFooter}>
-            <View style={styles.ratingContainer}>
-              <Text style={styles.starIcon}>★</Text>
-              <Text style={styles.rating}>{rating.toFixed(1)}</Text>
+            <View style={styles.guideMiniBadge}>
+              <Text style={styles.guideMiniBadgeText}>por {guideName.split(' ')[0]}</Text>
             </View>
             <Text style={styles.horizontalPrice}>{formatPrice(price, currency)}</Text>
           </View>
@@ -68,82 +100,147 @@ export const TourCard: React.FC<TourCardProps> = ({ tour, onPress, horizontal = 
     );
   }
 
+  // Compact variant (small cards for lists)
+  if (compact) {
+    return (
+      <TouchableOpacity style={styles.compactCard} onPress={onPress} activeOpacity={0.95}>
+        <View style={styles.compactImageContainer}>
+          {tour.image ? (
+            <Image source={{ uri: tour.image }} style={styles.compactImage} resizeMode="cover" />
+          ) : (
+            <View style={styles.compactImagePlaceholder}>
+              <Text style={styles.compactPlaceholderIcon}>🏔️</Text>
+            </View>
+          )}
+          {tour.featured && (
+            <View style={styles.compactFeaturedBadge}>
+              <Text style={styles.compactFeaturedText}>⭐</Text>
+            </View>
+          )}
+        </View>
+        <Text style={styles.compactTitle} numberOfLines={2}>
+          {title}
+        </Text>
+        <View style={styles.compactMeta}>
+          <Text style={styles.compactLocation} numberOfLines={1}>
+            📍 {location}
+          </Text>
+          <View style={styles.compactRating}>
+            <Text style={styles.compactStar}>★</Text>
+            <Text style={styles.compactRatingText}>{rating.toFixed(1)}</Text>
+          </View>
+        </View>
+        <Text style={styles.compactPrice}>{formatPrice(price, currency)}</Text>
+      </TouchableOpacity>
+    );
+  }
+
+  // Default variant - Featured Card (main style)
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.9}>
+    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.97}>
       {/* Image section */}
       <View style={styles.imageContainer}>
         {tour.image ? (
           <Image source={{ uri: tour.image }} style={styles.image} resizeMode="cover" />
         ) : (
-          <View style={styles.imagePlaceholder}>
+          <LinearGradient
+            colors={[Colors.primaryLight, Colors.primary]}
+            style={styles.imagePlaceholder}
+          >
             <View style={styles.placeholderContent}>
-              <View style={styles.mountainIcon} />
-              <View style={styles.sunIcon} />
+              <View style={styles.mountainShape}>
+                <View style={styles.mountainPeak1} />
+                <View style={styles.mountainPeak2} />
+              </View>
+              <View style={styles.sunShape} />
+              <View style={styles.cloudShape} />
             </View>
-          </View>
+          </LinearGradient>
         )}
 
         {/* Gradient overlay */}
         <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.3)', 'rgba(0,0,0,0.7)']}
+          colors={['transparent', 'rgba(0,0,0,0.2)', 'rgba(0,0,0,0.75)']}
+          locations={[0, 0.5, 1]}
           style={styles.imageGradient}
         />
 
-        {/* Featured badge */}
-        {tour.featured && (
-          <View style={styles.featuredBadge}>
-            <Text style={styles.featuredText}>⭐ Destacado</Text>
+        {/* Top badges */}
+        <View style={styles.topBadgesRow}>
+          {tour.featured && (
+            <View style={styles.featuredBadge}>
+              <Text style={styles.featuredIcon}>⭐</Text>
+              <Text style={styles.featuredText}>Destacado</Text>
+            </View>
+          )}
+          <View style={styles.durationBadge}>
+            <Text style={styles.durationIcon}>⏱️</Text>
+            <Text style={styles.durationText}>{duration}</Text>
           </View>
-        )}
-
-        {/* Duration badge */}
-        <View style={styles.durationBadge}>
-          <Text style={styles.durationBadgeText}>⏱️ {duration}</Text>
         </View>
 
-        {/* Price overlay */}
-        <View style={styles.priceOverlay}>
-          <Text style={styles.priceOverlayText}>{formatPrice(price, currency)}</Text>
-          <Text style={styles.pricePerPerson}>/persona</Text>
+        {/* Bottom image content */}
+        <View style={styles.imageBottomContent}>
+          <View style={styles.priceContainer}>
+            <Text style={styles.priceText}>{formatPrice(price, currency)}</Text>
+            <Text style={styles.priceSubtext}>/persona</Text>
+          </View>
+          <View style={styles.ratingBadge}>
+            <Text style={styles.ratingIcon}>★</Text>
+            <Text style={styles.ratingValue}>{rating.toFixed(1)}</Text>
+          </View>
         </View>
       </View>
 
+      {/* Content section */}
       <View style={styles.content}>
         <Text style={styles.title} numberOfLines={2}>
           {title}
         </Text>
 
         <View style={styles.locationRow}>
-          <Text style={styles.locationIcon}>📍</Text>
-          <Text style={styles.location}>{location}</Text>
+          <View style={styles.locationPill}>
+            <Text style={styles.locationIcon}>📍</Text>
+            <Text style={styles.location} numberOfLines={1}>
+              {location}
+            </Text>
+          </View>
         </View>
 
         {/* Guide info */}
         <View style={styles.guideRow}>
-          <Avatar uri={tour.guideAvatar} name={guideName} size="small" />
+          <View style={styles.guideAvatar}>
+            {tour.guideAvatar ? (
+              <Image source={{ uri: tour.guideAvatar }} style={styles.guideAvatarImage} />
+            ) : (
+              <View style={styles.guideAvatarPlaceholder}>
+                <Text style={styles.guideInitial}>{guideName.charAt(0)}</Text>
+              </View>
+            )}
+          </View>
           <View style={styles.guideInfo}>
             <Text style={styles.guideName} numberOfLines={1}>
               {guideName}
             </Text>
-            <View style={styles.guideRating}>
-              <Text style={styles.starIconSmall}>★</Text>
+            <View style={styles.guideRatingRow}>
+              <Text style={styles.guideStarIcon}>★</Text>
               <Text style={styles.guideRatingText}>{guideRating.toFixed(1)}</Text>
             </View>
+          </View>
+          <View style={styles.participantsInfo}>
+            <Text style={styles.participantsIcon}>👥</Text>
+            <Text style={styles.participantsText}>{maxParticipants}</Text>
           </View>
         </View>
 
         {/* Footer */}
         <View style={styles.cardFooter}>
-          <View style={styles.ratingContainer}>
-            <View style={styles.ratingBadge}>
-              <Text style={styles.starIcon}>★</Text>
-              <Text style={styles.rating}>{rating.toFixed(1)}</Text>
-            </View>
-            <Text style={styles.reviewCount}>{reviewCount} reseñas</Text>
+          <View style={styles.reviewsContainer}>
+            <Text style={styles.reviewsText}>{reviewCount} reseñas</Text>
           </View>
-          <View style={styles.participantsInfo}>
-            <Text style={styles.participantsIcon}>👥</Text>
-            <Text style={styles.participantsText}>máx {tour.maxParticipants}</Text>
+          <View style={styles.ctaButton}>
+            <Text style={styles.ctaText}>Ver tour</Text>
+            <Text style={styles.ctaArrow}>→</Text>
           </View>
         </View>
       </View>
@@ -152,22 +249,24 @@ export const TourCard: React.FC<TourCardProps> = ({ tour, onPress, horizontal = 
 };
 
 const styles = StyleSheet.create({
+  // Main card (default)
   card: {
     backgroundColor: Colors.card,
-    borderRadius: 20,
+    borderRadius: 24,
     overflow: 'hidden',
-    shadowColor: Colors.text,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
-    width: 300,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
+    elevation: 8,
+    width: CARD_WIDTH,
     borderWidth: 1,
     borderColor: Colors.borderLight,
   },
   imageContainer: {
-    height: 180,
+    height: 200,
     position: 'relative',
+    backgroundColor: Colors.primaryMuted,
   },
   image: {
     width: '100%',
@@ -176,56 +275,89 @@ const styles = StyleSheet.create({
   imagePlaceholder: {
     width: '100%',
     height: '100%',
-    backgroundColor: Colors.primaryMuted,
     justifyContent: 'center',
     alignItems: 'center',
   },
   placeholderContent: {
-    width: 80,
-    height: 60,
+    width: '100%',
+    height: '100%',
     position: 'relative',
   },
-  mountainIcon: {
+  mountainShape: {
     position: 'absolute',
-    bottom: 0,
-    left: '50%',
-    marginLeft: -30,
+    bottom: 40,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: -40,
+  },
+  mountainPeak1: {
     width: 0,
     height: 0,
-    borderLeftWidth: 30,
-    borderRightWidth: 30,
-    borderBottomWidth: 40,
+    borderLeftWidth: 60,
+    borderRightWidth: 60,
+    borderBottomWidth: 80,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
-    borderBottomColor: Colors.primary + '40',
+    borderBottomColor: 'rgba(255,255,255,0.15)',
   },
-  sunIcon: {
+  mountainPeak2: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 50,
+    borderRightWidth: 50,
+    borderBottomWidth: 70,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+    marginTop: 10,
+  },
+  sunShape: {
     position: 'absolute',
-    top: 5,
-    right: 10,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: Colors.secondary + '50',
+    top: 30,
+    right: 40,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.secondary,
+    opacity: 0.4,
   },
-  imagePlaceholderIcon: {
-    fontSize: 48,
+  cloudShape: {
+    position: 'absolute',
+    top: 50,
+    left: 30,
+    width: 50,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
   imageGradient: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    height: 100,
+    height: 120,
   },
-  featuredBadge: {
+  topBadgesRow: {
     position: 'absolute',
     top: Spacing.sm,
     left: Spacing.sm,
+    right: Spacing.sm,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  featuredBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: Colors.secondary,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 5,
-    borderRadius: 8,
+    paddingVertical: 6,
+    borderRadius: 12,
+    gap: 4,
+  },
+  featuredIcon: {
+    fontSize: 12,
   },
   featuredText: {
     ...Typography.labelSmall,
@@ -233,40 +365,68 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   durationBadge: {
-    position: 'absolute',
-    top: Spacing.sm,
-    right: Spacing.sm,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
+    borderRadius: 12,
+    gap: 4,
   },
-  durationBadgeText: {
+  durationIcon: {
+    fontSize: 12,
+  },
+  durationText: {
     ...Typography.labelSmall,
     color: Colors.textInverse,
+    fontWeight: '600',
   },
-  priceOverlay: {
+  imageBottomContent: {
     position: 'absolute',
     bottom: Spacing.sm,
+    left: Spacing.sm,
     right: Spacing.sm,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+  },
+  priceContainer: {
     flexDirection: 'row',
     alignItems: 'baseline',
   },
-  priceOverlayText: {
-    ...Typography.h3,
+  priceText: {
+    ...Typography.h2,
     color: Colors.textInverse,
     fontWeight: '800',
     textShadowColor: 'rgba(0,0,0,0.5)',
     textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
+    textShadowRadius: 4,
   },
-  pricePerPerson: {
+  priceSubtext: {
     ...Typography.caption,
-    color: Colors.textInverse,
-    marginLeft: 2,
+    color: 'rgba(255,255,255,0.9)',
+    marginLeft: 3,
     textShadowColor: 'rgba(0,0,0,0.5)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
+  },
+  ratingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    gap: 4,
+  },
+  ratingIcon: {
+    fontSize: 14,
+    color: Colors.warning,
+  },
+  ratingValue: {
+    ...Typography.labelLarge,
+    color: Colors.text,
+    fontWeight: '700',
   },
   content: {
     padding: Spacing.md,
@@ -274,13 +434,20 @@ const styles = StyleSheet.create({
   title: {
     ...Typography.h4,
     color: Colors.text,
-    marginBottom: 6,
-    lineHeight: 24,
+    marginBottom: Spacing.xs,
+    lineHeight: 26,
   },
   locationRow: {
+    marginBottom: Spacing.md,
+  },
+  locationPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.sm,
+    backgroundColor: Colors.primaryMuted,
+    alignSelf: 'flex-start',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
   locationIcon: {
     fontSize: 12,
@@ -288,16 +455,38 @@ const styles = StyleSheet.create({
   },
   location: {
     ...Typography.bodySmall,
-    color: Colors.textSecondary,
+    color: Colors.primary,
+    fontWeight: '500',
   },
   guideRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.md,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.sm,
     backgroundColor: Colors.background,
-    borderRadius: 12,
+    padding: Spacing.sm,
+    borderRadius: 14,
+    marginBottom: Spacing.md,
+  },
+  guideAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  guideAvatarImage: {
+    width: '100%',
+    height: '100%',
+  },
+  guideAvatarPlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  guideInitial: {
+    ...Typography.labelLarge,
+    color: Colors.textInverse,
+    fontWeight: '700',
   },
   guideInfo: {
     flex: 1,
@@ -308,57 +497,27 @@ const styles = StyleSheet.create({
     color: Colors.text,
     marginBottom: 2,
   },
-  guideRating: {
+  guideRatingRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  starIconSmall: {
-    fontSize: 10,
-    color: Colors.warning,
-    marginRight: 3,
-  },
-  guideRatingText: {
-    ...Typography.labelSmall,
-    color: Colors.textSecondary,
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: Spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  ratingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.warningLight,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    marginRight: 8,
-  },
-  starIcon: {
+  guideStarIcon: {
     fontSize: 11,
     color: Colors.warning,
     marginRight: 3,
   },
-  rating: {
-    ...Typography.label,
-    color: Colors.text,
-    fontWeight: '700',
-  },
-  reviewCount: {
-    ...Typography.bodySmall,
-    color: Colors.textTertiary,
+  guideRatingText: {
+    ...Typography.caption,
+    color: Colors.textSecondary,
+    fontWeight: '600',
   },
   participantsInfo: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: Colors.card,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
   },
   participantsIcon: {
     fontSize: 12,
@@ -367,26 +526,58 @@ const styles = StyleSheet.create({
   participantsText: {
     ...Typography.labelSmall,
     color: Colors.textSecondary,
+    fontWeight: '600',
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderLight,
+  },
+  reviewsContainer: {},
+  reviewsText: {
+    ...Typography.bodySmall,
+    color: Colors.textTertiary,
+  },
+  ctaButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: 10,
+    gap: 4,
+  },
+  ctaText: {
+    ...Typography.labelSmall,
+    color: Colors.textInverse,
+    fontWeight: '600',
+  },
+  ctaArrow: {
+    color: Colors.textInverse,
+    fontWeight: '700',
   },
 
   // Horizontal card styles
   horizontalCard: {
     backgroundColor: Colors.card,
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: 'hidden',
-    shadowColor: Colors.text,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
     flexDirection: 'row',
-    height: 130,
+    marginHorizontal: Spacing.lg,
+    marginVertical: Spacing.sm,
     borderWidth: 1,
     borderColor: Colors.borderLight,
   },
   horizontalImageContainer: {
-    width: 130,
-    height: '100%',
+    width: 140,
     position: 'relative',
   },
   horizontalImage: {
@@ -400,14 +591,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  imagePlaceholderIcon: {
+    fontSize: 40,
+  },
+  horizontalImageGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 40,
+  },
   featuredBadgeHorizontal: {
     position: 'absolute',
     top: 8,
     left: 8,
     backgroundColor: Colors.secondary,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -416,14 +617,40 @@ const styles = StyleSheet.create({
   },
   horizontalContent: {
     flex: 1,
-    padding: Spacing.sm,
+    padding: Spacing.md,
     justifyContent: 'space-between',
+  },
+  horizontalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 4,
   },
   horizontalTitle: {
     ...Typography.labelLarge,
     color: Colors.text,
     fontWeight: '600',
     lineHeight: 20,
+    flex: 1,
+    marginRight: Spacing.sm,
+  },
+  horizontalRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.warningLight,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  starIcon: {
+    fontSize: 10,
+    color: Colors.warning,
+    marginRight: 2,
+  },
+  ratingText: {
+    ...Typography.labelSmall,
+    color: Colors.text,
+    fontWeight: '700',
   },
   horizontalLocationRow: {
     flexDirection: 'row',
@@ -432,13 +659,22 @@ const styles = StyleSheet.create({
   horizontalLocation: {
     ...Typography.bodySmall,
     color: Colors.textSecondary,
+    flex: 1,
   },
   horizontalMeta: {
     flexDirection: 'row',
+    gap: Spacing.md,
+  },
+  metaItem: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
-  durationText: {
-    ...Typography.labelSmall,
+  metaIcon: {
+    fontSize: 12,
+    marginRight: 4,
+  },
+  metaText: {
+    ...Typography.caption,
     color: Colors.textTertiary,
   },
   horizontalFooter: {
@@ -446,9 +682,106 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  guideMiniBadge: {
+    backgroundColor: Colors.primaryMuted,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  guideMiniBadgeText: {
+    ...Typography.caption,
+    color: Colors.primary,
+    fontWeight: '600',
+  },
   horizontalPrice: {
     ...Typography.h4,
     color: Colors.primary,
+    fontWeight: '800',
+  },
+
+  // Compact card styles
+  compactCard: {
+    backgroundColor: Colors.card,
+    borderRadius: 16,
+    overflow: 'hidden',
+    width: 160,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+  },
+  compactImageContainer: {
+    height: 100,
+    position: 'relative',
+  },
+  compactImage: {
+    width: '100%',
+    height: '100%',
+  },
+  compactImagePlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: Colors.primaryMuted,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  compactPlaceholderIcon: {
+    fontSize: 28,
+  },
+  compactFeaturedBadge: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    backgroundColor: Colors.secondary,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  compactFeaturedText: {
+    fontSize: 10,
+  },
+  compactTitle: {
+    ...Typography.label,
+    color: Colors.text,
+    fontWeight: '600',
+    padding: Spacing.sm,
+    paddingBottom: 4,
+  },
+  compactMeta: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.sm,
+  },
+  compactLocation: {
+    ...Typography.caption,
+    color: Colors.textSecondary,
+    flex: 1,
+  },
+  compactRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  compactStar: {
+    fontSize: 10,
+    color: Colors.warning,
+    marginRight: 2,
+  },
+  compactRatingText: {
+    ...Typography.caption,
+    color: Colors.textSecondary,
+    fontWeight: '600',
+  },
+  compactPrice: {
+    ...Typography.labelLarge,
+    color: Colors.primary,
     fontWeight: '700',
+    padding: Spacing.sm,
+    paddingTop: 4,
   },
 });

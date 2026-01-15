@@ -2,7 +2,7 @@ import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'ax
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Base URL - change this for production
-const BASE_URL = 'http://10.200.32.255:3001/api';
+const BASE_URL = 'http://192.168.1.3:3001/api';
 
 // For iOS simulator, localhost works. For Android emulator, use 10.0.2.2
 // For physical device, use your computer's IP address

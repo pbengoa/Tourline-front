@@ -19,3 +19,12 @@ export {
 
 // Chat screens
 export { ChatListScreen, ChatScreen } from './chat';
+
+// Admin screens
+export {
+  DashboardScreen,
+  AdminToursScreen,
+  AdminGuidesScreen,
+  AdminBookingsScreen,
+  AdminSettingsScreen,
+} from './admin';

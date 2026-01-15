@@ -183,6 +183,9 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.testCredentials}>
             <Text style={styles.testCredentialsTitle}>🧪 Credenciales de prueba:</Text>
             <Text style={styles.testCredentialsText}>user@tourline.com / user123456</Text>
+            <View style={styles.testDivider} />
+            <Text style={styles.testCredentialsTitle}>👔 Modo Admin:</Text>
+            <Text style={styles.testCredentialsText}>admin@tourline.com / admin123456</Text>
           </View>
 
           {/* Footer */}
@@ -392,6 +395,12 @@ const styles = StyleSheet.create({
   testCredentialsText: {
     ...Typography.bodySmall,
     color: Colors.textSecondary,
+  },
+  testDivider: {
+    width: '60%',
+    height: 1,
+    backgroundColor: Colors.primary + '30',
+    marginVertical: Spacing.sm,
   },
   footer: {
     flexDirection: 'row',

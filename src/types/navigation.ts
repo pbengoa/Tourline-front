@@ -61,12 +61,34 @@ export type RootStackParamList = {
 };
 
 /**
- * Main tab navigator param list
+ * Main tab navigator param list (Tourist)
  */
 export type MainTabParamList = {
   Home: undefined;
   Search: undefined;
   Profile: undefined;
+};
+
+/**
+ * Admin tab navigator param list
+ */
+export type AdminTabParamList = {
+  Dashboard: undefined;
+  AdminTours: undefined;
+  AdminGuides: undefined;
+  AdminBookings: undefined;
+  AdminSettings: undefined;
+};
+
+/**
+ * Admin stack param list (for nested navigation)
+ */
+export type AdminStackParamList = {
+  AdminMain: NavigatorScreenParams<AdminTabParamList>;
+  TourForm: { tourId?: string }; // undefined = create, with id = edit
+  GuideForm: { guideId?: string };
+  BookingDetail: { bookingId: string };
+  CompanySettings: undefined;
 };
 
 /**
@@ -86,11 +108,27 @@ export type RootStackScreenProps<T extends keyof RootStackParamList> = NativeSta
 >;
 
 /**
- * Main tab screen props
+ * Main tab screen props (Tourist)
  */
 export type MainTabScreenProps<T extends keyof MainTabParamList> = CompositeScreenProps<
   BottomTabScreenProps<MainTabParamList, T>,
   RootStackScreenProps<keyof RootStackParamList>
+>;
+
+/**
+ * Admin tab screen props
+ */
+export type AdminTabScreenProps<T extends keyof AdminTabParamList> = CompositeScreenProps<
+  BottomTabScreenProps<AdminTabParamList, T>,
+  NativeStackScreenProps<AdminStackParamList>
+>;
+
+/**
+ * Admin stack screen props
+ */
+export type AdminStackScreenProps<T extends keyof AdminStackParamList> = NativeStackScreenProps<
+  AdminStackParamList,
+  T
 >;
 
 /**

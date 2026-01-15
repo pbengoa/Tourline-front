@@ -6,11 +6,27 @@ export type { ApiResponse, ApiError } from './api';
 export { authService } from './authService';
 export type {
   User,
+  UserRole,
+  Company,
   LoginRequest,
   RegisterRequest,
   LoginResponse,
   ChangePasswordRequest,
 } from './authService';
+
+// Admin Service
+export { adminService } from './adminService';
+export type {
+  AdminTour,
+  AdminGuide,
+  AdminBooking,
+  DashboardStats,
+  DashboardData,
+  BookingStats,
+  TourStatus,
+  CreateTourRequest,
+  CreateGuideRequest,
+} from './adminService';
 
 // Profile Service
 export { profileService } from './profileService';
