@@ -21,7 +21,6 @@ import { Colors, Spacing, Typography } from '../theme';
 import { Avatar } from '../components';
 import {
   CATEGORIES,
-  MOCK_TOURS,
   LOCATIONS,
   LOCATION_COORDINATES,
   DEFAULT_MAP_REGION,
@@ -29,8 +28,11 @@ import {
 } from '../constants/mockData';
 import {
   guidesService,
+  toursService,
   Guide as ApiGuide,
+  ApiTour,
   SearchGuidesParams,
+  SearchToursParams,
 } from '../services';
 import type { MainTabScreenProps, Tour, Guide, SortOption } from '../types';
 
@@ -66,6 +68,9 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
 
   const [apiGuides, setApiGuides] = useState<ApiGuide[]>([]);
   const [guidesLoading, setGuidesLoading] = useState(false);
+  
+  const [apiTours, setApiTours] = useState<ApiTour[]>([]);
+  const [toursLoading, setToursLoading] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -85,6 +90,7 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
   }, []);
 
   useEffect(() => {
+    console.log('🗺️ selectedMapItem changed:', selectedMapItem?.id, selectedMapItem ? 'showing card' : 'hiding card');
     if (selectedMapItem) {
       Animated.spring(cardAnimation, {
         toValue: 1,
@@ -116,6 +122,49 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, [searchQuery, selectedLocation, minRating]);
 
+  const fetchTours = useCallback(async () => {
+    setToursLoading(true);
+    try {
+      const params: SearchToursParams = { limit: 50 };
+      if (searchQuery.trim()) params.query = searchQuery.trim();
+      if (selectedLocation) params.city = selectedLocation;
+      if (minRating) params.minRating = minRating;
+      if (selectedCategory) params.category = selectedCategory;
+      
+      // Map sort options
+      if (sortBy === 'rating') {
+        params.sortBy = 'rating';
+        params.sortOrder = 'desc';
+      } else if (sortBy === 'price_low') {
+        params.sortBy = 'price';
+        params.sortOrder = 'asc';
+      } else if (sortBy === 'price_high') {
+        params.sortBy = 'price';
+        params.sortOrder = 'desc';
+      } else if (sortBy === 'reviews') {
+        params.sortBy = 'reviews';
+        params.sortOrder = 'desc';
+      }
+
+      const response = await toursService.searchTours(params);
+      if (response.success) {
+        setApiTours(response.data);
+        // Debug: log cities from API
+        console.log('Tours from API:', response.data.map(t => ({
+          id: t.id,
+          title: t.title,
+          city: t.city,
+          hasCoords: !!(t.meetingPointLat && t.meetingPointLng)
+        })));
+      }
+    } catch (err) {
+      console.log('Error fetching tours:', err);
+      setApiTours([]);
+    } finally {
+      setToursLoading(false);
+    }
+  }, [searchQuery, selectedLocation, minRating, selectedCategory, sortBy]);
+
   useEffect(() => {
     if (activeTab === 'guides') {
       const timeoutId = setTimeout(fetchGuides, 300);
@@ -123,66 +172,126 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, [activeTab, fetchGuides]);
 
+  useEffect(() => {
+    if (activeTab === 'tours') {
+      const timeoutId = setTimeout(fetchTours, 300);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [activeTab, fetchTours]);
+
   const transformedGuides: Guide[] = useMemo(() => {
     if (apiGuides.length > 0) {
       return apiGuides.map((guide) => ({
         id: guide.id,
         name: guide.user ? `${guide.user.firstName} ${guide.user.lastName}` : guide.name || 'Guía',
-        avatar: guide.user?.avatar || guide.avatar,
-        rating: guide.rating,
-        reviewCount: guide.reviewCount,
-        location: `${guide.city}, ${guide.country}`,
-        languages: guide.languages,
-        specialties: guide.specialties,
-        bio: guide.bio,
-        pricePerHour: guide.pricePerHour,
-        currency: guide.currency,
-        verified: guide.verified,
-        featured: guide.featured,
-        available: guide.available,
+        avatar: guide.user?.avatar || guide.avatar || undefined,
+        rating: guide.rating ?? 0,
+        reviewCount: guide.reviewCount ?? 0,
+        location: `${guide.city || ''}, ${guide.country || ''}`,
+        languages: guide.languages || [],
+        specialties: guide.specialties || [],
+        bio: guide.bio || '',
+        pricePerHour: guide.pricePerHour ?? 0,
+        currency: guide.currency || 'CLP',
+        verified: guide.verified ?? false,
+        featured: guide.featured ?? false,
+        available: guide.available ?? true,
       }));
     }
     return MOCK_GUIDES;
   }, [apiGuides]);
 
-  const filteredTours = useMemo(() => {
-    let results = [...MOCK_TOURS];
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      results = results.filter(
-        (tour) =>
-          tour.title.toLowerCase().includes(query) ||
-          tour.location.toLowerCase().includes(query)
-      );
-    }
-    if (selectedCategory) {
-      results = results.filter((tour) => tour.categories.includes(selectedCategory));
-    }
-    if (selectedLocation) {
-      results = results.filter((tour) => tour.location.includes(selectedLocation));
-    }
-    if (minRating) {
-      results = results.filter((tour) => tour.rating >= minRating);
-    }
-    switch (sortBy) {
-      case 'rating':
-        results.sort((a, b) => b.rating - a.rating);
-        break;
-      case 'price_low':
-        results.sort((a, b) => a.price - b.price);
-        break;
-      case 'price_high':
-        results.sort((a, b) => b.price - a.price);
-        break;
-      case 'reviews':
-        results.sort((a, b) => b.reviewCount - a.reviewCount);
-        break;
-    }
-    return results;
-  }, [searchQuery, selectedCategory, selectedLocation, sortBy, minRating]);
+  // Helper to format duration from minutes to readable string
+  const formatDuration = (minutes: number): string => {
+    if (minutes < 60) return `${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (mins === 0) return `${hours} hora${hours > 1 ? 's' : ''}`;
+    return `${hours}h ${mins}min`;
+  };
+
+  // Store raw tour coordinates from API
+  const tourCoordinatesMap = useMemo(() => {
+    const coordMap: { [tourId: string]: { lat: number; lng: number } } = {};
+    apiTours.forEach((tour) => {
+      if (tour.meetingPointLat && tour.meetingPointLng) {
+        coordMap[tour.id] = {
+          lat: tour.meetingPointLat,
+          lng: tour.meetingPointLng,
+        };
+      }
+    });
+    return coordMap;
+  }, [apiTours]);
+
+  const transformedTours: Tour[] = useMemo(() => {
+    return apiTours.map((tour) => {
+      // Use company info (NEW) or fallback to guide info
+      const companyName = tour.company?.name || 'Empresa';
+      const companyLogo = tour.company?.logoUrl;
+
+      return {
+        id: tour.id,
+        title: tour.title || 'Tour',
+        description: tour.description || '',
+        image: tour.images?.[0],
+        companyId: tour.companyId || tour.company?.id,
+        companyName,
+        companyLogo,
+        location: tour.city || '',
+        duration: formatDuration(tour.duration || 0),
+        price: tour.price ?? 0,
+        currency: tour.currency || 'CLP',
+        maxParticipants: tour.maxParticipants ?? 10,
+        categories: tour.categories || [],
+        includes: tour.includes || [],
+        rating: tour.rating ?? 0,
+        reviewCount: tour.reviewCount ?? 0,
+        featured: tour.featured ?? false,
+      };
+    });
+  }, [apiTours]);
+
+  // Helper function to find coordinates for a location string
+  const findCoordinates = useCallback(
+    (locationString: string): { latitude: number; longitude: number } | null => {
+      // Direct match
+      if (LOCATION_COORDINATES[locationString]) {
+        return LOCATION_COORDINATES[locationString];
+      }
+
+      // Try with ", Chile" suffix
+      const withChile = `${locationString}, Chile`;
+      if (LOCATION_COORDINATES[withChile]) {
+        return LOCATION_COORDINATES[withChile];
+      }
+
+      // Extract city part (before comma)
+      const cityPart = locationString.split(',')[0].trim();
+      if (LOCATION_COORDINATES[cityPart]) {
+        return LOCATION_COORDINATES[cityPart];
+      }
+
+      // Fuzzy match - check if any key contains or is contained by the search string
+      const locationLower = locationString.toLowerCase();
+      const cityLower = cityPart.toLowerCase();
+
+      for (const [key, coords] of Object.entries(LOCATION_COORDINATES)) {
+        const keyLower = key.toLowerCase();
+        if (
+          keyLower.includes(cityLower) ||
+          cityLower.includes(keyLower.split(',')[0])
+        ) {
+          return coords;
+        }
+      }
+
+      return null;
+    },
+    []
+  );
 
   const mapMarkers = useMemo(() => {
-    const items = activeTab === 'guides' ? transformedGuides : filteredTours;
     const markers: {
       id: string;
       coordinate: { latitude: number; longitude: number };
@@ -190,31 +299,71 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
       type: 'tour' | 'guide';
     }[] = [];
 
-    items.forEach((item) => {
-      const locationKey = item.location;
-      let coords = LOCATION_COORDINATES[locationKey];
-      if (!coords) {
-        const cityMatch = Object.keys(LOCATION_COORDINATES).find(
-          (key) => locationKey.includes(key) || key.includes(locationKey.split(',')[0])
-        );
-        if (cityMatch) coords = LOCATION_COORDINATES[cityMatch];
-      }
-      if (coords) {
-        markers.push({
-          id: item.id,
-          coordinate: {
-            latitude: coords.latitude + (Math.random() - 0.5) * 0.01,
-            longitude: coords.longitude + (Math.random() - 0.5) * 0.01,
-          },
-          item,
-          type: activeTab === 'guides' ? 'guide' : 'tour',
-        });
-      }
-    });
+    if (activeTab === 'tours') {
+      transformedTours.forEach((tour) => {
+        let coords: { latitude: number; longitude: number } | null = null;
+
+        // First try: use backend coordinates if available
+        const backendCoords = tourCoordinatesMap[tour.id];
+        if (backendCoords) {
+          coords = { latitude: backendCoords.lat, longitude: backendCoords.lng };
+        }
+
+        // Second try: find from location string
+        if (!coords) {
+          coords = findCoordinates(tour.location);
+        }
+
+        if (coords) {
+          // Add small random offset to prevent overlapping markers
+          const offset = {
+            latitude: (Math.random() - 0.5) * 0.008,
+            longitude: (Math.random() - 0.5) * 0.008,
+          };
+          markers.push({
+            id: tour.id,
+            coordinate: {
+              latitude: coords.latitude + offset.latitude,
+              longitude: coords.longitude + offset.longitude,
+            },
+            item: tour,
+            type: 'tour',
+          });
+        }
+      });
+    } else {
+      transformedGuides.forEach((guide) => {
+        const coords = findCoordinates(guide.location);
+        if (coords) {
+          const offset = {
+            latitude: (Math.random() - 0.5) * 0.008,
+            longitude: (Math.random() - 0.5) * 0.008,
+          };
+          markers.push({
+            id: guide.id,
+            coordinate: {
+              latitude: coords.latitude + offset.latitude,
+              longitude: coords.longitude + offset.longitude,
+            },
+            item: guide,
+            type: 'guide',
+          });
+        }
+      });
+    }
+
+    // Debug: log markers info
+    console.log(`🗺️ Map markers: ${markers.length} of ${activeTab === 'tours' ? transformedTours.length : transformedGuides.length} ${activeTab}`);
+    if (activeTab === 'tours' && markers.length === 0 && transformedTours.length > 0) {
+      console.log('⚠️ Tours without coordinates:');
+      transformedTours.forEach((t) => console.log(`  - ${t.title}: "${t.location}"`));
+    }
+    
     return markers;
-  }, [activeTab, transformedGuides, filteredTours]);
+  }, [activeTab, transformedGuides, transformedTours, tourCoordinatesMap, findCoordinates]);
 
   const handleTourPress = (tour: Tour) => {
+    console.log('🎯 handleTourPress called with tour:', tour.id, tour.title);
     navigation.navigate('Details', { id: tour.id, title: tour.title });
   };
 
@@ -283,30 +432,46 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
   );
 
   // Guide Card Component
-  const GuideListCard = ({ item }: { item: Guide }) => (
-    <TouchableOpacity
-      style={styles.guideCard}
-      onPress={() => handleGuidePress(item)}
-      activeOpacity={0.9}
-    >
-      <Avatar uri={item.avatar} name={item.name} size="large" showBadge={item.verified} badgeType="verified" />
-      <View style={styles.guideContent}>
-        <Text style={styles.guideName}>{item.name}</Text>
-        <Text style={styles.guideLocation}>📍 {item.location}</Text>
-        <View style={styles.guideMeta}>
-          <View style={styles.guideRating}>
-            <Text style={styles.guideStar}>★</Text>
-            <Text style={styles.guideRatingText}>{item.rating?.toFixed(1) || 'N/A'}</Text>
+  const GuideListCard = ({ item }: { item: Guide }) => {
+    const name = item.name || 'Guía';
+    const location = item.location || '';
+    const rating = item.rating ?? 0;
+    const reviewCount = item.reviewCount ?? 0;
+    const pricePerHour = item.pricePerHour ?? 0;
+    const currency = item.currency || 'CLP';
+    const verified = item.verified === true;
+    
+    return (
+      <TouchableOpacity
+        style={styles.guideCard}
+        onPress={() => handleGuidePress(item)}
+        activeOpacity={0.9}
+      >
+        <Avatar 
+          uri={item.avatar} 
+          name={name} 
+          size="large" 
+          showBadge={verified} 
+          badgeType="verified" 
+        />
+        <View style={styles.guideContent}>
+          <Text style={styles.guideName}>{name}</Text>
+          <Text style={styles.guideLocation}>📍 {location}</Text>
+          <View style={styles.guideMeta}>
+            <View style={styles.guideRating}>
+              <Text style={styles.guideStar}>★</Text>
+              <Text style={styles.guideRatingText}>{rating.toFixed(1)}</Text>
+            </View>
+            <Text style={styles.guideReviews}>({reviewCount})</Text>
           </View>
-          <Text style={styles.guideReviews}>({item.reviewCount || 0})</Text>
         </View>
-      </View>
-      <View style={styles.guidePriceContainer}>
-        <Text style={styles.guidePrice}>{formatPrice(item.pricePerHour, item.currency)}</Text>
-        <Text style={styles.guidePriceLabel}>/hora</Text>
-      </View>
-    </TouchableOpacity>
-  );
+        <View style={styles.guidePriceContainer}>
+          <Text style={styles.guidePrice}>{formatPrice(pricePerHour, currency)}</Text>
+          <Text style={styles.guidePriceLabel}>/hora</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   // Map View
   const renderMapView = () => (
@@ -334,13 +499,26 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
             <Marker
               key={marker.id}
               coordinate={marker.coordinate}
-              onPress={() => setSelectedMapItem(marker.item)}
+              tracksViewChanges={false}
+              onPress={(e) => {
+                e.stopPropagation();
+                console.log('🗺️ Marker pressed:', marker.id, marker.type);
+                setSelectedMapItem(marker.item);
+              }}
             >
-              <View style={[styles.priceMarker, isSelected && styles.priceMarkerSelected]}>
-                <Text style={[styles.priceMarkerText, isSelected && styles.priceMarkerTextSelected]}>
-                  {formatPrice(price, currency)}
-                </Text>
-              </View>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => {
+                  console.log('🗺️ TouchableOpacity pressed:', marker.id);
+                  setSelectedMapItem(marker.item);
+                }}
+              >
+                <View style={[styles.priceMarker, isSelected && styles.priceMarkerSelected]}>
+                  <Text style={[styles.priceMarkerText, isSelected && styles.priceMarkerTextSelected]}>
+                    {formatPrice(price, currency)}
+                  </Text>
+                </View>
+              </TouchableOpacity>
             </Marker>
           );
         })}
@@ -372,52 +550,204 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
         <Text style={styles.mapBadgeText}>{mapMarkers.length} {activeTab === 'guides' ? 'guías' : 'tours'}</Text>
       </View>
 
-      {/* Selected Card */}
+      {/* Selected Card - Diseño inmersivo */}
       {selectedMapItem && (
-        <Animated.View style={[styles.selectedCard, { opacity: cardAnimation, transform: [{ translateY: cardAnimation.interpolate({ inputRange: [0, 1], outputRange: [100, 0] }) }] }]}>
-          <TouchableOpacity style={styles.selectedClose} onPress={() => setSelectedMapItem(null)}>
-            <Text style={styles.selectedCloseText}>✕</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.selectedContent}
-            onPress={() => activeTab === 'guides' ? handleGuidePress(selectedMapItem as Guide) : handleTourPress(selectedMapItem as Tour)}
-          >
-            {activeTab === 'tours' ? (
-              <View style={styles.selectedRow}>
+        <Animated.View
+          style={[
+            styles.selectedCard,
+            {
+              opacity: cardAnimation,
+              transform: [
+                {
+                  translateY: cardAnimation.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [120, 0],
+                  }),
+                },
+                {
+                  scale: cardAnimation.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.9, 1],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          {activeTab === 'tours' ? (
+            // Tour Card - Diseño con imagen hero
+            <TouchableOpacity
+              activeOpacity={0.95}
+              onPress={() => {
+                console.log('🎯 Selected card pressed, tour:', (selectedMapItem as Tour)?.id);
+                handleTourPress(selectedMapItem as Tour);
+              }}
+              style={styles.selectedTourCard}
+            >
+              {/* Imagen Hero */}
+              <View style={styles.selectedHeroContainer}>
                 {(selectedMapItem as Tour).image ? (
-                  <Image source={{ uri: (selectedMapItem as Tour).image }} style={styles.selectedImage} />
+                  <Image
+                    source={{ uri: (selectedMapItem as Tour).image }}
+                    style={styles.selectedHeroImage}
+                  />
                 ) : (
-                  <View style={styles.selectedImagePlaceholder}><Text>🏔️</Text></View>
+                  <LinearGradient
+                    colors={[Colors.primaryLight, Colors.primary]}
+                    style={styles.selectedHeroPlaceholder}
+                  >
+                    <Text style={styles.selectedHeroEmoji}>🏔️</Text>
+                  </LinearGradient>
                 )}
-                <View style={styles.selectedInfo}>
-                  <Text style={styles.selectedTitle} numberOfLines={2}>{(selectedMapItem as Tour).title}</Text>
-                  <Text style={styles.selectedSubtitle}>📍 {(selectedMapItem as Tour).location}</Text>
-                  <View style={styles.selectedMeta}>
-                    <Text style={styles.selectedRating}>⭐ {(selectedMapItem as Tour).rating.toFixed(1)}</Text>
-                    <Text style={styles.selectedDuration}>⏱️ {(selectedMapItem as Tour).duration}</Text>
+                {/* Gradiente sobre imagen */}
+                <LinearGradient
+                  colors={['transparent', 'rgba(0,0,0,0.7)']}
+                  style={styles.selectedHeroGradient}
+                />
+                {/* Badges sobre imagen */}
+                <View style={styles.selectedBadgesRow}>
+                  {(selectedMapItem as Tour).featured && (
+                    <View style={styles.selectedFeaturedBadge}>
+                      <Text style={styles.selectedFeaturedText}>⭐ Destacado</Text>
+                    </View>
+                  )}
+                  <View style={styles.selectedDurationBadge}>
+                    <Text style={styles.selectedDurationText}>
+                      ⏱️ {(selectedMapItem as Tour).duration}
+                    </Text>
                   </View>
                 </View>
-                <View style={styles.selectedPriceCol}>
-                  <Text style={styles.selectedPrice}>{formatPrice((selectedMapItem as Tour).price, (selectedMapItem as Tour).currency)}</Text>
-                  <Text style={styles.selectedCTA}>Ver →</Text>
+                {/* Botón cerrar */}
+                <TouchableOpacity
+                  style={styles.selectedCloseBtn}
+                  onPress={() => setSelectedMapItem(null)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Text style={styles.selectedCloseBtnText}>✕</Text>
+                </TouchableOpacity>
+                {/* Info sobre imagen */}
+                <View style={styles.selectedHeroInfo}>
+                  <Text style={styles.selectedHeroTitle} numberOfLines={2}>
+                    {(selectedMapItem as Tour).title}
+                  </Text>
+                  <View style={styles.selectedHeroMeta}>
+                    <Text style={styles.selectedHeroLocation}>
+                      📍 {(selectedMapItem as Tour).location}
+                    </Text>
+                    <View style={styles.selectedHeroRating}>
+                      <Text style={styles.selectedHeroStar}>⭐</Text>
+                      <Text style={styles.selectedHeroRatingText}>
+                        {(selectedMapItem as Tour).rating.toFixed(1)}
+                      </Text>
+                      <Text style={styles.selectedHeroReviews}>
+                        ({(selectedMapItem as Tour).reviewCount})
+                      </Text>
+                    </View>
+                  </View>
                 </View>
               </View>
-            ) : (
-              <View style={styles.selectedRow}>
-                <Avatar uri={(selectedMapItem as Guide).avatar} name={(selectedMapItem as Guide).name} size="large" />
-                <View style={styles.selectedInfo}>
-                  <Text style={styles.selectedTitle}>{(selectedMapItem as Guide).name}</Text>
-                  <Text style={styles.selectedSubtitle}>📍 {(selectedMapItem as Guide).location}</Text>
-                  <Text style={styles.selectedRating}>⭐ {(selectedMapItem as Guide).rating?.toFixed(1)} ({(selectedMapItem as Guide).reviewCount})</Text>
+              {/* Footer con precio y CTA */}
+              <View style={styles.selectedFooter}>
+                <View style={styles.selectedPriceBox}>
+                  <Text style={styles.selectedPriceAmount}>
+                    {formatPrice((selectedMapItem as Tour).price, (selectedMapItem as Tour).currency)}
+                  </Text>
+                  <Text style={styles.selectedPriceUnit}>por persona</Text>
                 </View>
-                <View style={styles.selectedPriceCol}>
-                  <Text style={styles.selectedPrice}>{formatPrice((selectedMapItem as Guide).pricePerHour, (selectedMapItem as Guide).currency)}</Text>
-                  <Text style={styles.selectedPriceLabel}>/hora</Text>
-                  <Text style={styles.selectedCTA}>Ver →</Text>
+                <TouchableOpacity
+                  style={styles.selectedCTAButton}
+                  onPress={() => handleTourPress(selectedMapItem as Tour)}
+                >
+                  <Text style={styles.selectedCTAText}>Ver tour</Text>
+                  <Text style={styles.selectedCTAArrow}>→</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          ) : (
+            // Guide Card - Diseño compacto elegante
+            <TouchableOpacity
+              activeOpacity={0.95}
+              onPress={() => handleGuidePress(selectedMapItem as Guide)}
+              style={styles.selectedGuideCard}
+            >
+              {/* Botón cerrar */}
+              <TouchableOpacity
+                style={styles.selectedGuideClose}
+                onPress={() => setSelectedMapItem(null)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Text style={styles.selectedGuideCloseText}>✕</Text>
+              </TouchableOpacity>
+              <View style={styles.selectedGuideRow}>
+                {/* Avatar grande */}
+                <View style={styles.selectedGuideAvatarContainer}>
+                  <Avatar
+                    uri={(selectedMapItem as Guide).avatar}
+                    name={(selectedMapItem as Guide).name}
+                    size="xlarge"
+                    showBadge={(selectedMapItem as Guide).verified}
+                    badgeType="verified"
+                  />
+                  {(selectedMapItem as Guide).available && (
+                    <View style={styles.selectedGuideOnline}>
+                      <View style={styles.selectedGuideOnlineDot} />
+                    </View>
+                  )}
+                </View>
+                {/* Info */}
+                <View style={styles.selectedGuideInfo}>
+                  <Text style={styles.selectedGuideName}>
+                    {(selectedMapItem as Guide).name}
+                  </Text>
+                  <Text style={styles.selectedGuideLocation}>
+                    📍 {(selectedMapItem as Guide).location}
+                  </Text>
+                  <View style={styles.selectedGuideStats}>
+                    <View style={styles.selectedGuideStat}>
+                      <Text style={styles.selectedGuideStatIcon}>⭐</Text>
+                      <Text style={styles.selectedGuideStatValue}>
+                        {(selectedMapItem as Guide).rating?.toFixed(1) || 'N/A'}
+                      </Text>
+                    </View>
+                    <View style={styles.selectedGuideStat}>
+                      <Text style={styles.selectedGuideStatIcon}>💬</Text>
+                      <Text style={styles.selectedGuideStatValue}>
+                        {(selectedMapItem as Guide).reviewCount || 0}
+                      </Text>
+                    </View>
+                  </View>
+                  {/* Especialidades */}
+                  {(selectedMapItem as Guide).specialties?.length > 0 && (
+                    <View style={styles.selectedGuideSpecialties}>
+                      {(selectedMapItem as Guide).specialties.slice(0, 2).map((spec, i) => (
+                        <View key={i} style={styles.selectedGuideSpecBadge}>
+                          <Text style={styles.selectedGuideSpecText}>{spec}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
                 </View>
               </View>
-            )}
-          </TouchableOpacity>
+              {/* Footer */}
+              <View style={styles.selectedGuideFooter}>
+                <View style={styles.selectedGuidePriceBox}>
+                  <Text style={styles.selectedGuidePriceAmount}>
+                    {formatPrice(
+                      (selectedMapItem as Guide).pricePerHour,
+                      (selectedMapItem as Guide).currency
+                    )}
+                  </Text>
+                  <Text style={styles.selectedGuidePriceUnit}>/hora</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.selectedGuideCTAButton}
+                  onPress={() => handleGuidePress(selectedMapItem as Guide)}
+                >
+                  <Text style={styles.selectedGuideCTAText}>Ver perfil</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          )}
         </Animated.View>
       )}
     </View>
@@ -478,7 +808,7 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
     </Modal>
   );
 
-  const currentData = activeTab === 'tours' ? filteredTours : transformedGuides;
+  const currentData = activeTab === 'tours' ? transformedTours : transformedGuides;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -575,9 +905,12 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
       {/* Content */}
       {viewMode === 'map' ? (
         renderMapView()
-      ) : guidesLoading && activeTab === 'guides' ? (
+      ) : (guidesLoading && activeTab === 'guides') || (toursLoading && activeTab === 'tours') ? (
         <View style={styles.loading}>
           <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>
+            {activeTab === 'tours' ? 'Cargando tours...' : 'Cargando guías...'}
+          </Text>
         </View>
       ) : (
         <FlatList
@@ -719,6 +1052,7 @@ const styles = StyleSheet.create({
   // List
   listContent: { paddingHorizontal: Spacing.lg, paddingBottom: 120 },
   loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { ...Typography.body, color: Colors.textSecondary, marginTop: Spacing.md },
   empty: { alignItems: 'center', paddingVertical: 60 },
   emptyIcon: { fontSize: 48, marginBottom: 12 },
   emptyText: { ...Typography.body, color: Colors.textSecondary },
@@ -817,62 +1151,342 @@ const styles = StyleSheet.create({
   mapBadgeText: { ...Typography.label, color: Colors.text, fontWeight: '600' },
   priceMarker: {
     backgroundColor: Colors.card,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
     borderWidth: 2,
     borderColor: Colors.card,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    elevation: 5,
+    minWidth: 60,
+    alignItems: 'center',
   },
-  priceMarkerSelected: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  priceMarkerText: { ...Typography.labelSmall, color: Colors.text, fontWeight: '700' },
+  priceMarkerSelected: { 
+    backgroundColor: Colors.primary, 
+    borderColor: Colors.primary,
+    transform: [{ scale: 1.1 }],
+  },
+  priceMarkerText: { 
+    ...Typography.label, 
+    color: Colors.text, 
+    fontWeight: '700',
+    fontSize: 13,
+  },
   priceMarkerTextSelected: { color: '#fff' },
 
   // Selected Card
+  // =============================================
+  // SELECTED CARD - TOUR (Diseño Hero Inmersivo)
+  // =============================================
   selectedCard: {
     position: 'absolute',
     bottom: 100,
     left: 16,
     right: 16,
-    backgroundColor: Colors.card,
     borderRadius: 20,
+    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
     shadowRadius: 16,
-    elevation: 10,
+    elevation: 12,
   },
-  selectedClose: {
+  selectedTourCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  selectedHeroContainer: {
+    height: 160,
+    position: 'relative',
+  },
+  selectedHeroImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  selectedHeroPlaceholder: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  selectedHeroEmoji: {
+    fontSize: 48,
+  },
+  selectedHeroGradient: {
     position: 'absolute',
-    top: 10,
-    right: 10,
-    zIndex: 10,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 100,
+  },
+  selectedBadgesRow: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  selectedFeaturedBadge: {
+    backgroundColor: Colors.secondary,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  selectedFeaturedText: {
+    ...Typography.labelSmall,
+    color: '#fff',
+    fontWeight: '700',
+  },
+  selectedDurationBadge: {
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  selectedDurationText: {
+    ...Typography.labelSmall,
+    color: '#fff',
+  },
+  selectedCloseBtn: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  selectedCloseText: { color: '#fff', fontSize: 14, fontWeight: '600' },
-  selectedContent: { padding: 14 },
-  selectedRow: { flexDirection: 'row', alignItems: 'center' },
-  selectedImage: { width: 70, height: 70, borderRadius: 12 },
-  selectedImagePlaceholder: { width: 70, height: 70, borderRadius: 12, backgroundColor: Colors.primaryMuted, justifyContent: 'center', alignItems: 'center' },
-  selectedInfo: { flex: 1, marginLeft: 12 },
-  selectedTitle: { ...Typography.labelLarge, color: Colors.text, marginBottom: 2 },
-  selectedSubtitle: { ...Typography.bodySmall, color: Colors.textSecondary, marginBottom: 4 },
-  selectedMeta: { flexDirection: 'row', alignItems: 'center' },
-  selectedRating: { ...Typography.labelSmall, color: Colors.text, marginRight: 10 },
-  selectedDuration: { ...Typography.bodySmall, color: Colors.textTertiary },
-  selectedPriceCol: { alignItems: 'flex-end' },
-  selectedPrice: { ...Typography.h4, color: Colors.primary, fontWeight: '700' },
-  selectedPriceLabel: { ...Typography.caption, color: Colors.textTertiary },
-  selectedCTA: { ...Typography.labelSmall, color: Colors.primary, marginTop: 4 },
+  selectedCloseBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  selectedHeroInfo: {
+    position: 'absolute',
+    bottom: 12,
+    left: 12,
+    right: 12,
+  },
+  selectedHeroTitle: {
+    ...Typography.h4,
+    color: '#fff',
+    fontWeight: '700',
+    marginBottom: 6,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  selectedHeroMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  selectedHeroLocation: {
+    ...Typography.labelSmall,
+    color: 'rgba(255,255,255,0.9)',
+  },
+  selectedHeroRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  selectedHeroStar: {
+    fontSize: 12,
+    marginRight: 4,
+  },
+  selectedHeroRatingText: {
+    ...Typography.labelSmall,
+    color: '#fff',
+    fontWeight: '700',
+  },
+  selectedHeroReviews: {
+    ...Typography.caption,
+    color: 'rgba(255,255,255,0.8)',
+    marginLeft: 2,
+  },
+  selectedFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 14,
+    backgroundColor: Colors.surface,
+  },
+  selectedPriceBox: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  selectedPriceAmount: {
+    ...Typography.h3,
+    color: Colors.primary,
+    fontWeight: '800',
+  },
+  selectedPriceUnit: {
+    ...Typography.bodySmall,
+    color: Colors.textSecondary,
+    marginLeft: 4,
+  },
+  selectedCTAButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  selectedCTAText: {
+    ...Typography.labelLarge,
+    color: '#fff',
+    fontWeight: '600',
+  },
+  selectedCTAArrow: {
+    color: '#fff',
+    fontSize: 16,
+    marginLeft: 6,
+    fontWeight: '600',
+  },
+
+  // =============================================
+  // SELECTED CARD - GUIDE (Diseño compacto)
+  // =============================================
+  selectedGuideCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: 20,
+    padding: 16,
+    position: 'relative',
+  },
+  selectedGuideClose: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    zIndex: 10,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: Colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  selectedGuideCloseText: {
+    color: Colors.textSecondary,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  selectedGuideRow: {
+    flexDirection: 'row',
+    marginBottom: 14,
+  },
+  selectedGuideAvatarContainer: {
+    position: 'relative',
+    marginRight: 14,
+  },
+  selectedGuideOnline: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: Colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  selectedGuideOnlineDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: Colors.success,
+  },
+  selectedGuideInfo: {
+    flex: 1,
+    paddingRight: 30,
+  },
+  selectedGuideName: {
+    ...Typography.h4,
+    color: Colors.text,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  selectedGuideLocation: {
+    ...Typography.bodySmall,
+    color: Colors.textSecondary,
+    marginBottom: 8,
+  },
+  selectedGuideStats: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 8,
+  },
+  selectedGuideStat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  selectedGuideStatIcon: {
+    fontSize: 12,
+    marginRight: 4,
+  },
+  selectedGuideStatValue: {
+    ...Typography.labelSmall,
+    color: Colors.text,
+    fontWeight: '600',
+  },
+  selectedGuideSpecialties: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  selectedGuideSpecBadge: {
+    backgroundColor: Colors.primaryMuted,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  selectedGuideSpecText: {
+    ...Typography.caption,
+    color: Colors.primary,
+    fontWeight: '600',
+  },
+  selectedGuideFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderLight,
+  },
+  selectedGuidePriceBox: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  selectedGuidePriceAmount: {
+    ...Typography.h3,
+    color: Colors.primary,
+    fontWeight: '800',
+  },
+  selectedGuidePriceUnit: {
+    ...Typography.bodySmall,
+    color: Colors.textSecondary,
+    marginLeft: 2,
+  },
+  selectedGuideCTAButton: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  selectedGuideCTAText: {
+    ...Typography.labelLarge,
+    color: '#fff',
+    fontWeight: '600',
+  },
 
   // Modal
   modalContainer: { flex: 1, backgroundColor: Colors.background },

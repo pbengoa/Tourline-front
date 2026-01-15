@@ -4,6 +4,7 @@ export { SearchScreen } from './SearchScreen';
 export { ProfileScreen } from './ProfileScreen';
 export { DetailsScreen } from './DetailsScreen';
 export { GuideDetailScreen } from './GuideDetailScreen';
+export { FavoritesScreen } from './FavoritesScreen';
 
 // Auth screens
 export { LoginScreen, RegisterScreen, ForgotPasswordScreen } from './auth';

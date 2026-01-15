@@ -1,82 +1,86 @@
 import { api, ApiResponse } from './api';
 
-// Types
+// ============ TYPES ============
+
 export type BookingStatus =
   | 'PENDING'
   | 'CONFIRMED'
   | 'CANCELLED_USER'
-  | 'CANCELLED_GUIDE'
+  | 'CANCELLED_COMPANY'
   | 'COMPLETED'
   | 'NO_SHOW'
   | 'REFUNDED';
 
-export interface BookingGuide {
+// Company info in booking
+export interface BookingCompany {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl?: string;
+}
+
+// Tour info in booking
+export interface BookingTour {
+  id: string;
+  name: string;
+  slug: string;
+  coverImage?: string;
+  duration: number;
+  price: number;
+  currency: string;
+  meetingPoint?: string;
+  meetingPointInstructions?: string;
+  city?: string;
+  country?: string;
+  company: BookingCompany;
+}
+
+// Assigned guide (optional)
+export interface AssignedGuide {
   id: string;
   name: string;
   avatar?: string;
-  rating: number;
-  pricePerHour: number;
-  currency: string;
-  user: {
-    email: string;
-    firstName: string;
-    lastName: string;
-  };
+  rating?: number;
 }
 
+// Main Booking interface (NEW - Tour-centric)
 export interface Booking {
   id: string;
   reference: string;
-  guideId: string;
+  tourId: string;              // ⚠️ CHANGED from guideId
   userId: string;
   date: string;
   startTime: string;
   endTime: string;
-  tourType?: string;
-  groupSize: number;
-  meetingPoint?: string;
+  duration: number;
+  participants: number;        // ⚠️ CHANGED from groupSize
   specialRequests?: string;
   userPhone?: string;
   totalPrice: number;
   currency: string;
   status: BookingStatus;
-  guideNotes?: string;
+  notes?: string;              // ⚠️ CHANGED from guideNotes
   cancellationReason?: string;
   createdAt: string;
   updatedAt: string;
-  guide?: BookingGuide;
+  tour?: BookingTour;
+  assignedGuide?: AssignedGuide;
 }
 
+// ============ REQUEST TYPES ============
+
+// Create booking request (NEW)
 export interface CreateBookingRequest {
-  guideId: string;
-  date: string; // YYYY-MM-DD
-  startTime: string; // HH:MM
-  endTime: string; // HH:MM
-  tourType?: string;
-  groupSize?: number;
-  meetingPoint?: string;
-  specialRequests?: string;
-  userPhone?: string;
-}
-
-export interface MultiDayBookingRequest {
-  guideId: string;
-  dates: {
-    date: string; // YYYY-MM-DD
-    startTime: string; // HH:MM
-    endTime: string; // HH:MM
-  }[];
-  tourType?: string;
-  groupSize?: number;
-  meetingPoint?: string;
+  tourId: string;              // ⚠️ CHANGED from guideId
+  date: string;                // YYYY-MM-DD
+  startTime: string;           // HH:MM
+  participants: number;        // ⚠️ CHANGED from groupSize
   specialRequests?: string;
   userPhone?: string;
 }
 
 export interface UpdateBookingRequest {
-  tourType?: string;
-  groupSize?: number;
-  meetingPoint?: string;
+  participants?: number;
   specialRequests?: string;
 }
 
@@ -85,34 +89,37 @@ export interface CancelBookingRequest {
 }
 
 export interface ConfirmBookingRequest {
-  guideNotes?: string;
-  meetingPoint?: string;
+  notes?: string;
+  assignedGuideId?: string;
 }
 
-export interface AvailabilitySlot {
+// ============ CALENDAR TYPES (NEW) ============
+
+export interface TourCalendarSlot {
   id: string;
-  guideId: string;
-  date: string;
   startTime: string;
   endTime: string;
-  isBooked: boolean;
-  isBlocked: boolean;
-  isRecurring: boolean;
-  createdAt: string;
+  spotsAvailable: number;
+  spotsBooked: number;
+  price: number;
 }
 
-export interface CalendarDay {
+export interface TourCalendarDay {
   date: string;
   dayOfWeek: string;
   isAvailable: boolean;
-  slots: {
-    id: string;
-    startTime: string;
-    endTime: string;
-    isBooked: boolean;
-    isBlocked: boolean;
-  }[];
+  slots: TourCalendarSlot[];
 }
+
+export interface TourCalendarResponse {
+  tourId: string;
+  tourName: string;
+  month: number;
+  year: number;
+  days: TourCalendarDay[];
+}
+
+// ============ STATS & QUERY TYPES ============
 
 export interface BookingStats {
   total: number;
@@ -133,33 +140,14 @@ export interface BookingQueryParams {
   sortOrder?: 'asc' | 'desc';
 }
 
-export interface AvailabilityQueryParams {
-  fromDate: string;
-  toDate: string;
-  includeBooked?: boolean;
-}
+// ============ BOOKINGS SERVICE ============
 
-export interface CreateAvailabilityRequest {
-  date: string;
-  startTime: string;
-  endTime: string;
-  isRecurring?: boolean;
-  recurringDays?: string[];
-}
-
-export interface RecurringAvailabilityRequest {
-  startDate: string;
-  endDate: string;
-  days: string[]; // ['monday', 'tuesday', etc.]
-  startTime: string;
-  endTime: string;
-}
-
-// Bookings Service
 export const bookingsService = {
   // ============ USER BOOKING METHODS ============
 
-  // Create a new booking
+  /**
+   * Create a new booking for a tour
+   */
   async createBooking(data: CreateBookingRequest): Promise<Booking> {
     const response = await api.post<{ success: boolean; data: { booking: Booking } }>(
       '/bookings',
@@ -168,37 +156,21 @@ export const bookingsService = {
     return response.data.data.booking;
   },
 
-  // Create multi-day booking (creates multiple bookings)
-  async createMultiDayBooking(data: MultiDayBookingRequest): Promise<Booking[]> {
-    const bookings: Booking[] = [];
-    for (const dateSlot of data.dates) {
-      const booking = await bookingsService.createBooking({
-        guideId: data.guideId,
-        date: dateSlot.date,
-        startTime: dateSlot.startTime,
-        endTime: dateSlot.endTime,
-        tourType: data.tourType,
-        groupSize: data.groupSize,
-        meetingPoint: data.meetingPoint,
-        specialRequests: data.specialRequests,
-        userPhone: data.userPhone,
-      });
-      bookings.push(booking);
-    }
-    return bookings;
-  },
-
-  // Get my bookings
+  /**
+   * Get current user's bookings
+   */
   async getMyBookings(params?: BookingQueryParams): Promise<{ data: Booking[]; total: number }> {
     const response = await api.get<{
       success: boolean;
       data: Booking[];
       meta: { total: number };
     }>('/bookings', { params });
-    return { data: response.data.data, total: response.data.meta.total };
+    return { data: response.data.data, total: response.data.meta?.total || 0 };
   },
 
-  // Get booking by ID
+  /**
+   * Get booking by ID
+   */
   async getBookingById(id: string): Promise<Booking> {
     const response = await api.get<{ success: boolean; data: { booking: Booking } }>(
       `/bookings/${id}`
@@ -206,7 +178,9 @@ export const bookingsService = {
     return response.data.data.booking;
   },
 
-  // Get booking by reference
+  /**
+   * Get booking by reference code
+   */
   async getBookingByReference(ref: string): Promise<Booking> {
     const response = await api.get<{ success: boolean; data: { booking: Booking } }>(
       `/bookings/reference/${ref}`
@@ -214,7 +188,9 @@ export const bookingsService = {
     return response.data.data.booking;
   },
 
-  // Update booking
+  /**
+   * Update booking details
+   */
   async updateBooking(id: string, data: UpdateBookingRequest): Promise<Booking> {
     const response = await api.patch<{ success: boolean; data: { booking: Booking } }>(
       `/bookings/${id}`,
@@ -223,7 +199,9 @@ export const bookingsService = {
     return response.data.data.booking;
   },
 
-  // Cancel booking (user)
+  /**
+   * Cancel booking (user)
+   */
   async cancelBooking(id: string, data?: CancelBookingRequest): Promise<Booking> {
     const response = await api.post<{ success: boolean; data: { booking: Booking } }>(
       `/bookings/${id}/cancel`,
@@ -232,35 +210,57 @@ export const bookingsService = {
     return response.data.data.booking;
   },
 
-  // ============ GUIDE BOOKING METHODS ============
+  // ============ TOUR CALENDAR METHODS (NEW) ============
 
-  // Get guide's bookings
-  async getGuideBookings(params?: BookingQueryParams): Promise<{ data: Booking[]; total: number }> {
+  /**
+   * Get tour availability calendar
+   * NEW endpoint: GET /api/bookings/tour/:tourId/calendar
+   */
+  async getTourCalendar(tourId: string, year: number, month: number): Promise<TourCalendarResponse> {
+    const response = await api.get<{ success: boolean; data: TourCalendarResponse }>(
+      `/bookings/tour/${tourId}/calendar`,
+      { params: { year, month } }
+    );
+    return response.data.data;
+  },
+
+  // ============ COMPANY/ADMIN METHODS (NEW) ============
+
+  /**
+   * Get company's bookings list
+   */
+  async getCompanyBookings(params?: BookingQueryParams): Promise<{ data: Booking[]; total: number }> {
     const response = await api.get<{
       success: boolean;
       data: Booking[];
       meta: { total: number };
-    }>('/bookings/guide/list', { params });
-    return { data: response.data.data, total: response.data.meta.total };
+    }>('/bookings/company/list', { params });
+    return { data: response.data.data, total: response.data.meta?.total || 0 };
   },
 
-  // Get upcoming bookings for guide
-  async getUpcomingBookings(): Promise<Booking[]> {
+  /**
+   * Get upcoming bookings for company
+   */
+  async getCompanyUpcoming(): Promise<Booking[]> {
     const response = await api.get<{ success: boolean; data: Booking[] }>(
-      '/bookings/guide/upcoming'
+      '/bookings/company/upcoming'
     );
     return response.data.data;
   },
 
-  // Get guide booking stats
-  async getGuideStats(): Promise<BookingStats> {
+  /**
+   * Get company booking statistics
+   */
+  async getCompanyStats(): Promise<BookingStats> {
     const response = await api.get<{ success: boolean; data: BookingStats }>(
-      '/bookings/guide/stats'
+      '/bookings/company/stats'
     );
     return response.data.data;
   },
 
-  // Confirm booking (guide)
+  /**
+   * Confirm booking (company/admin)
+   */
   async confirmBooking(id: string, data?: ConfirmBookingRequest): Promise<Booking> {
     const response = await api.post<{ success: boolean; data: { booking: Booking } }>(
       `/bookings/${id}/confirm`,
@@ -269,7 +269,9 @@ export const bookingsService = {
     return response.data.data.booking;
   },
 
-  // Reject booking (guide)
+  /**
+   * Reject booking (company/admin)
+   */
   async rejectBooking(id: string, data?: CancelBookingRequest): Promise<Booking> {
     const response = await api.post<{ success: boolean; data: { booking: Booking } }>(
       `/bookings/${id}/reject`,
@@ -278,7 +280,9 @@ export const bookingsService = {
     return response.data.data.booking;
   },
 
-  // Mark as completed (guide)
+  /**
+   * Mark booking as completed
+   */
   async completeBooking(id: string): Promise<Booking> {
     const response = await api.post<{ success: boolean; data: { booking: Booking } }>(
       `/bookings/${id}/complete`
@@ -286,78 +290,13 @@ export const bookingsService = {
     return response.data.data.booking;
   },
 
-  // Mark as no-show (guide)
+  /**
+   * Mark booking as no-show
+   */
   async markNoShow(id: string): Promise<Booking> {
     const response = await api.post<{ success: boolean; data: { booking: Booking } }>(
       `/bookings/${id}/no-show`
     );
     return response.data.data.booking;
-  },
-
-  // ============ AVAILABILITY METHODS ============
-
-  // Get guide availability
-  async getGuideAvailability(
-    guideId: string,
-    params: AvailabilityQueryParams
-  ): Promise<AvailabilitySlot[]> {
-    const response = await api.get<{ success: boolean; data: AvailabilitySlot[] }>(
-      `/bookings/availability/${guideId}`,
-      { params }
-    );
-    return response.data.data;
-  },
-
-  // Get guide calendar view
-  async getGuideCalendar(guideId: string, year: number, month: number): Promise<CalendarDay[]> {
-    const response = await api.get<{ success: boolean; data: CalendarDay[] }>(
-      `/bookings/availability/${guideId}/calendar`,
-      { params: { year, month } }
-    );
-    return response.data.data;
-  },
-
-  // Create availability slot (guide)
-  async createAvailability(data: CreateAvailabilityRequest): Promise<AvailabilitySlot> {
-    const response = await api.post<{ success: boolean; data: { slot: AvailabilitySlot } }>(
-      '/bookings/availability',
-      data
-    );
-    return response.data.data.slot;
-  },
-
-  // Create bulk availability slots (guide)
-  async createBulkAvailability(slots: CreateAvailabilityRequest[]): Promise<AvailabilitySlot[]> {
-    const response = await api.post<{ success: boolean; data: { slots: AvailabilitySlot[] } }>(
-      '/bookings/availability/bulk',
-      { slots }
-    );
-    return response.data.data.slots;
-  },
-
-  // Generate recurring availability (guide)
-  async createRecurringAvailability(
-    data: RecurringAvailabilityRequest
-  ): Promise<AvailabilitySlot[]> {
-    const response = await api.post<{ success: boolean; data: { slots: AvailabilitySlot[] } }>(
-      '/bookings/availability/recurring',
-      data
-    );
-    return response.data.data.slots;
-  },
-
-  // Block availability slot (guide)
-  async blockSlot(slotId: string): Promise<void> {
-    await api.post(`/bookings/availability/${slotId}/block`);
-  },
-
-  // Unblock availability slot (guide)
-  async unblockSlot(slotId: string): Promise<void> {
-    await api.post(`/bookings/availability/${slotId}/unblock`);
-  },
-
-  // Delete availability slot (guide)
-  async deleteAvailability(slotId: string): Promise<void> {
-    await api.delete(`/bookings/availability/${slotId}`);
   },
 };

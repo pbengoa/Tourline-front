@@ -25,32 +25,91 @@ const TOUR_IMAGES = {
 
 // Location coordinates for map markers - Chilean cities
 export const LOCATION_COORDINATES: { [key: string]: { latitude: number; longitude: number } } = {
+  // Santiago y alrededores
   'Santiago': { latitude: -33.4489, longitude: -70.6693 },
   'Santiago, Chile': { latitude: -33.4489, longitude: -70.6693 },
+  'Cajón del Maipo': { latitude: -33.6000, longitude: -70.1000 },
+  'Cajón del Maipo, Chile': { latitude: -33.6000, longitude: -70.1000 },
+  'San Alfonso': { latitude: -33.7333, longitude: -70.2500 },
+  'San Alfonso, Chile': { latitude: -33.7333, longitude: -70.2500 },
+  'San José de Maipo': { latitude: -33.6428, longitude: -70.3500 },
+  'San José de Maipo, Chile': { latitude: -33.6428, longitude: -70.3500 },
+  
+  // Costa Central
   'Valparaíso': { latitude: -33.0472, longitude: -71.6127 },
   'Valparaíso, Chile': { latitude: -33.0472, longitude: -71.6127 },
   'Viña del Mar': { latitude: -33.0153, longitude: -71.5500 },
   'Viña del Mar, Chile': { latitude: -33.0153, longitude: -71.5500 },
+  'Casablanca': { latitude: -33.3167, longitude: -71.4000 },
+  'Casablanca, Chile': { latitude: -33.3167, longitude: -71.4000 },
+  
+  // Norte Grande
   'San Pedro de Atacama': { latitude: -22.9087, longitude: -68.1997 },
   'San Pedro de Atacama, Chile': { latitude: -22.9087, longitude: -68.1997 },
-  'Puerto Natales': { latitude: -51.7311, longitude: -72.4977 },
-  'Puerto Natales, Chile': { latitude: -51.7311, longitude: -72.4977 },
-  'Pucón': { latitude: -39.2823, longitude: -71.9545 },
-  'Pucón, Chile': { latitude: -39.2823, longitude: -71.9545 },
-  'Puerto Varas': { latitude: -41.3167, longitude: -72.9833 },
-  'Puerto Varas, Chile': { latitude: -41.3167, longitude: -72.9833 },
+  'Atacama': { latitude: -22.9087, longitude: -68.1997 },
+  'Atacama, Chile': { latitude: -22.9087, longitude: -68.1997 },
+  'Calama': { latitude: -22.4666, longitude: -68.9333 },
+  'Calama, Chile': { latitude: -22.4666, longitude: -68.9333 },
+  'Iquique': { latitude: -20.2208, longitude: -70.1431 },
+  'Iquique, Chile': { latitude: -20.2208, longitude: -70.1431 },
+  'Arica': { latitude: -18.4746, longitude: -70.3214 },
+  'Arica, Chile': { latitude: -18.4746, longitude: -70.3214 },
+  
+  // Norte Chico
   'La Serena': { latitude: -29.9027, longitude: -71.2519 },
   'La Serena, Chile': { latitude: -29.9027, longitude: -71.2519 },
+  'Valle del Elqui': { latitude: -30.1333, longitude: -70.5000 },
+  'Valle del Elqui, Chile': { latitude: -30.1333, longitude: -70.5000 },
+  'Elqui': { latitude: -30.1333, longitude: -70.5000 },
+  'Elqui, Chile': { latitude: -30.1333, longitude: -70.5000 },
+  'Coquimbo': { latitude: -29.9533, longitude: -71.3436 },
+  'Coquimbo, Chile': { latitude: -29.9533, longitude: -71.3436 },
+  
+  // Zona Central Sur
   'Concepción': { latitude: -36.8201, longitude: -73.0444 },
   'Concepción, Chile': { latitude: -36.8201, longitude: -73.0444 },
+  'Talca': { latitude: -35.4264, longitude: -71.6554 },
+  'Talca, Chile': { latitude: -35.4264, longitude: -71.6554 },
+  'Rancagua': { latitude: -34.1708, longitude: -70.7444 },
+  'Rancagua, Chile': { latitude: -34.1708, longitude: -70.7444 },
+  
+  // Región de los Lagos
+  'Puerto Varas': { latitude: -41.3167, longitude: -72.9833 },
+  'Puerto Varas, Chile': { latitude: -41.3167, longitude: -72.9833 },
+  'Puerto Montt': { latitude: -41.4693, longitude: -72.9424 },
+  'Puerto Montt, Chile': { latitude: -41.4693, longitude: -72.9424 },
   'Castro': { latitude: -42.4800, longitude: -73.7650 },
   'Castro, Chile': { latitude: -42.4800, longitude: -73.7650 },
   'Chiloé': { latitude: -42.4800, longitude: -73.7650 },
   'Chiloé, Chile': { latitude: -42.4800, longitude: -73.7650 },
-  'Valle del Elqui': { latitude: -30.1333, longitude: -70.5000 },
-  'Valle del Elqui, Chile': { latitude: -30.1333, longitude: -70.5000 },
-  'Cajón del Maipo': { latitude: -33.6000, longitude: -70.1000 },
-  'Cajón del Maipo, Chile': { latitude: -33.6000, longitude: -70.1000 },
+  'Ancud': { latitude: -41.8697, longitude: -73.8281 },
+  'Ancud, Chile': { latitude: -41.8697, longitude: -73.8281 },
+  'Frutillar': { latitude: -41.1167, longitude: -73.0667 },
+  'Frutillar, Chile': { latitude: -41.1167, longitude: -73.0667 },
+  
+  // Araucanía
+  'Pucón': { latitude: -39.2823, longitude: -71.9545 },
+  'Pucón, Chile': { latitude: -39.2823, longitude: -71.9545 },
+  'Villarrica': { latitude: -39.2847, longitude: -72.2269 },
+  'Villarrica, Chile': { latitude: -39.2847, longitude: -72.2269 },
+  'Temuco': { latitude: -38.7359, longitude: -72.5904 },
+  'Temuco, Chile': { latitude: -38.7359, longitude: -72.5904 },
+  
+  // Patagonia
+  'Puerto Natales': { latitude: -51.7311, longitude: -72.4977 },
+  'Puerto Natales, Chile': { latitude: -51.7311, longitude: -72.4977 },
+  'Torres del Paine': { latitude: -51.0000, longitude: -73.0000 },
+  'Torres del Paine, Chile': { latitude: -51.0000, longitude: -73.0000 },
+  'Punta Arenas': { latitude: -53.1638, longitude: -70.9171 },
+  'Punta Arenas, Chile': { latitude: -53.1638, longitude: -70.9171 },
+  'Coyhaique': { latitude: -45.5752, longitude: -72.0662 },
+  'Coyhaique, Chile': { latitude: -45.5752, longitude: -72.0662 },
+  
+  // Easter Island
+  'Isla de Pascua': { latitude: -27.1127, longitude: -109.3497 },
+  'Isla de Pascua, Chile': { latitude: -27.1127, longitude: -109.3497 },
+  'Rapa Nui': { latitude: -27.1127, longitude: -109.3497 },
+  'Rapa Nui, Chile': { latitude: -27.1127, longitude: -109.3497 },
 };
 
 // Default map region (Chile center)

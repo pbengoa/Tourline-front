@@ -15,10 +15,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, Typography } from '../theme';
 import { GuideCard, TourCard, CategoryPill } from '../components';
-import { CATEGORIES, MOCK_TOURS, MOCK_GUIDES } from '../constants/mockData';
+import { CATEGORIES, MOCK_GUIDES } from '../constants/mockData';
 import { useFeaturedGuides } from '../hooks';
 import { useAuth } from '../context';
-import type { MainTabScreenProps } from '../types';
+import { toursService, ApiTour } from '../services';
+import type { MainTabScreenProps, Tour } from '../types';
 
 const { width, height } = Dimensions.get('window');
 const HEADER_HEIGHT = 280;
@@ -33,10 +34,69 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   // Fetch featured guides from API
   const { guides: featuredGuides, loading: guidesLoading } = useFeaturedGuides();
-
-  // Use mock data for tours
-  const featuredTours = MOCK_TOURS.filter((tour) => tour.featured);
+  
+  // Tours state
+  const [featuredTours, setFeaturedTours] = useState<Tour[]>([]);
+  const [toursLoading, setToursLoading] = useState(true);
+  
   const allGuides = featuredGuides.length > 0 ? featuredGuides : MOCK_GUIDES;
+
+  // Helper to format duration from minutes to readable string
+  const formatDuration = (minutes: number): string => {
+    if (minutes < 60) return `${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (mins === 0) return `${hours} hora${hours > 1 ? 's' : ''}`;
+    return `${hours}h ${mins}min`;
+  };
+
+  // Fetch featured tours from API
+  useEffect(() => {
+    const fetchTours = async () => {
+      setToursLoading(true);
+      try {
+        const response = await toursService.getFeaturedTours();
+        if (response.success && response.data) {
+          const transformedTours: Tour[] = response.data.map((tour: ApiTour) => {
+            const guideName = tour.guide?.user
+              ? `${tour.guide.user.firstName} ${tour.guide.user.lastName}`
+              : 'Guía';
+            const guideAvatar = tour.guide?.user?.avatar;
+            const guideRating = tour.guide?.rating ?? 0;
+
+            return {
+              id: tour.id,
+              title: tour.title || 'Tour',
+              description: tour.description || '',
+              image: tour.images?.[0],
+              guideId: tour.guideId,
+              guideName,
+              guideAvatar,
+              guideRating,
+              location: `${tour.city || ''}, ${tour.country || ''}`.replace(/^, |, $/g, ''),
+              duration: formatDuration(tour.duration || 0),
+              price: tour.price ?? 0,
+              currency: tour.currency || 'CLP',
+              maxParticipants: tour.maxParticipants ?? 10,
+              categories: tour.categories || [],
+              includes: tour.includes || [],
+              rating: tour.rating ?? 0,
+              reviewCount: tour.reviewCount ?? 0,
+              featured: tour.featured ?? false,
+            };
+          });
+          setFeaturedTours(transformedTours);
+        }
+      } catch (error) {
+        console.log('Error fetching featured tours:', error);
+        setFeaturedTours([]);
+      } finally {
+        setToursLoading(false);
+      }
+    };
+
+    fetchTours();
+  }, []);
 
   // Entrance animation
   useEffect(() => {
@@ -240,33 +300,43 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
                 <Text style={styles.seeAllArrow}>→</Text>
               </TouchableOpacity>
             </View>
-            <FlatList
-              horizontal
-              data={featuredTours}
-              renderItem={({ item, index }) => (
-                <Animated.View
-                  style={{
-                    opacity: fadeAnim,
-                    transform: [
-                      {
-                        scale: fadeAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0.9, 1],
-                        }),
-                      },
-                    ],
-                  }}
-                >
-                  <TourCard tour={item} onPress={() => handleTourPress(item.id, item.title)} />
-                </Animated.View>
-              )}
-              keyExtractor={(item) => item.id}
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.horizontalList}
-              ItemSeparatorComponent={() => <View style={{ width: 16 }} />}
-              snapToInterval={316}
-              decelerationRate="fast"
-            />
+            {toursLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color={Colors.primary} />
+              </View>
+            ) : featuredTours.length > 0 ? (
+              <FlatList
+                horizontal
+                data={featuredTours}
+                renderItem={({ item }) => (
+                  <Animated.View
+                    style={{
+                      opacity: fadeAnim,
+                      transform: [
+                        {
+                          scale: fadeAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [0.9, 1],
+                          }),
+                        },
+                      ],
+                    }}
+                  >
+                    <TourCard tour={item} onPress={() => handleTourPress(item.id, item.title)} />
+                  </Animated.View>
+                )}
+                keyExtractor={(item) => item.id}
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.horizontalList}
+                ItemSeparatorComponent={() => <View style={{ width: 16 }} />}
+                snapToInterval={316}
+                decelerationRate="fast"
+              />
+            ) : (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>No hay tours destacados</Text>
+              </View>
+            )}
           </View>
 
           {/* Popular Destinations */}
@@ -825,6 +895,14 @@ const styles = StyleSheet.create({
   loadingContainer: {
     padding: Spacing.xl,
     alignItems: 'center',
+  },
+  emptyContainer: {
+    padding: Spacing.xl,
+    alignItems: 'center',
+  },
+  emptyText: {
+    ...Typography.body,
+    color: Colors.textSecondary,
   },
   // CTA
   ctaSection: {

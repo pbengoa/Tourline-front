@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,12 +12,13 @@ import {
   Share,
   Dimensions,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing, Typography } from '../theme';
-import { TourCard, Button, Avatar, ImageCard } from '../components';
-import { MOCK_GUIDES, MOCK_TOURS } from '../constants/mockData';
-import type { RootStackScreenProps } from '../types';
+import { TourCard, Button, Avatar } from '../components';
+import { guidesService, toursService, Guide as ApiGuide, ApiTour } from '../services';
+import type { RootStackScreenProps, Guide, Tour } from '../types';
 
 type Props = RootStackScreenProps<'GuideDetail'>;
 
@@ -66,8 +67,12 @@ const MOCK_GALLERY = [
 
 export const GuideDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const { guideId } = route.params;
-  const guide = MOCK_GUIDES.find((g) => g.id === guideId);
-  const guideTours = MOCK_TOURS.filter((tour) => tour.guideId === guideId);
+  
+  // State for API data
+  const [guide, setGuide] = useState<Guide | null>(null);
+  const [guideTours, setGuideTours] = useState<Tour[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   const [isFavorite, setIsFavorite] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
@@ -76,7 +81,110 @@ export const GuideDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [sendingMessage, setSendingMessage] = useState(false);
 
-  if (!guide) {
+  // Helper to format duration
+  const formatDuration = (minutes: number): string => {
+    if (minutes < 60) return `${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (mins === 0) return `${hours} hora${hours > 1 ? 's' : ''}`;
+    return `${hours}h ${mins}min`;
+  };
+
+  // Fetch guide data from API
+  const fetchGuideData = useCallback(async () => {
+    setLoading(true);
+    setError(false);
+    try {
+      // Fetch guide details
+      const guideResponse = await guidesService.getGuide(guideId);
+      if (guideResponse.success && guideResponse.data) {
+        const apiGuide: ApiGuide = guideResponse.data;
+        const transformedGuide: Guide = {
+          id: apiGuide.id,
+          name: apiGuide.user
+            ? `${apiGuide.user.firstName} ${apiGuide.user.lastName}`
+            : apiGuide.name || 'Guía',
+          avatar: apiGuide.user?.avatar || apiGuide.avatar,
+          rating: apiGuide.rating ?? 0,
+          reviewCount: apiGuide.reviewCount ?? 0,
+          location: `${apiGuide.city || ''}, ${apiGuide.country || ''}`.replace(/^, |, $/g, ''),
+          languages: apiGuide.languages || [],
+          specialties: apiGuide.specialties || [],
+          bio: apiGuide.bio || '',
+          pricePerHour: apiGuide.pricePerHour ?? 0,
+          currency: apiGuide.currency || 'CLP',
+          verified: apiGuide.verified ?? false,
+          featured: apiGuide.featured ?? false,
+          available: apiGuide.available ?? true,
+        };
+        setGuide(transformedGuide);
+
+        // Fetch guide's tours
+        try {
+          const toursResponse = await toursService.searchTours({ limit: 20 });
+          if (toursResponse.success && toursResponse.data) {
+            // Filter tours by this guide
+            const filteredTours = toursResponse.data
+              .filter((t: ApiTour) => t.guideId === guideId)
+              .map((tour: ApiTour): Tour => {
+                const tourGuideName = tour.guide?.user
+                  ? `${tour.guide.user.firstName} ${tour.guide.user.lastName}`
+                  : transformedGuide.name;
+                return {
+                  id: tour.id,
+                  title: tour.title || 'Tour',
+                  description: tour.description || '',
+                  image: tour.images?.[0],
+                  guideId: tour.guideId,
+                  guideName: tourGuideName,
+                  guideAvatar: tour.guide?.user?.avatar || transformedGuide.avatar,
+                  guideRating: tour.guide?.rating ?? transformedGuide.rating,
+                  location: tour.city || '',
+                  duration: formatDuration(tour.duration || 0),
+                  price: tour.price ?? 0,
+                  currency: tour.currency || 'CLP',
+                  maxParticipants: tour.maxParticipants ?? 10,
+                  categories: tour.categories || [],
+                  includes: tour.includes || [],
+                  rating: tour.rating ?? 0,
+                  reviewCount: tour.reviewCount ?? 0,
+                  featured: tour.featured ?? false,
+                };
+              });
+            setGuideTours(filteredTours);
+          }
+        } catch (toursErr) {
+          console.log('Error fetching guide tours:', toursErr);
+        }
+      } else {
+        setError(true);
+      }
+    } catch (err) {
+      console.log('Error fetching guide:', err);
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [guideId]);
+
+  useEffect(() => {
+    fetchGuideData();
+  }, [fetchGuideData]);
+
+  // Loading state
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>Cargando perfil...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Error state
+  if (error || !guide) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
@@ -84,6 +192,9 @@ export const GuideDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           <Text style={styles.errorTitle}>Guía no encontrado</Text>
           <Text style={styles.errorText}>El perfil que buscas no está disponible</Text>
           <Button title="Volver" onPress={() => navigation.goBack()} style={styles.errorButton} />
+          <TouchableOpacity style={styles.retryButton} onPress={fetchGuideData}>
+            <Text style={styles.retryButtonText}>Reintentar</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -193,7 +304,9 @@ export const GuideDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   };
 
   const handleBookPress = () => {
-    navigation.navigate('Booking', { guideId: guide.id });
+    // In the new tour-centric model, navigate to tours search filtered by this guide/company
+    // For now, go back to search - you can implement company tours listing later
+    navigation.navigate('Main', { screen: 'Search' });
   };
 
   const renderStars = (rating: number) => {
@@ -521,7 +634,11 @@ export const GuideDetailScreen: React.FC<Props> = ({ route, navigation }) => {
       {/* Bottom CTA */}
       <View style={styles.bottomBar}>
         <View style={styles.priceContainer}>
-          <Text style={styles.price}>{guide.pricePerHour}€</Text>
+          <Text style={styles.price}>
+            {guide.currency === 'CLP'
+              ? `$${guide.pricePerHour.toLocaleString('es-CL')}`
+              : `${guide.pricePerHour}€`}
+          </Text>
           <Text style={styles.priceLabel}>por hora</Text>
         </View>
         <View style={styles.ctaButtons}>
@@ -529,13 +646,10 @@ export const GuideDetailScreen: React.FC<Props> = ({ route, navigation }) => {
             <Text style={styles.contactButtonText}>💬</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.bookButton, !guide.available && styles.bookButtonDisabled]}
+            style={styles.bookButton}
             onPress={handleBookPress}
-            disabled={!guide.available}
           >
-            <Text style={styles.bookButtonText}>
-              {guide.available ? 'Reservar' : 'No disponible'}
-            </Text>
+            <Text style={styles.bookButtonText}>Ver Tours</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -550,6 +664,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.lg,
+  },
+  loadingText: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    marginTop: Spacing.md,
   },
   errorContainer: {
     flex: 1,
@@ -574,6 +699,16 @@ const styles = StyleSheet.create({
   },
   errorButton: {
     minWidth: 120,
+  },
+  retryButton: {
+    marginTop: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+  },
+  retryButtonText: {
+    ...Typography.label,
+    color: Colors.primary,
+    textDecorationLine: 'underline',
   },
   headerActions: {
     flexDirection: 'row',

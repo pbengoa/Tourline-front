@@ -120,6 +120,14 @@ export const guidesService = {
     return response.data;
   },
 
+  // Get nearby guides by city/country
+  async getNearbyGuides(city: string, country?: string): Promise<ApiResponse<Guide[]>> {
+    const params: { city: string; country?: string } = { city };
+    if (country) params.country = country;
+    const response = await api.get<ApiResponse<Guide[]>>('/guides/nearby', { params });
+    return response.data;
+  },
+
   // Get guide by ID
   async getGuide(id: string): Promise<ApiResponse<Guide>> {
     const response = await api.get<ApiResponse<Guide>>(`/guides/${id}`);

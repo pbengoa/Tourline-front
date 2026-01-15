@@ -44,17 +44,24 @@ export type {
   GuideStats,
 } from './guidesService';
 
+// Tours Service
+export { toursService } from './toursService';
+export type { ApiTour, SearchToursParams } from './toursService';
+
 // Bookings Service
 export { bookingsService } from './bookingsService';
 export type {
   Booking,
   BookingStatus,
-  Availability,
-  MonthAvailability,
+  BookingCompany,
+  BookingTour,
+  TourCalendarDay,
+  TourCalendarSlot,
+  TourCalendarResponse,
   CreateBookingRequest,
   UpdateBookingRequest,
   CancelBookingRequest,
-  CreateAvailabilityRequest,
+  BookingStats,
 } from './bookingsService';
 
 // Chat Service
@@ -96,3 +103,29 @@ export {
   IMAGE_QUALITY,
   IMAGE_MAX_SIZE,
 } from './imageService';
+
+// ============ NEW SERVICES ============
+
+// Regions Service
+export { regionsService } from './regionsService';
+export type { Region, RegionWithTours } from './regionsService';
+
+// Banners Service
+export { bannersService } from './bannersService';
+export type { Banner, BannerActionType, BannerPlacement } from './bannersService';
+
+// Favorites Service
+export { favoritesService } from './favoritesService';
+export type { Favorite, FavoriteTour } from './favoritesService';
+
+// Notifications Service
+export { notificationsService } from './notificationsService';
+export type {
+  Notification,
+  NotificationType,
+  NotificationPreferences,
+} from './notificationsService';
+
+// App Config Service
+export { appConfigService } from './appConfigService';
+export type { AppConfig, HomeFeedData } from './appConfigService';

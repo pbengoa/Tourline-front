@@ -1,7 +1,7 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { MainTabNavigator } from './MainTabNavigator';
-import { DetailsScreen, GuideDetailScreen } from '../screens';
+import { DetailsScreen, GuideDetailScreen, FavoritesScreen } from '../screens';
 import {
   BookingScreen,
   BookingConfirmationScreen,
@@ -33,12 +33,18 @@ export const RootNavigator: React.FC = () => {
       }}
     >
       <Stack.Screen name="Main" component={MainTabNavigator} options={{ headerShown: false }} />
+      <Stack.Screen name="MainTabs" component={MainTabNavigator} options={{ headerShown: false }} />
       <Stack.Screen
         name="Details"
         component={DetailsScreen}
         options={({ route }) => ({
           title: route.params?.title || 'Detalles',
         })}
+      />
+      <Stack.Screen
+        name="Favorites"
+        component={FavoritesScreen}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="GuideDetail"

@@ -25,18 +25,18 @@ export type AuthStackParamList = {
  */
 export type RootStackParamList = {
   Main: NavigatorScreenParams<MainTabParamList>;
+  MainTabs: undefined; // Alias for Main navigation
   Details: { id: string; title?: string };
   GuideDetail: { guideId: string };
-  // Booking flow
-  Booking: { guideId: string; tourId?: string };
+  CompanyDetail: { companyId: string };  // NEW
+  Favorites: undefined; // NEW - Favorites screen
+  // Booking flow (UPDATED - now tour-centric)
+  Booking: { tourId: string };           // ⚠️ CHANGED: only tourId needed
   BookingConfirmation: {
-    guideId: string;
-    tourId?: string;
-    bookingType: 'single' | 'multi' | 'hourly';
-    dates: BookingDateSlot[];
+    tourId: string;
+    date: string;
+    startTime: string;
     participants: number;
-    tourType?: string;
-    meetingPoint?: string;
     specialRequests?: string;
     userPhone?: string;
     totalPrice: number;
@@ -44,10 +44,11 @@ export type RootStackParamList = {
   BookingSuccess: {
     bookingId: string;
     bookingReference: string;
-    guideName: string;
-    tourTitle?: string;
-    dates: BookingDateSlot[];
-    isMultiDay: boolean;
+    tourTitle: string;
+    companyName: string;
+    date: string;
+    startTime: string;
+    participants: number;
   };
   MyBookings: undefined;
   BookingDetail: { bookingId: string };

@@ -18,22 +18,46 @@ export interface Guide {
   available: boolean;
 }
 
+// Company/Organization type (NEW)
+export interface Company {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl?: string;
+}
+
 export interface Tour {
   id: string;
   title: string;
   description: string;
-  image?: string;
-  guideId: string;
-  guideName: string;
+  image?: string;           // Cover image (images[0])
+  images?: string[];        // All images (cover + gallery)
+  
+  // Company info (NEW - replaces guide)
+  companyId?: string;
+  companyName?: string;
+  companyLogo?: string;
+  companyRating?: number;
+  
+  // DEPRECATED - keeping for backwards compatibility
+  guideId?: string;
+  guideName?: string;
   guideAvatar?: string;
-  guideRating: number;
+  guideRating?: number;
+  
   location: string;
+  meetingPoint?: string;
+  meetingPointInstructions?: string;
   duration: string; // e.g., "3 hours", "Full day"
   price: number;
   currency: string;
   maxParticipants: number;
   categories: string[];
   includes: string[];
+  notIncludes?: string[];
+  requirements?: string[];
+  difficulty?: string;
+  languages?: string[];
   rating: number;
   reviewCount: number;
   featured: boolean;

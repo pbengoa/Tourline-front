@@ -8,22 +8,16 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing, Typography } from '../../theme';
-import { Button, Avatar } from '../../components';
-import { MOCK_GUIDES, MOCK_TOURS } from '../../constants/mockData';
-import { bookingsService, CalendarDay, AvailabilitySlot } from '../../services/bookingsService';
+import { Button } from '../../components';
+import { bookingsService, TourCalendarDay, TourCalendarSlot, TourCalendarResponse } from '../../services/bookingsService';
+import { toursService, ApiTour } from '../../services';
 import type { RootStackScreenProps } from '../../types';
 
 type Props = RootStackScreenProps<'Booking'>;
-
-type BookingType = 'single' | 'multi' | 'hourly';
-
-interface SelectedDateSlot {
-  date: string;
-  slot: AvailabilitySlot | null;
-}
 
 const MONTHS_ES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -33,136 +27,113 @@ const MONTHS_ES = [
 const DAYS_ES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
 export const BookingScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { guideId, tourId } = route.params;
-
-  const guide = MOCK_GUIDES.find((g) => g.id === guideId);
-  const tour = tourId ? MOCK_TOURS.find((t) => t.id === tourId) : null;
-
-  // Generate initial mock calendar for current month
-  const getInitialCalendar = (): CalendarDay[] => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth() + 1;
-    const mockCalendar: CalendarDay[] = [];
-    const daysInMonth = new Date(year, month, 0).getDate();
-    
-    for (let day = 1; day <= daysInMonth; day++) {
-      const date = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      const dayOfWeek = new Date(year, month - 1, day).getDay();
-      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-      const seed = day * 17 + month * 31;
-      const isAvailable = !isWeekend && (seed % 10) > 2;
-      
-      mockCalendar.push({
-        date,
-        dayOfWeek: DAYS_ES[dayOfWeek],
-        isAvailable,
-        slots: isAvailable ? [
-          { id: `${date}-1`, startTime: '09:00', endTime: '12:00', isBooked: (seed % 7) > 4, isBlocked: false },
-          { id: `${date}-2`, startTime: '12:00', endTime: '15:00', isBooked: (seed % 5) > 3, isBlocked: false },
-          { id: `${date}-3`, startTime: '15:00', endTime: '18:00', isBooked: (seed % 8) > 5, isBlocked: false },
-          { id: `${date}-4`, startTime: '18:00', endTime: '21:00', isBooked: (seed % 4) > 2, isBlocked: false },
-        ] : [],
-      });
-    }
-    return mockCalendar;
-  };
+  const { tourId } = route.params;
 
   // State
-  const [bookingType, setBookingType] = useState<BookingType>('single');
+  const [tour, setTour] = useState<ApiTour | null>(null);
+  const [calendarData, setCalendarData] = useState<TourCalendarResponse | null>(null);
+  const [loadingTour, setLoadingTour] = useState(true);
+  const [loadingCalendar, setLoadingCalendar] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [calendarData, setCalendarData] = useState<CalendarDay[]>(getInitialCalendar);
-  const [selectedDates, setSelectedDates] = useState<SelectedDateSlot[]>([]);
+  
+  // Selection state
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<TourCalendarSlot | null>(null);
   const [participants, setParticipants] = useState(1);
-  const [tourType, setTourType] = useState('');
-  const [meetingPoint, setMeetingPoint] = useState('');
   const [specialRequests, setSpecialRequests] = useState('');
   const [userPhone, setUserPhone] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  // Derived values
-  const pricePerHour = guide?.pricePerHour || 0;
-  const currency = guide?.currency || 'EUR';
-
-  // Calculate total price based on selected slots
-  const calculateTotalPrice = useCallback(() => {
-    let totalHours = 0;
-    selectedDates.forEach(({ slot }) => {
-      if (slot) {
-        const start = parseInt(slot.startTime.split(':')[0]);
-        const end = parseInt(slot.endTime.split(':')[0]);
-        totalHours += end - start;
+  // Fetch tour data
+  useEffect(() => {
+    const fetchTour = async () => {
+      setLoadingTour(true);
+      try {
+        console.log('📍 BookingScreen - Fetching tour:', tourId);
+        const response = await toursService.getTour(tourId);
+        if (response.success && response.data) {
+          setTour(response.data);
+          console.log('✅ Tour loaded:', response.data.title);
+        }
+      } catch (err: any) {
+        console.log('❌ Error fetching tour:', err?.response?.data || err);
+      } finally {
+        setLoadingTour(false);
       }
-    });
-    return totalHours * pricePerHour * participants;
-  }, [selectedDates, pricePerHour, participants]);
-
-  const totalPrice = calculateTotalPrice();
-
-  // Generate mock calendar data
-  const generateMockCalendar = useCallback((year: number, month: number): CalendarDay[] => {
-    const mockCalendar: CalendarDay[] = [];
-    const daysInMonth = new Date(year, month, 0).getDate();
-    
-    for (let day = 1; day <= daysInMonth; day++) {
-      const date = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      const dayOfWeek = new Date(year, month - 1, day).getDay();
-      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-      
-      // Use deterministic "random" based on day for consistent results
-      const seed = day * 17 + month * 31;
-      const isAvailable = !isWeekend && (seed % 10) > 2;
-      
-      mockCalendar.push({
-        date,
-        dayOfWeek: DAYS_ES[dayOfWeek],
-        isAvailable,
-        slots: isAvailable ? [
-          { id: `${date}-1`, startTime: '09:00', endTime: '12:00', isBooked: (seed % 7) > 4, isBlocked: false },
-          { id: `${date}-2`, startTime: '12:00', endTime: '15:00', isBooked: (seed % 5) > 3, isBlocked: false },
-          { id: `${date}-3`, startTime: '15:00', endTime: '18:00', isBooked: (seed % 8) > 5, isBlocked: false },
-          { id: `${date}-4`, startTime: '18:00', endTime: '21:00', isBooked: (seed % 4) > 2, isBlocked: false },
-        ] : [],
-      });
-    }
-    return mockCalendar;
-  }, []);
+    };
+    fetchTour();
+  }, [tourId]);
 
   // Fetch calendar data
   const fetchCalendar = useCallback(async () => {
+    setLoadingCalendar(true);
     try {
-      setLoading(true);
       const year = currentMonth.getFullYear();
       const month = currentMonth.getMonth() + 1;
-      
-      // Try to fetch from API, fallback to mock data
-      try {
-        const data = await bookingsService.getGuideCalendar(guideId, year, month);
-        // Ensure we always set an array
-        if (Array.isArray(data) && data.length > 0) {
-          setCalendarData(data);
-        } else {
-          setCalendarData(generateMockCalendar(year, month));
-        }
-      } catch {
-        // Generate mock calendar data on API failure
-        setCalendarData(generateMockCalendar(year, month));
-      }
-    } catch (error) {
-      console.error('Error fetching calendar:', error);
-      // Final fallback - still generate mock data
-      const year = currentMonth.getFullYear();
-      const month = currentMonth.getMonth() + 1;
-      setCalendarData(generateMockCalendar(year, month));
+      console.log('📅 Fetching calendar for tour:', tourId, year, month);
+      const data = await bookingsService.getTourCalendar(tourId, year, month);
+      setCalendarData(data);
+      console.log('✅ Calendar loaded:', data.days?.length, 'days');
+    } catch (err: any) {
+      console.log('❌ Error fetching calendar:', err?.response?.data || err);
+      // Generate mock calendar as fallback
+      setCalendarData(generateMockCalendar(currentMonth.getFullYear(), currentMonth.getMonth() + 1));
     } finally {
-      setLoading(false);
+      setLoadingCalendar(false);
     }
-  }, [guideId, currentMonth, generateMockCalendar]);
+  }, [tourId, currentMonth]);
 
   useEffect(() => {
-    fetchCalendar();
-  }, [fetchCalendar]);
+    if (tour) {
+      fetchCalendar();
+    }
+  }, [tour, fetchCalendar]);
+
+  // Generate mock calendar (fallback)
+  const generateMockCalendar = (year: number, month: number): TourCalendarResponse => {
+    const days: TourCalendarDay[] = [];
+    const daysInMonth = new Date(year, month, 0).getDate();
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const dayOfWeek = new Date(year, month - 1, day).getDay();
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+      const seed = day * 17 + month * 31;
+      const isAvailable = !isWeekend && (seed % 10) > 3;
+      
+      days.push({
+        date,
+        dayOfWeek: DAYS_ES[dayOfWeek],
+        isAvailable,
+        slots: isAvailable ? [
+          { 
+            id: `${date}-1`, 
+            startTime: '08:00', 
+            endTime: '13:00', 
+            spotsAvailable: 10,
+            spotsBooked: seed % 5,
+            price: tour?.price || 45000
+          },
+          { 
+            id: `${date}-2`, 
+            startTime: '14:00', 
+            endTime: '19:00', 
+            spotsAvailable: 10,
+            spotsBooked: seed % 3,
+            price: tour?.price || 45000
+          },
+        ] : [],
+      });
+    }
+    
+    return {
+      tourId,
+      tourName: tour?.title || 'Tour',
+      month,
+      year,
+      days,
+    };
+  };
 
   // Handlers
   const handlePreviousMonth = () => {
@@ -172,6 +143,8 @@ export const BookingScreen: React.FC<Props> = ({ route, navigation }) => {
     today.setDate(1);
     if (newMonth >= today) {
       setCurrentMonth(newMonth);
+      setSelectedDate(null);
+      setSelectedSlot(null);
     }
   };
 
@@ -179,82 +152,93 @@ export const BookingScreen: React.FC<Props> = ({ route, navigation }) => {
     const newMonth = new Date(currentMonth);
     newMonth.setMonth(newMonth.getMonth() + 1);
     setCurrentMonth(newMonth);
+    setSelectedDate(null);
+    setSelectedSlot(null);
   };
 
   const handleDateSelect = (date: string) => {
-    const dayData = (calendarData || []).find((d) => d.date === date);
+    const dayData = calendarData?.days?.find((d) => d.date === date);
     if (!dayData?.isAvailable) return;
-
-    if (bookingType === 'single' || bookingType === 'hourly') {
-      // Single date selection
-      const existingIndex = selectedDates.findIndex((d) => d.date === date);
-      if (existingIndex >= 0) {
-        setSelectedDates([]);
-      } else {
-        setSelectedDates([{ date, slot: null }]);
-      }
+    
+    if (selectedDate === date) {
+      setSelectedDate(null);
+      setSelectedSlot(null);
     } else {
-      // Multi-day selection
-      const existingIndex = selectedDates.findIndex((d) => d.date === date);
-      if (existingIndex >= 0) {
-        setSelectedDates(selectedDates.filter((d) => d.date !== date));
-      } else {
-        setSelectedDates([...selectedDates, { date, slot: null }].sort((a, b) => 
-          a.date.localeCompare(b.date)
-        ));
-      }
+      setSelectedDate(date);
+      setSelectedSlot(null);
     }
   };
 
-  const handleSlotSelect = (date: string, slot: AvailabilitySlot) => {
-    setSelectedDates(
-      selectedDates.map((d) => (d.date === date ? { ...d, slot } : d))
-    );
+  const handleSlotSelect = (slot: TourCalendarSlot) => {
+    if (slot.spotsAvailable - slot.spotsBooked < participants) {
+      Alert.alert('Cupos insuficientes', `Solo hay ${slot.spotsAvailable - slot.spotsBooked} cupos disponibles para este horario.`);
+      return;
+    }
+    setSelectedSlot(slot);
   };
 
   const handleParticipantsChange = (delta: number) => {
     const maxParticipants = tour?.maxParticipants || 10;
+    const availableSpots = selectedSlot ? selectedSlot.spotsAvailable - selectedSlot.spotsBooked : maxParticipants;
     const newValue = participants + delta;
-    if (newValue >= 1 && newValue <= maxParticipants) {
+    if (newValue >= 1 && newValue <= Math.min(maxParticipants, availableSpots)) {
       setParticipants(newValue);
     }
   };
 
-  const handleContinue = () => {
-    // Validate selection
-    if (selectedDates.length === 0) {
-      Alert.alert('Error', 'Por favor selecciona al menos una fecha');
+  const handleBooking = async () => {
+    if (!selectedDate || !selectedSlot) {
+      Alert.alert('Error', 'Por favor selecciona una fecha y horario');
       return;
     }
 
-    // Check if all dates have slots selected (for hourly booking)
-    if (bookingType === 'hourly' || bookingType === 'single') {
-      const hasAllSlots = selectedDates.every((d) => d.slot !== null);
-      if (!hasAllSlots) {
-        Alert.alert('Error', 'Por favor selecciona un horario para cada fecha');
-        return;
-      }
+    setSubmitting(true);
+    try {
+      const booking = await bookingsService.createBooking({
+        tourId,
+        date: selectedDate,
+        startTime: selectedSlot.startTime,
+        participants,
+        specialRequests: specialRequests.trim() || undefined,
+        userPhone: userPhone.trim() || undefined,
+      });
+
+      console.log('✅ Booking created:', booking.reference);
+      
+      navigation.replace('BookingSuccess', {
+        bookingId: booking.id,
+        bookingReference: booking.reference,
+        tourTitle: tour?.title || 'Tour',
+        companyName: tour?.company?.name || 'Empresa',
+        date: selectedDate,
+        startTime: selectedSlot.startTime,
+        participants,
+      });
+    } catch (err: any) {
+      console.log('❌ Error creating booking:', err?.response?.data || err);
+      Alert.alert(
+        'Error al reservar',
+        err?.response?.data?.error?.message || 'No se pudo completar la reserva. Intenta de nuevo.'
+      );
+    } finally {
+      setSubmitting(false);
     }
+  };
 
-    // For multi-day, we need to set default times if not hourly
-    const bookingDates = selectedDates.map((d) => ({
-      date: d.date,
-      startTime: d.slot?.startTime || '09:00',
-      endTime: d.slot?.endTime || '18:00',
-    }));
+  // Helper functions
+  const formatPrice = (price: number, currency: string = 'CLP') => {
+    if (currency === 'CLP') {
+      return `$${price.toLocaleString('es-CL')}`;
+    }
+    return `€${price}`;
+  };
 
-    navigation.navigate('BookingConfirmation', {
-      guideId,
-      tourId,
-      bookingType,
-      dates: bookingDates,
-      participants,
-      tourType: tourType.trim() || undefined,
-      meetingPoint: meetingPoint.trim() || undefined,
-      specialRequests: specialRequests.trim() || undefined,
-      userPhone: userPhone.trim() || undefined,
-      totalPrice,
-    });
+  const formatDuration = (minutes: number): string => {
+    if (minutes < 60) return `${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (mins === 0) return `${hours}h`;
+    return `${hours}h ${mins}min`;
   };
 
   const formatDate = (dateString: string) => {
@@ -273,19 +257,18 @@ export const BookingScreen: React.FC<Props> = ({ route, navigation }) => {
     };
   };
 
-  const getAvailableSlotsForDate = (date: string) => {
-    const dayData = (calendarData || []).find((d) => d.date === date);
-    return dayData?.slots.filter((s) => !s.isBooked && !s.isBlocked) || [];
-  };
-
-  const isDateSelected = (date: string) => {
-    return selectedDates.some((d) => d.date === date);
-  };
-
   const isDateAvailable = (date: string) => {
-    const dayData = (calendarData || []).find((d) => d.date === date);
+    const dayData = calendarData?.days?.find((d) => d.date === date);
     return dayData?.isAvailable ?? false;
   };
+
+  const getSlotsForDate = (date: string) => {
+    const dayData = calendarData?.days?.find((d) => d.date === date);
+    return dayData?.slots?.filter((s) => s.spotsAvailable - s.spotsBooked > 0) || [];
+  };
+
+  // Calculate total price
+  const totalPrice = selectedSlot ? selectedSlot.price * participants : (tour?.price || 0) * participants;
 
   // Render calendar
   const renderCalendar = () => {
@@ -325,8 +308,8 @@ export const BookingScreen: React.FC<Props> = ({ route, navigation }) => {
         </View>
 
         {/* Calendar grid */}
-        {loading ? (
-          <View style={styles.loadingContainer}>
+        {loadingCalendar ? (
+          <View style={styles.calendarLoading}>
             <ActivityIndicator size="small" color={Colors.primary} />
           </View>
         ) : (
@@ -340,7 +323,7 @@ export const BookingScreen: React.FC<Props> = ({ route, navigation }) => {
               const dateString = dateObj.toISOString().split('T')[0];
               const isPast = dateObj < today;
               const isAvailable = !isPast && isDateAvailable(dateString);
-              const isSelected = isDateSelected(dateString);
+              const isSelected = selectedDate === dateString;
 
               return (
                 <TouchableOpacity
@@ -380,11 +363,27 @@ export const BookingScreen: React.FC<Props> = ({ route, navigation }) => {
     );
   };
 
-  if (!guide) {
+  // Loading state
+  if (loadingTour) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>Cargando tour...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!tour) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Guía no encontrado</Text>
+          <Text style={styles.errorTitle}>😕 Tour no encontrado</Text>
+          <Text style={styles.errorText}>
+            No se pudo cargar la información del tour.
+          </Text>
+          <Button title="Volver" onPress={() => navigation.goBack()} style={{ marginTop: 16 }} />
         </View>
       </SafeAreaView>
     );
@@ -393,80 +392,31 @@ export const BookingScreen: React.FC<Props> = ({ route, navigation }) => {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Guide/Tour Preview */}
+        {/* Tour Preview */}
         <View style={styles.previewCard}>
-          <Avatar uri={guide.avatar} name={guide.name} size="medium" showBadge={guide.verified} />
+          {tour.images?.[0] && (
+            <Image source={{ uri: tour.images[0] }} style={styles.previewImage} />
+          )}
           <View style={styles.previewInfo}>
-            {tour ? (
-              <>
-                <Text style={styles.previewTitle}>{tour.title}</Text>
-                <Text style={styles.previewSubtitle}>con {guide.name}</Text>
-              </>
-            ) : (
-              <>
-                <Text style={styles.previewTitle}>{guide.name}</Text>
-                <Text style={styles.previewSubtitle}>📍 {guide.location}</Text>
-              </>
-            )}
-            <View style={styles.previewRating}>
-              <Text style={styles.previewRatingText}>⭐ {guide.rating}</Text>
-              <Text style={styles.previewPrice}>
-                {currency === 'EUR' ? '€' : '$'}{pricePerHour}/hora
-              </Text>
+            <Text style={styles.previewTitle} numberOfLines={2}>{tour.title}</Text>
+            <Text style={styles.previewCompany}>
+              🏢 {tour.company?.name || 'Empresa'}
+            </Text>
+            <View style={styles.previewMeta}>
+              <Text style={styles.previewMetaItem}>⏱️ {formatDuration(tour.duration)}</Text>
+              <Text style={styles.previewMetaItem}>👥 Máx. {tour.maxParticipants}</Text>
             </View>
-          </View>
-        </View>
-
-        {/* Booking Type Selection */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Tipo de reserva</Text>
-          <View style={styles.bookingTypeRow}>
-            <TouchableOpacity
-              style={[styles.bookingTypeButton, bookingType === 'single' && styles.bookingTypeButtonActive]}
-              onPress={() => {
-                setBookingType('single');
-                setSelectedDates([]);
-              }}
-            >
-              <Text style={styles.bookingTypeIcon}>📅</Text>
-              <Text style={[styles.bookingTypeText, bookingType === 'single' && styles.bookingTypeTextActive]}>
-                Un día
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.bookingTypeButton, bookingType === 'multi' && styles.bookingTypeButtonActive]}
-              onPress={() => {
-                setBookingType('multi');
-                setSelectedDates([]);
-              }}
-            >
-              <Text style={styles.bookingTypeIcon}>📆</Text>
-              <Text style={[styles.bookingTypeText, bookingType === 'multi' && styles.bookingTypeTextActive]}>
-                Varios días
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.bookingTypeButton, bookingType === 'hourly' && styles.bookingTypeButtonActive]}
-              onPress={() => {
-                setBookingType('hourly');
-                setSelectedDates([]);
-              }}
-            >
-              <Text style={styles.bookingTypeIcon}>⏰</Text>
-              <Text style={[styles.bookingTypeText, bookingType === 'hourly' && styles.bookingTypeTextActive]}>
-                Por horas
-              </Text>
-            </TouchableOpacity>
+            <Text style={styles.previewPrice}>
+              {formatPrice(tour.price, tour.currency)} <Text style={styles.previewPriceLabel}>/ persona</Text>
+            </Text>
           </View>
         </View>
 
         {/* Date Selection */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            {bookingType === 'multi' ? 'Selecciona las fechas' : 'Selecciona una fecha'}
-          </Text>
+          <Text style={styles.sectionTitle}>📅 Selecciona una fecha</Text>
           {renderCalendar()}
-
+          
           <View style={styles.legendRow}>
             <View style={styles.legendItem}>
               <View style={[styles.legendDot, { backgroundColor: Colors.primary }]} />
@@ -476,189 +426,166 @@ export const BookingScreen: React.FC<Props> = ({ route, navigation }) => {
               <View style={[styles.legendDot, { backgroundColor: Colors.border }]} />
               <Text style={styles.legendText}>No disponible</Text>
             </View>
-            {bookingType === 'multi' && (
-              <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: Colors.secondary }]} />
-                <Text style={styles.legendText}>Seleccionado</Text>
-              </View>
-            )}
           </View>
         </View>
 
-        {/* Time Selection - Show for each selected date */}
-        {selectedDates.length > 0 && (bookingType === 'hourly' || bookingType === 'single') && (
+        {/* Time Slot Selection */}
+        {selectedDate && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Selecciona horario</Text>
-            {selectedDates.map(({ date, slot: selectedSlot }) => {
-              const slots = getAvailableSlotsForDate(date);
-              return (
-                <View key={date} style={styles.dateSlotContainer}>
-                  <Text style={styles.dateSlotTitle}>📅 {formatDate(date)}</Text>
-                  {slots.length > 0 ? (
-                    <View style={styles.slotsGrid}>
-                      {slots.map((slot) => (
-                        <TouchableOpacity
-                          key={slot.id}
-                          style={[
-                            styles.slotButton,
-                            selectedSlot?.id === slot.id && styles.slotButtonSelected,
-                          ]}
-                          onPress={() => handleSlotSelect(date, slot as AvailabilitySlot)}
-                        >
-                          <Text style={[
-                            styles.slotTime,
-                            selectedSlot?.id === slot.id && styles.slotTimeSelected,
-                          ]}>
-                            {slot.startTime}
-                          </Text>
-                          <Text style={[
-                            styles.slotDuration,
-                            selectedSlot?.id === slot.id && styles.slotDurationSelected,
-                          ]}>
-                            hasta {slot.endTime}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  ) : (
-                    <View style={styles.noSlots}>
-                      <Text style={styles.noSlotsText}>No hay horarios disponibles</Text>
-                    </View>
-                  )}
-                </View>
-              );
-            })}
-          </View>
-        )}
-
-        {/* Selected dates summary for multi-day */}
-        {bookingType === 'multi' && selectedDates.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Fechas seleccionadas ({selectedDates.length})</Text>
-            <View style={styles.selectedDatesContainer}>
-              {selectedDates.map(({ date }) => (
-                <View key={date} style={styles.selectedDateChip}>
-                  <Text style={styles.selectedDateText}>{formatDate(date)}</Text>
-                  <TouchableOpacity
-                    onPress={() => setSelectedDates(selectedDates.filter((d) => d.date !== date))}
-                  >
-                    <Text style={styles.selectedDateRemove}>✕</Text>
-                  </TouchableOpacity>
-                </View>
-              ))}
-            </View>
+            <Text style={styles.sectionTitle}>⏰ Selecciona un horario</Text>
+            <Text style={styles.sectionSubtitle}>{formatDate(selectedDate)}</Text>
+            
+            {getSlotsForDate(selectedDate).length > 0 ? (
+              <View style={styles.slotsContainer}>
+                {getSlotsForDate(selectedDate).map((slot) => {
+                  const availableSpots = slot.spotsAvailable - slot.spotsBooked;
+                  const isSelected = selectedSlot?.id === slot.id;
+                  
+                  return (
+                    <TouchableOpacity
+                      key={slot.id}
+                      style={[styles.slotCard, isSelected && styles.slotCardSelected]}
+                      onPress={() => handleSlotSelect(slot)}
+                    >
+                      <View style={styles.slotTime}>
+                        <Text style={[styles.slotTimeText, isSelected && styles.slotTimeTextSelected]}>
+                          {slot.startTime}
+                        </Text>
+                        <Text style={[styles.slotTimeEnd, isSelected && styles.slotTimeEndSelected]}>
+                          hasta {slot.endTime}
+                        </Text>
+                      </View>
+                      <View style={styles.slotInfo}>
+                        <Text style={[styles.slotSpots, isSelected && styles.slotSpotsSelected]}>
+                          {availableSpots} cupos
+                        </Text>
+                        <Text style={[styles.slotPrice, isSelected && styles.slotPriceSelected]}>
+                          {formatPrice(slot.price, tour.currency)}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            ) : (
+              <View style={styles.noSlots}>
+                <Text style={styles.noSlotsText}>No hay horarios disponibles para esta fecha</Text>
+              </View>
+            )}
           </View>
         )}
 
         {/* Participants */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Número de participantes</Text>
-          <View style={styles.participantsRow}>
-            <TouchableOpacity
-              style={[styles.participantButton, participants <= 1 && styles.participantButtonDisabled]}
-              onPress={() => handleParticipantsChange(-1)}
-              disabled={participants <= 1}
-            >
-              <Text style={styles.participantButtonText}>−</Text>
-            </TouchableOpacity>
-            <View style={styles.participantCount}>
-              <Text style={styles.participantNumber}>{participants}</Text>
-              <Text style={styles.participantLabel}>
-                {participants === 1 ? 'persona' : 'personas'}
-              </Text>
+        {selectedSlot && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>👥 Número de participantes</Text>
+            <View style={styles.participantsRow}>
+              <TouchableOpacity
+                style={[styles.participantButton, participants <= 1 && styles.participantButtonDisabled]}
+                onPress={() => handleParticipantsChange(-1)}
+                disabled={participants <= 1}
+              >
+                <Text style={styles.participantButtonText}>−</Text>
+              </TouchableOpacity>
+              <View style={styles.participantCount}>
+                <Text style={styles.participantNumber}>{participants}</Text>
+                <Text style={styles.participantLabel}>
+                  {participants === 1 ? 'persona' : 'personas'}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[
+                  styles.participantButton,
+                  participants >= Math.min(tour.maxParticipants, selectedSlot.spotsAvailable - selectedSlot.spotsBooked) && styles.participantButtonDisabled,
+                ]}
+                onPress={() => handleParticipantsChange(1)}
+                disabled={participants >= Math.min(tour.maxParticipants, selectedSlot.spotsAvailable - selectedSlot.spotsBooked)}
+              >
+                <Text style={styles.participantButtonText}>+</Text>
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              style={[
-                styles.participantButton,
-                participants >= (tour?.maxParticipants || 10) && styles.participantButtonDisabled,
-              ]}
-              onPress={() => handleParticipantsChange(1)}
-              disabled={participants >= (tour?.maxParticipants || 10)}
-            >
-              <Text style={styles.participantButtonText}>+</Text>
-            </TouchableOpacity>
           </View>
-        </View>
+        )}
 
-        {/* Tour Type */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Tipo de tour (opcional)</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Ej: Tour gastronómico, Cultural, Aventura..."
-            placeholderTextColor={Colors.textTertiary}
-            value={tourType}
-            onChangeText={setTourType}
-          />
-        </View>
+        {/* Additional Info */}
+        {selectedSlot && (
+          <>
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>📝 Peticiones especiales (opcional)</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="¿Tienes alguna necesidad especial o preferencia?"
+                placeholderTextColor={Colors.textTertiary}
+                value={specialRequests}
+                onChangeText={setSpecialRequests}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+            </View>
 
-        {/* Meeting Point */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Punto de encuentro (opcional)</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="¿Dónde te gustaría encontrarte?"
-            placeholderTextColor={Colors.textTertiary}
-            value={meetingPoint}
-            onChangeText={setMeetingPoint}
-          />
-        </View>
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>📱 Teléfono de contacto (opcional)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="+56 9 1234 5678"
+                placeholderTextColor={Colors.textTertiary}
+                value={userPhone}
+                onChangeText={setUserPhone}
+                keyboardType="phone-pad"
+              />
+            </View>
 
-        {/* Special Requests */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Peticiones especiales (opcional)</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            placeholder="¿Tienes alguna necesidad especial o preferencia?"
-            placeholderTextColor={Colors.textTertiary}
-            value={specialRequests}
-            onChangeText={setSpecialRequests}
-            multiline
-            numberOfLines={3}
-            textAlignVertical="top"
-          />
-        </View>
-
-        {/* Phone */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Teléfono de contacto (opcional)</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="+34 612 345 678"
-            placeholderTextColor={Colors.textTertiary}
-            value={userPhone}
-            onChangeText={setUserPhone}
-            keyboardType="phone-pad"
-          />
-        </View>
+            {/* Meeting Point Info */}
+            {tour.meetingPoint && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>📍 Punto de encuentro</Text>
+                <View style={styles.meetingPointCard}>
+                  <Text style={styles.meetingPointText}>{tour.meetingPoint}</Text>
+                  {tour.meetingPointInstructions && (
+                    <Text style={styles.meetingPointInstructions}>
+                      {tour.meetingPointInstructions}
+                    </Text>
+                  )}
+                </View>
+              </View>
+            )}
+          </>
+        )}
 
         {/* Spacer */}
-        <View style={{ height: 140 }} />
+        <View style={{ height: 160 }} />
       </ScrollView>
 
       {/* Bottom Bar */}
       <View style={styles.bottomBar}>
-        <View style={styles.priceBreakdown}>
-          {selectedDates.length > 0 && (
-            <View style={styles.priceRow}>
+        {selectedSlot ? (
+          <>
+            <View style={styles.priceBreakdown}>
               <Text style={styles.priceLabel}>
-                {bookingType === 'multi' 
-                  ? `${selectedDates.length} días × ${participants} personas`
-                  : `${pricePerHour}€/hora × ${participants} personas`
-                }
+                {formatPrice(selectedSlot.price, tour.currency)} × {participants} {participants === 1 ? 'persona' : 'personas'}
               </Text>
-              <Text style={styles.priceValue}>
-                {currency === 'EUR' ? '€' : '$'}{totalPrice || pricePerHour * participants}
+              <Text style={styles.priceTotal}>
+                {formatPrice(totalPrice, tour.currency)}
               </Text>
             </View>
-          )}
-        </View>
-        <Button
-          title={`Continuar${totalPrice > 0 ? ` - ${currency === 'EUR' ? '€' : '$'}${totalPrice}` : ''}`}
-          onPress={handleContinue}
-          disabled={selectedDates.length === 0}
-          fullWidth
-        />
+            <Button
+              title={submitting ? 'Reservando...' : 'Confirmar Reserva'}
+              onPress={handleBooking}
+              disabled={submitting}
+              fullWidth
+            />
+          </>
+        ) : (
+          <View style={styles.bottomHint}>
+            <Text style={styles.bottomHintText}>
+              {!selectedDate 
+                ? 'Selecciona una fecha para continuar'
+                : 'Selecciona un horario para continuar'
+              }
+            </Text>
+          </View>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -669,98 +596,97 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  errorContainer: {
+  loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  loadingText: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    marginTop: Spacing.md,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.lg,
+  },
+  errorTitle: {
+    ...Typography.h2,
+    color: Colors.text,
+    marginBottom: Spacing.sm,
+  },
   errorText: {
     ...Typography.body,
     color: Colors.textSecondary,
+    textAlign: 'center',
   },
-  loadingContainer: {
-    height: 200,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  // Preview card
   previewCard: {
     flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: Colors.card,
     margin: Spacing.lg,
-    padding: Spacing.md,
     borderRadius: 16,
+    overflow: 'hidden',
     shadowColor: Colors.text,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
   },
+  previewImage: {
+    width: 100,
+    height: 120,
+  },
   previewInfo: {
     flex: 1,
-    marginLeft: Spacing.md,
+    padding: Spacing.md,
+    justifyContent: 'space-between',
   },
   previewTitle: {
     ...Typography.labelLarge,
     color: Colors.text,
+    marginBottom: 2,
   },
-  previewSubtitle: {
-    ...Typography.bodySmall,
+  previewCompany: {
+    ...Typography.caption,
     color: Colors.textSecondary,
     marginBottom: 4,
   },
-  previewRating: {
+  previewMeta: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: Spacing.sm,
+    marginBottom: 4,
   },
-  previewRatingText: {
-    ...Typography.label,
-    color: Colors.text,
+  previewMetaItem: {
+    ...Typography.caption,
+    color: Colors.textTertiary,
   },
   previewPrice: {
     ...Typography.labelLarge,
     color: Colors.primary,
     fontWeight: '700',
   },
+  previewPriceLabel: {
+    ...Typography.caption,
+    color: Colors.textSecondary,
+    fontWeight: '400',
+  },
+  // Sections
   section: {
     paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.lg,
   },
   sectionTitle: {
     ...Typography.h5,
     color: Colors.text,
     marginBottom: Spacing.sm,
   },
-  // Booking type
-  bookingTypeRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  bookingTypeButton: {
-    flex: 1,
-    backgroundColor: Colors.card,
-    borderRadius: 12,
-    padding: Spacing.md,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  bookingTypeButtonActive: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primaryMuted,
-  },
-  bookingTypeIcon: {
-    fontSize: 24,
-    marginBottom: 4,
-  },
-  bookingTypeText: {
-    ...Typography.labelSmall,
+  sectionSubtitle: {
+    ...Typography.body,
     color: Colors.textSecondary,
-  },
-  bookingTypeTextActive: {
-    color: Colors.primary,
-    fontWeight: '700',
+    marginBottom: Spacing.md,
   },
   // Calendar
   calendar: {
@@ -800,6 +726,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     ...Typography.labelSmall,
     color: Colors.textTertiary,
+  },
+  calendarLoading: {
+    height: 200,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   calendarGrid: {
     flexDirection: 'row',
@@ -869,50 +800,60 @@ const styles = StyleSheet.create({
     ...Typography.caption,
     color: Colors.textSecondary,
   },
-  // Time slots
-  dateSlotContainer: {
-    marginBottom: Spacing.md,
-  },
-  dateSlotTitle: {
-    ...Typography.label,
-    color: Colors.text,
-    marginBottom: Spacing.sm,
-  },
-  slotsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  // Slots
+  slotsContainer: {
     gap: Spacing.sm,
   },
-  slotButton: {
+  slotCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     backgroundColor: Colors.card,
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderColor: Colors.border,
     borderRadius: 12,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    minWidth: 100,
-    alignItems: 'center',
+    padding: Spacing.md,
   },
-  slotButtonSelected: {
+  slotCardSelected: {
     backgroundColor: Colors.primary,
     borderColor: Colors.primary,
   },
   slotTime: {
-    ...Typography.labelLarge,
-    color: Colors.text,
-    fontWeight: '600',
+    flex: 1,
   },
-  slotTimeSelected: {
+  slotTimeText: {
+    ...Typography.h4,
+    color: Colors.text,
+  },
+  slotTimeTextSelected: {
     color: Colors.textInverse,
   },
-  slotDuration: {
+  slotTimeEnd: {
     ...Typography.caption,
     color: Colors.textTertiary,
-    marginTop: 2,
   },
-  slotDurationSelected: {
+  slotTimeEndSelected: {
     color: Colors.textInverse,
     opacity: 0.8,
+  },
+  slotInfo: {
+    alignItems: 'flex-end',
+  },
+  slotSpots: {
+    ...Typography.caption,
+    color: Colors.success,
+    marginBottom: 2,
+  },
+  slotSpotsSelected: {
+    color: Colors.textInverse,
+  },
+  slotPrice: {
+    ...Typography.labelLarge,
+    color: Colors.primary,
+    fontWeight: '700',
+  },
+  slotPriceSelected: {
+    color: Colors.textInverse,
   },
   noSlots: {
     backgroundColor: Colors.card,
@@ -923,31 +864,6 @@ const styles = StyleSheet.create({
   noSlotsText: {
     ...Typography.body,
     color: Colors.textSecondary,
-  },
-  // Selected dates
-  selectedDatesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-  },
-  selectedDateChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: 20,
-    gap: Spacing.sm,
-  },
-  selectedDateText: {
-    ...Typography.label,
-    color: Colors.textInverse,
-  },
-  selectedDateRemove: {
-    color: Colors.textInverse,
-    fontSize: 14,
-    fontWeight: '600',
-    opacity: 0.8,
   },
   // Participants
   participantsRow: {
@@ -999,6 +915,24 @@ const styles = StyleSheet.create({
   textArea: {
     minHeight: 80,
   },
+  // Meeting point
+  meetingPointCard: {
+    backgroundColor: Colors.card,
+    borderRadius: 12,
+    padding: Spacing.md,
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.primary,
+  },
+  meetingPointText: {
+    ...Typography.body,
+    color: Colors.text,
+    fontWeight: '600',
+  },
+  meetingPointInstructions: {
+    ...Typography.bodySmall,
+    color: Colors.textSecondary,
+    marginTop: Spacing.xs,
+  },
   // Bottom bar
   bottomBar: {
     position: 'absolute',
@@ -1017,20 +951,26 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   priceBreakdown: {
-    marginBottom: Spacing.sm,
-  },
-  priceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: Spacing.sm,
   },
   priceLabel: {
     ...Typography.body,
     color: Colors.textSecondary,
   },
-  priceValue: {
+  priceTotal: {
     ...Typography.h3,
     color: Colors.primary,
     fontWeight: '700',
+  },
+  bottomHint: {
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+  },
+  bottomHintText: {
+    ...Typography.body,
+    color: Colors.textSecondary,
   },
 });

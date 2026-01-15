@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -16,13 +16,14 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, Typography } from '../theme';
 import { useAuth } from '../context';
+import { useFavoritesContext } from '../contexts/FavoritesContext';
 import type { MainTabScreenProps, RootStackParamList } from '../types';
 
 const { width } = Dimensions.get('window');
 
 type Props = MainTabScreenProps<'Profile'>;
 
-const QUICK_ACTIONS = [
+const BASE_QUICK_ACTIONS = [
   { id: 'bookings', icon: '📋', label: 'Reservas', color: Colors.primary },
   { id: 'messages', icon: '💬', label: 'Mensajes', color: Colors.accent, badge: 2 },
   { id: 'favorites', icon: '❤️', label: 'Favoritos', color: Colors.secondary },
@@ -59,9 +60,20 @@ const MENU_SECTIONS = [
 
 export const ProfileScreen: React.FC<Props> = () => {
   const { user, signOut } = useAuth();
+  const { favoritesCount } = useFavoritesContext();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
+
+  // Quick actions with dynamic favorites badge
+  const QUICK_ACTIONS = useMemo(() => 
+    BASE_QUICK_ACTIONS.map(action => 
+      action.id === 'favorites' && favoritesCount > 0
+        ? { ...action, badge: favoritesCount }
+        : action
+    ),
+    [favoritesCount]
+  );
 
   // Animation on mount
   useEffect(() => {
@@ -96,7 +108,7 @@ export const ProfileScreen: React.FC<Props> = () => {
         navigation.navigate('ChatList');
         break;
       case 'favorites':
-        Alert.alert('Favoritos', 'Tus tours y guías favoritos aparecerán aquí');
+        navigation.navigate('Favorites');
         break;
       case 'history':
         Alert.alert('Historial', 'Tu historial de tours aparecerá aquí');

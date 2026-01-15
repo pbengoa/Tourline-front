@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions } from 'rea
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, Typography } from '../theme';
 import type { Tour } from '../types';
+import { FavoriteButton } from './FavoriteButton';
+import { FavoriteTour } from '../hooks/useFavorites';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.78;
@@ -12,6 +14,7 @@ interface TourCardProps {
   onPress: () => void;
   horizontal?: boolean;
   compact?: boolean;
+  showFavorite?: boolean;
 }
 
 export const TourCard: React.FC<TourCardProps> = ({
@@ -19,6 +22,7 @@ export const TourCard: React.FC<TourCardProps> = ({
   onPress,
   horizontal = false,
   compact = false,
+  showFavorite = true,
 }) => {
   // Safe values with defaults
   const title = tour.title || 'Tour';
@@ -28,9 +32,26 @@ export const TourCard: React.FC<TourCardProps> = ({
   const reviewCount = tour.reviewCount ?? 0;
   const price = tour.price ?? 0;
   const currency = tour.currency || 'CLP';
-  const guideName = tour.guideName || 'Guía';
-  const guideRating = tour.guideRating ?? 0;
+  // Support both old (guideName) and new (companyName) fields
+  const companyName = tour.companyName || tour.guideName || 'Operador';
+  const companyLogo = tour.companyLogo || tour.guideAvatar;
+  const companyRating = tour.companyRating ?? tour.guideRating ?? 0;
   const maxParticipants = tour.maxParticipants ?? 10;
+
+  // Transform tour to FavoriteTour format for the button
+  const favoriteTour: FavoriteTour = {
+    id: tour.id,
+    title: tour.title,
+    image: tour.image,
+    price: tour.price,
+    currency: tour.currency,
+    rating: tour.rating,
+    reviewCount: tour.reviewCount,
+    duration: tour.duration,
+    location: tour.location,
+    companyName: companyName,
+    addedAt: new Date().toISOString(),
+  };
 
   // Format price for CLP
   const formatPrice = (amount: number, curr: string) => {
@@ -56,6 +77,11 @@ export const TourCard: React.FC<TourCardProps> = ({
           {tour.featured && (
             <View style={styles.featuredBadgeHorizontal}>
               <Text style={styles.featuredTextSmall}>⭐</Text>
+            </View>
+          )}
+          {showFavorite && (
+            <View style={styles.horizontalFavoriteBtn}>
+              <FavoriteButton tour={favoriteTour} size="small" variant="filled" />
             </View>
           )}
           <LinearGradient
@@ -90,8 +116,8 @@ export const TourCard: React.FC<TourCardProps> = ({
             </View>
           </View>
           <View style={styles.horizontalFooter}>
-            <View style={styles.guideMiniBadge}>
-              <Text style={styles.guideMiniBadgeText}>por {guideName.split(' ')[0]}</Text>
+            <View style={styles.companyMiniBadge}>
+              <Text style={styles.companyMiniBadgeText}>por {companyName.split(' ')[0]}</Text>
             </View>
             <Text style={styles.horizontalPrice}>{formatPrice(price, currency)}</Text>
           </View>
@@ -115,6 +141,11 @@ export const TourCard: React.FC<TourCardProps> = ({
           {tour.featured && (
             <View style={styles.compactFeaturedBadge}>
               <Text style={styles.compactFeaturedText}>⭐</Text>
+            </View>
+          )}
+          {showFavorite && (
+            <View style={styles.compactFavoriteBtn}>
+              <FavoriteButton tour={favoriteTour} size="small" variant="filled" />
             </View>
           )}
         </View>
@@ -167,16 +198,21 @@ export const TourCard: React.FC<TourCardProps> = ({
 
         {/* Top badges */}
         <View style={styles.topBadgesRow}>
-          {tour.featured && (
-            <View style={styles.featuredBadge}>
-              <Text style={styles.featuredIcon}>⭐</Text>
-              <Text style={styles.featuredText}>Destacado</Text>
+          <View style={styles.topBadgesLeft}>
+            {tour.featured && (
+              <View style={styles.featuredBadge}>
+                <Text style={styles.featuredIcon}>⭐</Text>
+                <Text style={styles.featuredText}>Destacado</Text>
+              </View>
+            )}
+            <View style={styles.durationBadge}>
+              <Text style={styles.durationIcon}>⏱️</Text>
+              <Text style={styles.durationText}>{duration}</Text>
             </View>
-          )}
-          <View style={styles.durationBadge}>
-            <Text style={styles.durationIcon}>⏱️</Text>
-            <Text style={styles.durationText}>{duration}</Text>
           </View>
+          {showFavorite && (
+            <FavoriteButton tour={favoriteTour} size="medium" variant="filled" />
+          )}
         </View>
 
         {/* Bottom image content */}
@@ -207,24 +243,24 @@ export const TourCard: React.FC<TourCardProps> = ({
           </View>
         </View>
 
-        {/* Guide info */}
-        <View style={styles.guideRow}>
-          <View style={styles.guideAvatar}>
-            {tour.guideAvatar ? (
-              <Image source={{ uri: tour.guideAvatar }} style={styles.guideAvatarImage} />
+        {/* Company/Operator info */}
+        <View style={styles.companyRow}>
+          <View style={styles.companyAvatar}>
+            {companyLogo ? (
+              <Image source={{ uri: companyLogo }} style={styles.companyAvatarImage} />
             ) : (
-              <View style={styles.guideAvatarPlaceholder}>
-                <Text style={styles.guideInitial}>{guideName.charAt(0)}</Text>
+              <View style={styles.companyAvatarPlaceholder}>
+                <Text style={styles.companyInitial}>{companyName.charAt(0)}</Text>
               </View>
             )}
           </View>
-          <View style={styles.guideInfo}>
-            <Text style={styles.guideName} numberOfLines={1}>
-              {guideName}
+          <View style={styles.companyInfo}>
+            <Text style={styles.companyName} numberOfLines={1}>
+              {companyName}
             </Text>
-            <View style={styles.guideRatingRow}>
-              <Text style={styles.guideStarIcon}>★</Text>
-              <Text style={styles.guideRatingText}>{guideRating.toFixed(1)}</Text>
+            <View style={styles.companyRatingRow}>
+              <Text style={styles.companyStarIcon}>★</Text>
+              <Text style={styles.companyRatingText}>{companyRating.toFixed(1)}</Text>
             </View>
           </View>
           <View style={styles.participantsInfo}>
@@ -346,6 +382,11 @@ const styles = StyleSheet.create({
     right: Spacing.sm,
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  topBadgesLeft: {
+    flexDirection: 'row',
+    gap: 6,
   },
   featuredBadge: {
     flexDirection: 'row',
@@ -458,7 +499,7 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontWeight: '500',
   },
-  guideRow: {
+  companyRow: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.background,
@@ -466,47 +507,47 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     marginBottom: Spacing.md,
   },
-  guideAvatar: {
+  companyAvatar: {
     width: 40,
     height: 40,
     borderRadius: 20,
     overflow: 'hidden',
   },
-  guideAvatarImage: {
+  companyAvatarImage: {
     width: '100%',
     height: '100%',
   },
-  guideAvatarPlaceholder: {
+  companyAvatarPlaceholder: {
     width: '100%',
     height: '100%',
     backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  guideInitial: {
+  companyInitial: {
     ...Typography.labelLarge,
     color: Colors.textInverse,
     fontWeight: '700',
   },
-  guideInfo: {
+  companyInfo: {
     flex: 1,
     marginLeft: Spacing.sm,
   },
-  guideName: {
+  companyName: {
     ...Typography.label,
     color: Colors.text,
     marginBottom: 2,
   },
-  guideRatingRow: {
+  companyRatingRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  guideStarIcon: {
+  companyStarIcon: {
     fontSize: 11,
     color: Colors.warning,
     marginRight: 3,
   },
-  guideRatingText: {
+  companyRatingText: {
     ...Typography.caption,
     color: Colors.textSecondary,
     fontWeight: '600',
@@ -682,16 +723,26 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  guideMiniBadge: {
+  companyMiniBadge: {
     backgroundColor: Colors.primaryMuted,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
   },
-  guideMiniBadgeText: {
+  companyMiniBadgeText: {
     ...Typography.caption,
     color: Colors.primary,
     fontWeight: '600',
+  },
+  horizontalFavoriteBtn: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+  },
+  compactFavoriteBtn: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
   },
   horizontalPrice: {
     ...Typography.h4,
