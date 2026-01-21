@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing, Typography } from '../theme';
-import { TourCard, Button, Avatar } from '../components';
+import { TourCard, Button, Avatar, MinimalHeader } from '../components';
 import { guidesService, toursService, Guide as ApiGuide, ApiTour } from '../services';
 import type { RootStackScreenProps, Guide, Tour } from '../types';
 
@@ -454,18 +454,16 @@ export const GuideDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
+      <MinimalHeader
+        onBack={() => navigation.goBack()}
+        rightElement={
+          <TouchableOpacity onPress={handleFavoritePress}>
+            <Text style={{ fontSize: 18 }}>{isFavorite ? '❤️' : '🤍'}</Text>
+          </TouchableOpacity>
+        }
+      />
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header Actions */}
-        <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.headerAction} onPress={handleSharePress}>
-            <Text style={styles.headerActionIcon}>📤</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.headerAction} onPress={handleFavoritePress}>
-            <Text style={styles.headerActionIcon}>{isFavorite ? '❤️' : '🤍'}</Text>
-          </TouchableOpacity>
-        </View>
-
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.avatarContainer}>
@@ -656,7 +654,7 @@ export const GuideDetailScreen: React.FC<Props> = ({ route, navigation }) => {
 
       {renderContactModal()}
       {renderReviewsModal()}
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -739,7 +737,7 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     padding: Spacing.lg,
-    paddingTop: Spacing.xl + 40, // Account for action buttons
+    paddingTop: Spacing.lg,
     paddingBottom: Spacing.xl,
     backgroundColor: Colors.surface,
     borderBottomLeftRadius: 24,

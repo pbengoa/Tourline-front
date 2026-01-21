@@ -1,11 +1,12 @@
 module.exports = {
-  preset: 'jest-expo',
+  preset: 'react-native',
   setupFiles: ['<rootDir>/jest.setup.js'],
   transformIgnorePatterns: [
     'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|@testing-library)',
   ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^react-native-reanimated$': '<rootDir>/src/__tests__/__mocks__/react-native-reanimated.js',
   },
   testMatch: ['**/__tests__/**/*.(spec|test).[jt]s?(x)'],
   testPathIgnorePatterns: [
@@ -24,4 +25,5 @@ module.exports = {
   clearMocks: true,
   resetMocks: true,
   forceExit: true,
+  testEnvironment: 'node',
 };

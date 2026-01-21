@@ -34,7 +34,8 @@ describe('GuideCard Component', () => {
   it('renders price per hour', () => {
     render(<GuideCard {...defaultProps} />);
 
-    expect(screen.getByText(/30€/)).toBeTruthy();
+    // Price is rendered as €30 (currency prefix style)
+    expect(screen.getByText(/€30/)).toBeTruthy();
   });
 
   it('calls onPress when card is pressed', () => {
@@ -62,6 +63,7 @@ describe('GuideCard Component', () => {
   it('renders languages correctly', () => {
     render(<GuideCard {...defaultProps} />);
 
-    expect(screen.getByText('Español')).toBeTruthy();
+    // Languages are joined by ' • '
+    expect(screen.getByText(/Español/)).toBeTruthy();
   });
 });

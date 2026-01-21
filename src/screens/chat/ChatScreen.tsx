@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   FlatList,
   TouchableOpacity,
   TextInput,
@@ -11,6 +10,8 @@ import {
   Platform,
   Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, Typography } from '../../theme';
 import {
   getMessagesByConversationId,
@@ -236,12 +237,14 @@ export const ChatScreen: React.FC<Props> = ({ route, navigation }) => {
     );
   };
 
+  const insets = useSafeAreaInsets();
+
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* Custom Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backIcon}>‹</Text>
+          <Ionicons name="chevron-back" size={24} color={Colors.text} />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.headerContent} onPress={handleViewProfile}>
@@ -252,7 +255,7 @@ export const ChatScreen: React.FC<Props> = ({ route, navigation }) => {
 
           <View style={styles.headerInfo}>
             <View style={styles.headerNameRow}>
-              <Text style={styles.headerName}>{participantName}</Text>
+              <Text style={styles.headerName} numberOfLines={1}>{participantName}</Text>
               {conversation?.isVerified && (
                 <View style={styles.headerVerifiedBadge}>
                   <Text style={styles.headerVerifiedIcon}>✓</Text>
@@ -265,12 +268,7 @@ export const ChatScreen: React.FC<Props> = ({ route, navigation }) => {
           </View>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.menuButton}
-          onPress={() => Alert.alert('Opciones', 'Próximamente: más opciones de chat')}
-        >
-          <Text style={styles.menuIcon}>⋯</Text>
-        </TouchableOpacity>
+        <View style={styles.headerSpacer} />
       </View>
 
       {/* Related Booking Banner */}
@@ -349,7 +347,7 @@ export const ChatScreen: React.FC<Props> = ({ route, navigation }) => {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -361,11 +359,14 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: Spacing.md,
+    paddingBottom: Spacing.sm,
     paddingHorizontal: Spacing.sm,
     backgroundColor: Colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
+  },
+  headerSpacer: {
+    width: 40,
   },
   backButton: {
     width: 40,

@@ -153,6 +153,19 @@ export interface BookingStats {
   topGuides: { id: string; name: string; avatar?: string; bookings: number; revenue: number }[];
 }
 
+export interface TimeSlot {
+  startTime: string;
+  maxBookings?: number;
+}
+
+export interface TourAvailability {
+  daysOfWeek: number[];
+  timeSlots: TimeSlot[];
+  isRecurring?: boolean;
+  specificDates?: string[];
+  blackoutDates?: string[];
+}
+
 export interface CreateTourRequest {
   title: string;
   description: string;
@@ -173,6 +186,7 @@ export interface CreateTourRequest {
   requirements?: string;
   guideIds?: string[];
   status?: TourStatus;
+  availability?: TourAvailability;
 }
 
 export interface CreateGuideRequest {

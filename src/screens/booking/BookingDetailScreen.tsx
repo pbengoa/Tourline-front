@@ -9,10 +9,9 @@ import {
   ActivityIndicator,
   Image,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, Typography } from '../../theme';
-import { Button } from '../../components';
+import { Button, MinimalHeader } from '../../components';
 import { bookingsService, Booking, BookingStatus } from '../../services/bookingsService';
 import type { RootStackScreenProps } from '../../types';
 
@@ -176,25 +175,27 @@ export const BookingDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   // Loading state
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
+        <MinimalHeader onBack={() => navigation.goBack()} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
           <Text style={styles.loadingText}>Cargando reserva...</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   // Error state
   if (error && !booking) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
+        <MinimalHeader onBack={() => navigation.goBack()} />
         <View style={styles.errorContainer}>
           <Text style={styles.errorIcon}>😕</Text>
           <Text style={styles.errorTitle}>Reserva no encontrada</Text>
           <Button title="Volver" onPress={() => navigation.goBack()} />
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -206,7 +207,8 @@ export const BookingDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const canCancel = (booking.status === 'PENDING' || booking.status === 'CONFIRMED') && isUpcoming;
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <View style={styles.container}>
+      <MinimalHeader title="Detalle" onBack={() => navigation.goBack()} transparent light />
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Tour Image Header */}
         <View style={styles.heroContainer}>
@@ -393,7 +395,7 @@ export const BookingDetailScreen: React.FC<Props> = ({ route, navigation }) => {
 
         <View style={{ height: Spacing.xl }} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 

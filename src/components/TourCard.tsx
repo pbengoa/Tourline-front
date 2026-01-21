@@ -1,5 +1,6 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions } from 'react-native';
+import React, { memo, useMemo } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, Typography } from '../theme';
 import type { Tour } from '../types';
@@ -9,6 +10,9 @@ import { FavoriteTour } from '../hooks/useFavorites';
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.78;
 
+// Blurhash placeholder for smooth loading
+const BLURHASH = 'L6PZfSi_.AyE_3t7t7R**0o#DgR4';
+
 interface TourCardProps {
   tour: Tour;
   onPress: () => void;
@@ -17,7 +21,7 @@ interface TourCardProps {
   showFavorite?: boolean;
 }
 
-export const TourCard: React.FC<TourCardProps> = ({
+const TourCardComponent: React.FC<TourCardProps> = ({
   tour,
   onPress,
   horizontal = false,
@@ -38,20 +42,23 @@ export const TourCard: React.FC<TourCardProps> = ({
   const companyRating = tour.companyRating ?? tour.guideRating ?? 0;
   const maxParticipants = tour.maxParticipants ?? 10;
 
-  // Transform tour to FavoriteTour format for the button
-  const favoriteTour: FavoriteTour = {
-    id: tour.id,
-    title: tour.title,
-    image: tour.image,
-    price: tour.price,
-    currency: tour.currency,
-    rating: tour.rating,
-    reviewCount: tour.reviewCount,
-    duration: tour.duration,
-    location: tour.location,
-    companyName: companyName,
-    addedAt: new Date().toISOString(),
-  };
+  // Memoize FavoriteTour object to prevent unnecessary re-renders
+  const favoriteTour: FavoriteTour = useMemo(
+    () => ({
+      id: tour.id,
+      title: tour.title,
+      image: tour.image,
+      price: tour.price,
+      currency: tour.currency,
+      rating: tour.rating,
+      reviewCount: tour.reviewCount,
+      duration: tour.duration,
+      location: tour.location,
+      companyName: companyName,
+      addedAt: new Date().toISOString(),
+    }),
+    [tour.id, tour.title, tour.image, tour.price, tour.currency, tour.rating, tour.reviewCount, tour.duration, tour.location, companyName]
+  );
 
   // Format price for CLP
   const formatPrice = (amount: number, curr: string) => {
@@ -68,7 +75,14 @@ export const TourCard: React.FC<TourCardProps> = ({
       <TouchableOpacity style={styles.horizontalCard} onPress={onPress} activeOpacity={0.95}>
         <View style={styles.horizontalImageContainer}>
           {tour.image ? (
-            <Image source={{ uri: tour.image }} style={styles.horizontalImage} resizeMode="cover" />
+            <Image
+              source={tour.image}
+              style={styles.horizontalImage}
+              contentFit="cover"
+              placeholder={BLURHASH}
+              transition={200}
+              cachePolicy="memory-disk"
+            />
           ) : (
             <View style={styles.horizontalImagePlaceholder}>
               <Text style={styles.imagePlaceholderIcon}>🏔️</Text>
@@ -132,7 +146,14 @@ export const TourCard: React.FC<TourCardProps> = ({
       <TouchableOpacity style={styles.compactCard} onPress={onPress} activeOpacity={0.95}>
         <View style={styles.compactImageContainer}>
           {tour.image ? (
-            <Image source={{ uri: tour.image }} style={styles.compactImage} resizeMode="cover" />
+            <Image
+              source={tour.image}
+              style={styles.compactImage}
+              contentFit="cover"
+              placeholder={BLURHASH}
+              transition={200}
+              cachePolicy="memory-disk"
+            />
           ) : (
             <View style={styles.compactImagePlaceholder}>
               <Text style={styles.compactPlaceholderIcon}>🏔️</Text>
@@ -172,7 +193,14 @@ export const TourCard: React.FC<TourCardProps> = ({
       {/* Image section */}
       <View style={styles.imageContainer}>
         {tour.image ? (
-          <Image source={{ uri: tour.image }} style={styles.image} resizeMode="cover" />
+          <Image
+            source={tour.image}
+            style={styles.image}
+            contentFit="cover"
+            placeholder={BLURHASH}
+            transition={200}
+            cachePolicy="memory-disk"
+          />
         ) : (
           <LinearGradient
             colors={[Colors.primaryLight, Colors.primary]}
@@ -247,7 +275,12 @@ export const TourCard: React.FC<TourCardProps> = ({
         <View style={styles.companyRow}>
           <View style={styles.companyAvatar}>
             {companyLogo ? (
-              <Image source={{ uri: companyLogo }} style={styles.companyAvatarImage} />
+              <Image
+                source={companyLogo}
+                style={styles.companyAvatarImage}
+                contentFit="cover"
+                cachePolicy="memory-disk"
+              />
             ) : (
               <View style={styles.companyAvatarPlaceholder}>
                 <Text style={styles.companyInitial}>{companyName.charAt(0)}</Text>
@@ -836,3 +869,6 @@ const styles = StyleSheet.create({
     paddingTop: 4,
   },
 });
+
+// Memoized export - only re-renders when props actually change
+export const TourCard = memo(TourCardComponent);

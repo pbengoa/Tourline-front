@@ -68,17 +68,19 @@ export const CompanyDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   };
 
-  const formatPrice = (price: number, currency: string) => {
+  const formatPrice = (price: number | undefined, currency: string | undefined) => {
+    const safePrice = price || 0;
     if (currency === 'CLP') {
-      return `$${price.toLocaleString('es-CL')}`;
+      return `$${safePrice.toLocaleString('es-CL')}`;
     }
-    return `${price}€`;
+    return `${safePrice}€`;
   };
 
-  const formatDuration = (minutes: number): string => {
-    if (minutes < 60) return `${minutes} min`;
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
+  const formatDuration = (minutes: number | undefined): string => {
+    const safeMinutes = minutes || 0;
+    if (safeMinutes < 60) return `${safeMinutes} min`;
+    const hours = Math.floor(safeMinutes / 60);
+    const mins = safeMinutes % 60;
     if (mins === 0) return `${hours}h`;
     return `${hours}h ${mins}m`;
   };
@@ -168,7 +170,7 @@ export const CompanyDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           <Text style={styles.tourLocation}>📍 {item.city}</Text>
           <View style={styles.tourRating}>
             <Text style={styles.tourStar}>★</Text>
-            <Text style={styles.tourRatingText}>{item.rating.toFixed(1)}</Text>
+            <Text style={styles.tourRatingText}>{Number(item.rating || 0).toFixed(1)}</Text>
           </View>
         </View>
         <View style={styles.tourFooter}>
@@ -308,7 +310,7 @@ export const CompanyDetailScreen: React.FC<Props> = ({ route, navigation }) => {
         {/* Stats Row */}
         <View style={styles.statsRow}>
           <View style={styles.stat}>
-            <Text style={styles.statValue}>⭐ {company.rating.toFixed(1)}</Text>
+            <Text style={styles.statValue}>⭐ {Number(company.rating || 0).toFixed(1)}</Text>
             <Text style={styles.statLabel}>Rating</Text>
           </View>
           <View style={styles.statDivider} />
@@ -398,11 +400,11 @@ export const CompanyDetailScreen: React.FC<Props> = ({ route, navigation }) => {
               {/* Rating Summary */}
               <View style={styles.ratingSummary}>
                 <View style={styles.ratingBig}>
-                  <Text style={styles.ratingBigValue}>{company.rating.toFixed(1)}</Text>
+                  <Text style={styles.ratingBigValue}>{Number(company.rating || 0).toFixed(1)}</Text>
                   <View style={styles.ratingBigStars}>
                     {Array.from({ length: 5 }).map((_, i) => (
                       <Text key={i} style={styles.ratingBigStar}>
-                        {i < Math.round(company.rating) ? '★' : '☆'}
+                        {i < Math.round(Number(company.rating || 0)) ? '★' : '☆'}
                       </Text>
                     ))}
                   </View>

@@ -1,12 +1,12 @@
-import React from 'react';
+import React, { memo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  Image,
   Dimensions,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, Typography } from '../theme';
 import type { Company } from '../services/companiesService';
@@ -14,13 +14,16 @@ import type { Company } from '../services/companiesService';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH - Spacing.lg * 2;
 
+// Blurhash placeholder
+const BLURHASH = 'L6PZfSi_.AyE_3t7t7R**0o#DgR4';
+
 interface CompanyCardProps {
   company: Company;
   onPress: () => void;
   variant?: 'default' | 'compact';
 }
 
-export const CompanyCard: React.FC<CompanyCardProps> = ({
+const CompanyCardComponent: React.FC<CompanyCardProps> = ({
   company,
   onPress,
   variant = 'default',
@@ -47,7 +50,12 @@ export const CompanyCard: React.FC<CompanyCardProps> = ({
       >
         <View style={styles.compactLogoContainer}>
           {logoUrl ? (
-            <Image source={{ uri: logoUrl }} style={styles.compactLogo} />
+            <Image
+              source={logoUrl}
+              style={styles.compactLogo}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+            />
           ) : (
             <View style={styles.compactLogoPlaceholder}>
               <Text style={styles.compactLogoInitial}>{name.charAt(0)}</Text>
@@ -82,7 +90,14 @@ export const CompanyCard: React.FC<CompanyCardProps> = ({
       {/* Cover Image */}
       <View style={styles.coverContainer}>
         {coverImage ? (
-          <Image source={{ uri: coverImage }} style={styles.coverImage} />
+          <Image
+            source={coverImage}
+            style={styles.coverImage}
+            contentFit="cover"
+            placeholder={BLURHASH}
+            transition={200}
+            cachePolicy="memory-disk"
+          />
         ) : (
           <LinearGradient
             colors={[Colors.primaryLight, Colors.primary]}
@@ -101,7 +116,12 @@ export const CompanyCard: React.FC<CompanyCardProps> = ({
         {/* Logo overlay */}
         <View style={styles.logoOverlay}>
           {logoUrl ? (
-            <Image source={{ uri: logoUrl }} style={styles.logo} />
+            <Image
+              source={logoUrl}
+              style={styles.logo}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+            />
           ) : (
             <View style={styles.logoPlaceholder}>
               <Text style={styles.logoInitial}>{name.charAt(0)}</Text>
@@ -506,5 +526,7 @@ const styles = StyleSheet.create({
   },
 });
 
+// Memoized export - only re-renders when props change
+export const CompanyCard = memo(CompanyCardComponent);
 export default CompanyCard;
 

@@ -3,6 +3,18 @@ import { render, fireEvent, screen } from '@testing-library/react-native';
 import { TourCard } from '../../components/TourCard';
 import { mockTour } from '../utils/test-utils';
 
+// Mock FavoritesContext
+jest.mock('../../contexts/FavoritesContext', () => ({
+  useFavoritesContext: () => ({
+    favorites: [],
+    addFavorite: jest.fn(),
+    removeFavorite: jest.fn(),
+    isFavorite: jest.fn(() => false),
+    isLoading: false,
+  }),
+  FavoritesProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
+
 describe('TourCard Component', () => {
   const defaultProps = {
     tour: mockTour,
@@ -22,7 +34,8 @@ describe('TourCard Component', () => {
   it('renders tour price', () => {
     render(<TourCard {...defaultProps} />);
 
-    expect(screen.getByText(/45€/)).toBeTruthy();
+    // Price is rendered as €45 (currency prefix style)
+    expect(screen.getByText(/€45/)).toBeTruthy();
   });
 
   it('renders tour duration', () => {

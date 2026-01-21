@@ -358,7 +358,7 @@ export const AdminBookingsScreen: React.FC<Props> = ({ navigation }) => {
           )}
         </View>
         <TouchableOpacity style={styles.statsToggle} onPress={() => setShowStats(!showStats)}>
-          <Text style={styles.statsToggleText}>{showStats ? '📊 Ocultar' : '📊 Mostrar'}</Text>
+          <Text style={styles.statsToggleText}>{showStats ? 'Ocultar' : 'Estadísticas'}</Text>
         </TouchableOpacity>
       </View>
 
@@ -451,8 +451,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    ...Typography.h2,
+    fontSize: 18,
+    fontWeight: '600',
     color: Colors.text,
+    letterSpacing: -0.3,
   },
   pendingBadge: {
     backgroundColor: Colors.warning,

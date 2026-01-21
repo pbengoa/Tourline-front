@@ -9,11 +9,11 @@ import {
   RefreshControl,
   Dimensions,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Colors, Spacing, Typography } from '../theme';
+import { MinimalHeader } from '../components';
 import { useFavoritesContext } from '../contexts/FavoritesContext';
 import { FavoriteTour } from '../hooks/useFavorites';
 import { FavoriteButton } from '../components/FavoriteButton';
@@ -114,25 +114,11 @@ export const FavoritesScreen: React.FC = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backBtn}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backBtnText}>←</Text>
-        </TouchableOpacity>
-        <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>Mis Favoritos</Text>
-          {favoritesCount > 0 && (
-            <View style={styles.countBadge}>
-              <Text style={styles.countText}>{favoritesCount}</Text>
-            </View>
-          )}
-        </View>
-        <View style={styles.headerSpacer} />
-      </View>
+    <View style={styles.container}>
+      <MinimalHeader
+        title={`Favoritos${favoritesCount > 0 ? ` (${favoritesCount})` : ''}`}
+        onBack={() => navigation.goBack()}
+      />
 
       {/* Content */}
       <FlatList
@@ -155,7 +141,7 @@ export const FavoritesScreen: React.FC = () => {
         ListEmptyComponent={renderEmptyState}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 

@@ -7,9 +7,8 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing, Typography } from '../../theme';
-import { Button, Avatar } from '../../components';
+import { Button, Avatar, MinimalHeader } from '../../components';
 import { MOCK_GUIDES, MOCK_TOURS } from '../../constants/mockData';
 import { bookingsService } from '../../services/bookingsService';
 import type { RootStackScreenProps, BookingDateSlot } from '../../types';
@@ -156,16 +155,18 @@ export const BookingConfirmationScreen: React.FC<Props> = ({ route, navigation }
 
   if (!guide) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
+        <MinimalHeader onBack={() => navigation.goBack()} />
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>Error al cargar la información</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <View style={styles.container}>
+      <MinimalHeader title="Confirmar" onBack={() => navigation.goBack()} />
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Booking Summary */}
         <View style={styles.summaryCard}>
@@ -431,7 +432,7 @@ export const BookingConfirmationScreen: React.FC<Props> = ({ route, navigation }
           fullWidth
         />
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 

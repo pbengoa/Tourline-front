@@ -3,13 +3,13 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   FlatList,
   TouchableOpacity,
   TextInput,
   RefreshControl,
 } from 'react-native';
 import { Colors, Spacing, Typography } from '../../theme';
+import { MinimalHeader } from '../../components';
 import { MOCK_CONVERSATIONS } from '../../constants/chatData';
 import type { RootStackScreenProps, Conversation } from '../../types';
 
@@ -141,16 +141,18 @@ export const ChatListScreen: React.FC<Props> = ({ navigation }) => {
   const totalUnread = MOCK_CONVERSATIONS.reduce((acc, conv) => acc + conv.unreadCount, 0);
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Mensajes</Text>
-        {totalUnread > 0 && (
-          <View style={styles.totalUnreadBadge}>
-            <Text style={styles.totalUnreadText}>{totalUnread}</Text>
-          </View>
-        )}
-      </View>
+    <View style={styles.container}>
+      <MinimalHeader
+        title="Mensajes"
+        onBack={() => navigation.goBack()}
+        rightElement={
+          totalUnread > 0 ? (
+            <View style={styles.totalUnreadBadge}>
+              <Text style={styles.totalUnreadText}>{totalUnread}</Text>
+            </View>
+          ) : undefined
+        }
+      />
 
       {/* Search Bar */}
       <View style={styles.searchContainer}>
@@ -188,7 +190,7 @@ export const ChatListScreen: React.FC<Props> = ({ navigation }) => {
         ListEmptyComponent={renderEmptyState}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -200,13 +202,17 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
+    paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
+  },
+  backButton: {
+    padding: Spacing.xs,
+    marginRight: Spacing.sm,
   },
   headerTitle: {
     ...Typography.h2,
     color: Colors.text,
+    flex: 1,
   },
   totalUnreadBadge: {
     backgroundColor: Colors.primary,

@@ -119,7 +119,7 @@ export const ProfileScreen: React.FC<Props> = () => {
   const handleMenuPress = (id: string) => {
     switch (id) {
       case 'edit-profile':
-        Alert.alert('Editar Perfil', 'Esta función estará disponible pronto');
+        navigation.navigate('EditProfile');
         break;
       case 'payments':
         Alert.alert('Métodos de Pago', 'Esta función estará disponible pronto');

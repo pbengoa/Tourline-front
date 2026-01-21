@@ -245,15 +245,16 @@ export const AdminToursScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleEdit = (tour: AdminTour) => {
-    Alert.alert('Editar Tour', `Editar "${tour.title}"\n\nPróximamente...`);
+    (navigation as any).getParent()?.navigate('TourForm', { tourId: tour.id });
   };
 
   const handleView = (tour: AdminTour) => {
-    Alert.alert('Vista previa', `Ver tour "${tour.title}"\n\nPróximamente...`);
+    // Navigate to TourPreview to view the tour details
+    (navigation as any).getParent()?.navigate('TourPreview', { tourId: tour.id });
   };
 
   const handleCreateTour = () => {
-    Alert.alert('Nuevo Tour', 'Crear nuevo tour\n\nPróximamente...');
+    (navigation as any).getParent()?.navigate('TourForm');
   };
 
   // Stats
@@ -400,8 +401,10 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   headerTitle: {
-    ...Typography.h2,
+    fontSize: 18,
+    fontWeight: '600',
     color: Colors.text,
+    letterSpacing: -0.3,
   },
   headerSubtitle: {
     ...Typography.caption,

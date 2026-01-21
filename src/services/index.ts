@@ -143,3 +143,6 @@ export type {
   SearchCompaniesParams,
   CompaniesListResponse,
 } from './companiesService';
+
+// Cache Service (Performance)
+export { cacheService, CacheDuration } from './cacheService';

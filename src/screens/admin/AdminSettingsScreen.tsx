@@ -391,8 +391,10 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   headerTitle: {
-    ...Typography.h2,
+    fontSize: 18,
+    fontWeight: '600',
     color: Colors.text,
+    letterSpacing: -0.3,
   },
   // Section
   section: {

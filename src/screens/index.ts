@@ -2,6 +2,7 @@ export { SplashScreen } from './SplashScreen';
 export { HomeScreen } from './HomeScreen';
 export { SearchScreen } from './SearchScreen';
 export { ProfileScreen } from './ProfileScreen';
+export { EditProfileScreen } from './EditProfileScreen';
 export { DetailsScreen } from './DetailsScreen';
 export { GuideDetailScreen } from './GuideDetailScreen';
 export { FavoritesScreen } from './FavoritesScreen';

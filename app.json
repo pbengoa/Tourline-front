@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Tourline-front",
-    "slug": "Tourline-front",
+    "name": "Tourline",
+    "slug": "tourline",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -9,7 +9,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#2D5A45"
     },
     "ios": {
       "supportsTablet": true,
@@ -19,16 +19,19 @@
       },
       "config": {
         "googleMapsApiKey": ""
-      }
+      },
+      "bundleIdentifier": "com.anonymous.tourline"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#2D5A45"
       },
       "permissions": [
         "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION"
+        "ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ],
       "config": {
         "googleMaps": {

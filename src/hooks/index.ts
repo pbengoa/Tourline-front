@@ -7,3 +7,6 @@ export {
   useCreateBooking,
 } from './useBookings';
 
+// Performance hooks
+export { useDebounce, useDebouncedCallback, useThrottledCallback } from './useDebounce';
+

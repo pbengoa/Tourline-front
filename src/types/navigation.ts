@@ -59,6 +59,8 @@ export type RootStackParamList = {
     participantName: string;
     participantId: string;
   };
+  // Profile
+  EditProfile: undefined;
 };
 
 /**
@@ -86,6 +88,7 @@ export type AdminTabParamList = {
  */
 export type AdminStackParamList = {
   AdminMain: NavigatorScreenParams<AdminTabParamList>;
+  TourPreview: { tourId: string }; // View tour details
   TourForm: { tourId?: string }; // undefined = create, with id = edit
   GuideForm: { guideId?: string };
   BookingDetail: { bookingId: string };

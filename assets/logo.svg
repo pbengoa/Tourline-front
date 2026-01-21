@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="1024" height="1024">
+  <defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2D5A45"/>
+      <stop offset="100%" stop-color="#4A7A62"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Main Pin/Marker Shape -->
+  <path
+    d="M50 5
+       C30 5 15 20 15 40
+       C15 55 30 70 50 95
+       C70 70 85 55 85 40
+       C85 20 70 5 50 5Z"
+    fill="url(#gradient)"
+  />
+  
+  <!-- Inner circle -->
+  <circle cx="50" cy="38" r="18" fill="#FAF8F5"/>
+  
+  <!-- Mountain peak -->
+  <path d="M35 48 L50 30 L57 40 L65 32 L65 48 Z" fill="#2D5A45" opacity="0.9"/>
+  
+  <!-- Journey line accent -->
+  <path
+    d="M50 58 L50 75"
+    stroke="#E86A33"
+    stroke-width="4"
+    stroke-linecap="round"
+  />
+</svg>
+

@@ -1,6 +1,7 @@
 import React, { ReactElement } from 'react';
 import { render, RenderOptions } from '@testing-library/react-native';
 import { AuthProvider } from '../../context';
+import { FavoritesProvider } from '../../contexts/FavoritesContext';
 import type { Guide, Tour, Category } from '../../types';
 
 interface AllProvidersProps {
@@ -11,7 +12,13 @@ interface AllProvidersProps {
  * Wrapper component that includes all providers needed for testing
  */
 const AllProviders: React.FC<AllProvidersProps> = ({ children }) => {
-  return <AuthProvider>{children}</AuthProvider>;
+  return (
+    <AuthProvider>
+      <FavoritesProvider>
+        {children}
+      </FavoritesProvider>
+    </AuthProvider>
+  );
 };
 
 /**

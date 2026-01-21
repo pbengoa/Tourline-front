@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,9 +9,9 @@ import {
   ActivityIndicator,
   Dimensions,
   Animated,
-  Image,
   Linking,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, Typography } from '../theme';
@@ -23,6 +23,9 @@ import { toursService, ApiTour, bannersService, regionsService } from '../servic
 import type { Banner } from '../services/bannersService';
 import type { Region } from '../services/regionsService';
 import type { MainTabScreenProps, Tour } from '../types';
+
+// Blurhash placeholder
+const BLURHASH = 'L6PZfSi_.AyE_3t7t7R**0o#DgR4';
 
 const { width } = Dimensions.get('window');
 const HEADER_HEIGHT = 280;
@@ -389,6 +392,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
                 pagingEnabled
                 showsHorizontalScrollIndicator={false}
                 keyExtractor={(item) => item.id}
+                // Performance optimizations
+                removeClippedSubviews={true}
+                initialNumToRender={2}
+                maxToRenderPerBatch={3}
                 onMomentumScrollEnd={(e) => {
                   const index = Math.round(e.nativeEvent.contentOffset.x / (width - Spacing.lg * 2));
                   setActiveBannerIndex(index);
@@ -399,7 +406,14 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
                     onPress={() => handleBannerPress(banner)}
                     activeOpacity={0.95}
                   >
-                    <Image source={{ uri: banner.imageUrl }} style={styles.bannerImage} />
+                    <Image
+                      source={banner.imageUrl}
+                      style={styles.bannerImage}
+                      contentFit="cover"
+                      placeholder={BLURHASH}
+                      transition={200}
+                      cachePolicy="memory-disk"
+                    />
                     <LinearGradient
                       colors={['transparent', 'rgba(0,0,0,0.8)']}
                       style={styles.bannerGradient}
@@ -502,7 +516,12 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
                     activeOpacity={0.9}
                   >
                     {fav.image ? (
-                      <Image source={{ uri: fav.image }} style={styles.favoriteImage} />
+                      <Image
+                        source={fav.image}
+                        style={styles.favoriteImage}
+                        contentFit="cover"
+                        cachePolicy="memory-disk"
+                      />
                     ) : (
                       <View style={styles.favoriteImagePlaceholder}>
                         <Text style={styles.favoriteEmoji}>🏔️</Text>
@@ -577,6 +596,11 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
                 ItemSeparatorComponent={() => <View style={{ width: 16 }} />}
                 snapToInterval={316}
                 decelerationRate="fast"
+                // Performance optimizations
+                removeClippedSubviews={true}
+                initialNumToRender={3}
+                maxToRenderPerBatch={5}
+                windowSize={3}
               />
             ) : (
               <View style={styles.emptyContainer}>
@@ -620,7 +644,14 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
                       onPress={() => handleRegionPress(region)}
                       activeOpacity={0.9}
                     >
-                      <Image source={{ uri: imageUrl }} style={styles.regionImage} />
+                      <Image
+                        source={imageUrl}
+                        style={styles.regionImage}
+                        contentFit="cover"
+                        placeholder={BLURHASH}
+                        transition={200}
+                        cachePolicy="memory-disk"
+                      />
                       <LinearGradient
                         colors={['transparent', 'rgba(0,0,0,0.85)']}
                         style={styles.regionGradient}

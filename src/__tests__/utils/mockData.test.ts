@@ -110,9 +110,9 @@ describe('Mock Data', () => {
       expect(LOCATIONS.length).toBeGreaterThan(0);
     });
 
-    it('should include major Spanish cities', () => {
-      expect(LOCATIONS).toContain('Madrid');
-      expect(LOCATIONS).toContain('Barcelona');
+    it('should include major Chilean cities', () => {
+      expect(LOCATIONS).toContain('Santiago');
+      expect(LOCATIONS).toContain('Valparaíso');
     });
   });
 });

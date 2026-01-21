@@ -9,9 +9,9 @@ import {
   ActivityIndicator,
   Image,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, Typography } from '../../theme';
+import { MinimalHeader } from '../../components';
 import { bookingsService, Booking, BookingStatus } from '../../services/bookingsService';
 import { useAuth } from '../../context/AuthContext';
 import type { RootStackScreenProps } from '../../types';
@@ -244,26 +244,29 @@ export const MyBookingsScreen: React.FC<Props> = ({ navigation }) => {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
+        <MinimalHeader title="Reservas" onBack={() => navigation.goBack()} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
           <Text style={styles.loadingText}>Cargando reservas...</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   // Si no está autenticado, mostrar prompt de login
   if (!isAuthenticated) {
     return (
-      <SafeAreaView style={styles.container} edges={['bottom']}>
+      <View style={styles.container}>
+        <MinimalHeader title="Reservas" onBack={() => navigation.goBack()} />
         {renderLoginPrompt()}
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <View style={styles.container}>
+      <MinimalHeader title="Reservas" onBack={() => navigation.goBack()} />
       {/* Filter Tabs */}
       <View style={styles.filterContainer}>
         <TouchableOpacity
@@ -315,7 +318,7 @@ export const MyBookingsScreen: React.FC<Props> = ({ navigation }) => {
         }
         ListEmptyComponent={renderEmptyState}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 

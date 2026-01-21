@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, Typography } from '../../theme';
+import { MinimalHeader } from '../../components';
 import { bookingsService, TourCalendarDay, TourCalendarSlot, TourCalendarResponse } from '../../services/bookingsService';
 import { toursService, ApiTour } from '../../services';
 import { useAuth } from '../../context/AuthContext';
@@ -414,18 +415,20 @@ export const BookingScreen: React.FC<Props> = ({ route, navigation }) => {
   // Loading state
   if (loadingTour) {
     return (
-      <SafeAreaView style={styles.container} edges={['bottom']}>
+      <View style={styles.container}>
+        <MinimalHeader onBack={() => navigation.goBack()} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
           <Text style={styles.loadingText}>Cargando...</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (!tour) {
     return (
-      <SafeAreaView style={styles.container} edges={['bottom']}>
+      <View style={styles.container}>
+        <MinimalHeader onBack={() => navigation.goBack()} />
         <View style={styles.errorContainer}>
           <Text style={styles.errorIcon}>😕</Text>
           <Text style={styles.errorTitle}>Tour no encontrado</Text>
@@ -433,12 +436,13 @@ export const BookingScreen: React.FC<Props> = ({ route, navigation }) => {
             <Text style={styles.errorButtonText}>Volver</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <View style={styles.container}>
+      <MinimalHeader title="Reservar" onBack={() => navigation.goBack()} />
       <ScrollView 
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -647,7 +651,7 @@ export const BookingScreen: React.FC<Props> = ({ route, navigation }) => {
           </View>
         )}
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 

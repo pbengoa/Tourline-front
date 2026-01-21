@@ -10,11 +10,14 @@ import {
   Modal,
   ActivityIndicator,
   Dimensions,
-  Image,
   Animated,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
+
+// Blurhash placeholder
+const BLURHASH = 'L6PZfSi_.AyE_3t7t7R**0o#DgR4';
 import * as Location from 'expo-location';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, Typography } from '../theme';
@@ -34,6 +37,7 @@ import {
 import type { Company as ApiCompany, SearchCompaniesParams } from '../services/companiesService';
 import { CompanyCard } from '../components';
 import type { MainTabScreenProps, Tour, Guide, SortOption } from '../types';
+import { useDebounce } from '../hooks/useDebounce';
 
 type Props = MainTabScreenProps<'Search'>;
 type SearchTab = 'tours' | 'companies';
@@ -51,6 +55,7 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
 export const SearchScreen: React.FC<Props> = ({ navigation }) => {
   const mapRef = useRef<MapView>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 300); // Debounce search
   const [activeTab, setActiveTab] = useState<SearchTab>('tours');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -67,6 +72,10 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
 
   const [apiCompanies, setApiCompanies] = useState<ApiCompany[]>([]);
   const [companiesLoading, setCompaniesLoading] = useState(false);
+
+  // Memoized keyExtractors for FlatList performance
+  const tourKeyExtractor = useCallback((item: Tour) => item.id, []);
+  const companyKeyExtractor = useCallback((item: ApiCompany) => item.id, []);
   
   const [apiTours, setApiTours] = useState<ApiTour[]>([]);
   const [toursLoading, setToursLoading] = useState(false);
@@ -364,7 +373,14 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
     >
       <View style={styles.tourImageContainer}>
         {item.image ? (
-          <Image source={{ uri: item.image }} style={styles.tourImage} />
+          <Image
+            source={item.image}
+            style={styles.tourImage}
+            contentFit="cover"
+            placeholder={BLURHASH}
+            transition={200}
+            cachePolicy="memory-disk"
+          />
         ) : (
           <LinearGradient colors={[Colors.primaryLight, Colors.primary]} style={styles.tourImagePlaceholder}>
             <Text style={styles.tourPlaceholderIcon}>🏔️</Text>
@@ -500,8 +516,12 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.selectedHeroContainer}>
               {(selectedMapItem as Tour).image ? (
                 <Image
-                  source={{ uri: (selectedMapItem as Tour).image }}
+                  source={(selectedMapItem as Tour).image}
                   style={styles.selectedHeroImage}
+                  contentFit="cover"
+                  placeholder={BLURHASH}
+                  transition={200}
+                  cachePolicy="memory-disk"
                 />
               ) : (
                 <LinearGradient
@@ -752,10 +772,15 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
       ) : activeTab === 'tours' ? (
         <FlatList
           data={transformedTours}
-          keyExtractor={(item) => item.id}
+          keyExtractor={tourKeyExtractor}
           renderItem={({ item }) => <TourListCard item={item} />}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          // Performance optimizations
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          initialNumToRender={8}
+          windowSize={5}
           ListEmptyComponent={
             <View style={styles.empty}>
               <Text style={styles.emptyIcon}>🔍</Text>
@@ -766,7 +791,7 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
       ) : (
         <FlatList
           data={apiCompanies}
-          keyExtractor={(item) => item.id}
+          keyExtractor={companyKeyExtractor}
           renderItem={({ item }) => (
             <CompanyCard
               company={item}
@@ -775,6 +800,11 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
           )}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          // Performance optimizations
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          initialNumToRender={8}
+          windowSize={5}
           ListEmptyComponent={
             <View style={styles.empty}>
               <Text style={styles.emptyIcon}>🏢</Text>

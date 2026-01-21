@@ -1,5 +1,6 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Text, StyleSheet, View, Platform } from 'react-native';
 import { Colors, Typography } from '../theme';
 import {
@@ -8,10 +9,13 @@ import {
   AdminGuidesScreen,
   AdminBookingsScreen,
   AdminSettingsScreen,
+  TourFormScreen,
+  TourPreviewScreen,
 } from '../screens/admin';
-import type { AdminTabParamList } from '../types';
+import type { AdminTabParamList, AdminStackParamList } from '../types';
 
 const Tab = createBottomTabNavigator<AdminTabParamList>();
+const Stack = createNativeStackNavigator<AdminStackParamList>();
 
 interface TabIconProps {
   icon: string;
@@ -32,7 +36,7 @@ const TabIcon: React.FC<TabIconProps> = ({ icon, focused, badge }) => (
   </View>
 );
 
-export const AdminNavigator: React.FC = () => {
+const AdminTabs: React.FC = () => {
   return (
     <Tab.Navigator
       screenOptions={{
@@ -84,6 +88,16 @@ export const AdminNavigator: React.FC = () => {
         }}
       />
     </Tab.Navigator>
+  );
+};
+
+export const AdminNavigator: React.FC = () => {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="AdminMain" component={AdminTabs} />
+      <Stack.Screen name="TourPreview" component={TourPreviewScreen} />
+      <Stack.Screen name="TourForm" component={TourFormScreen} />
+    </Stack.Navigator>
   );
 };
 

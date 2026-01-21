@@ -1,7 +1,7 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { MainTabNavigator } from './MainTabNavigator';
-import { DetailsScreen, GuideDetailScreen, FavoritesScreen, CompanyDetailScreen } from '../screens';
+import { DetailsScreen, GuideDetailScreen, FavoritesScreen, CompanyDetailScreen, EditProfileScreen } from '../screens';
 import {
   BookingScreen,
   BookingConfirmationScreen,
@@ -11,7 +11,6 @@ import {
 } from '../screens/booking';
 import { ChatListScreen, ChatScreen } from '../screens/chat';
 import { Colors } from '../theme';
-import { MOCK_GUIDES } from '../constants/mockData';
 import type { RootStackParamList } from '../types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -21,15 +20,19 @@ export const RootNavigator: React.FC = () => {
     <Stack.Navigator
       screenOptions={{
         headerStyle: {
-          backgroundColor: Colors.surface,
+          backgroundColor: Colors.background,
         },
         headerTintColor: Colors.text,
         headerTitleStyle: {
-          fontSize: 18,
-          fontWeight: '600',
+          fontSize: 16,
+          fontWeight: '500',
+          letterSpacing: -0.3,
         },
+        headerTitleAlign: 'center',
         headerShadowVisible: false,
-        animation: 'none',
+        headerBackTitleVisible: false,
+        headerBackButtonDisplayMode: 'minimal',
+        animation: 'slide_from_right',
       }}
     >
       <Stack.Screen name="Main" component={MainTabNavigator} options={{ headerShown: false }} />
@@ -37,9 +40,7 @@ export const RootNavigator: React.FC = () => {
       <Stack.Screen
         name="Details"
         component={DetailsScreen}
-        options={({ route }) => ({
-          title: route.params?.title || 'Detalles',
-        })}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="Favorites"
@@ -49,12 +50,7 @@ export const RootNavigator: React.FC = () => {
       <Stack.Screen
         name="GuideDetail"
         component={GuideDetailScreen}
-        options={({ route }) => {
-          const guide = MOCK_GUIDES.find((g) => g.id === route.params?.guideId);
-          return {
-            title: guide?.name || 'Perfil del Guía',
-          };
-        }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="CompanyDetail"
@@ -62,11 +58,11 @@ export const RootNavigator: React.FC = () => {
         options={{ headerShown: false }}
       />
       {/* Booking flow */}
-      <Stack.Screen name="Booking" component={BookingScreen} options={{ title: 'Reservar' }} />
+      <Stack.Screen name="Booking" component={BookingScreen} options={{ headerShown: false }} />
       <Stack.Screen
         name="BookingConfirmation"
         component={BookingConfirmationScreen}
-        options={{ title: 'Confirmar reserva' }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="BookingSuccess"
@@ -76,16 +72,18 @@ export const RootNavigator: React.FC = () => {
       <Stack.Screen
         name="MyBookings"
         component={MyBookingsScreen}
-        options={{ title: 'Mis reservas' }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="BookingDetail"
         component={BookingDetailScreen}
-        options={{ title: 'Detalle de reserva' }}
+        options={{ headerShown: false }}
       />
       {/* Chat flow */}
-      <Stack.Screen name="ChatList" component={ChatListScreen} options={{ title: 'Mensajes' }} />
+      <Stack.Screen name="ChatList" component={ChatListScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: false }} />
+      {/* Profile */}
+      <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 };
