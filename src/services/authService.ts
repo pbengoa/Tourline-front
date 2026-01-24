@@ -104,10 +104,27 @@ const transformUser = (backendUser: any): User => {
   
   console.log('📦 Extracted user data, role:', userData.role);
   
-  const transformed = {
-    ...userData,
+  // Transform snake_case to camelCase and handle both formats
+  const transformed: User = {
+    id: userData.id,
+    email: userData.email,
+    firstName: userData.firstName || userData.first_name || '',
+    lastName: userData.lastName || userData.last_name || '',
     role: mapBackendRole(userData.role),
+    avatar: userData.avatar || userData.avatarUrl || userData.avatar_url,
+    bio: userData.bio,
+    city: userData.city,
+    country: userData.country,
+    phone: userData.phone,
+    companyId: userData.companyId || userData.company_id,
+    companyName: userData.companyName || userData.company_name,
+    guideProfileId: userData.guideProfileId || userData.guide_profile_id,
+    isActive: userData.isActive ?? userData.is_active ?? true,
+    emailVerified: userData.emailVerified ?? userData.email_verified ?? false,
+    createdAt: userData.createdAt || userData.created_at || new Date().toISOString(),
+    updatedAt: userData.updatedAt || userData.updated_at || new Date().toISOString(),
   };
+  
   console.log('✅ Transformed user:', JSON.stringify(transformed, null, 2));
   return transformed;
 };

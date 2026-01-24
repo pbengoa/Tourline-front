@@ -91,13 +91,18 @@ export const ProfileScreen: React.FC<Props> = () => {
     ]).start();
   }, []);
 
-  const fullName = user ? `${user.firstName} ${user.lastName}` : 'Usuario';
+  const firstName = user?.firstName || '';
+  const lastName = user?.lastName || '';
+  const fullName = user 
+    ? `${firstName} ${lastName}`.trim() || user.email?.split('@')[0] || 'Usuario'
+    : 'Usuario';
   const initials = fullName
     .split(' ')
+    .filter(n => n.length > 0)
     .map((n) => n[0])
     .join('')
     .toUpperCase()
-    .slice(0, 2);
+    .slice(0, 2) || 'U';
 
   const handleQuickAction = (id: string) => {
     switch (id) {
@@ -363,7 +368,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: 200,
+    height: 304,
   },
   headerDecoration: {
     flex: 1,
@@ -397,7 +402,7 @@ const styles = StyleSheet.create({
   profileHeader: {
     alignItems: 'center',
     paddingTop: Spacing.lg,
-    marginBottom: Spacing.lg,
+    marginBottom: 24,
   },
   avatarContainer: {
     position: 'relative',

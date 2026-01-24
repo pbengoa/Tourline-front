@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,41 +8,100 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
   Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { Colors, Spacing, Typography } from '../../theme';
-import {
-  getMessagesByConversationId,
-  CURRENT_USER_ID,
-  MOCK_CONVERSATIONS,
-  QUICK_REPLIES,
-} from '../../constants/chatData';
+import { chatService } from '../../services';
+import { useAuth } from '../../context';
+import { QUICK_REPLIES } from '../../constants/chatData';
 import { MESSAGE_STATUS_CONFIG } from '../../types/chat';
-import type { RootStackScreenProps, Message } from '../../types';
+import type { RootStackScreenProps, Message, Conversation } from '../../types';
 
 type Props = RootStackScreenProps<'Chat'>;
 
 export const ChatScreen: React.FC<Props> = ({ route, navigation }) => {
   const { conversationId, participantName, participantId } = route.params;
+  const { user } = useAuth();
+  const currentUserId = user?.id || '';
+  
+  console.log('🔑 ChatScreen - currentUserId:', currentUserId, 'participantId:', participantId);
 
-  const conversation = MOCK_CONVERSATIONS.find((c) => c.id === conversationId);
-  const initialMessages = getMessagesByConversationId(conversationId);
-
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [conversation, setConversation] = useState<Conversation | null>(null);
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showQuickReplies, setShowQuickReplies] = useState(true);
 
   const flatListRef = useRef<FlatList>(null);
 
+  // Fetch messages from API
+  const fetchMessages = useCallback(async (showLoading = true) => {
+    if (!currentUserId) return;
+    
+    if (showLoading) setIsLoading(true);
+    setError(null);
+    
+    try {
+      const [messagesResponse, convResponse] = await Promise.all([
+        chatService.getMessages(conversationId, currentUserId),
+        chatService.getConversation(conversationId, currentUserId),
+      ]);
+      
+      if (messagesResponse.success) {
+        setMessages(messagesResponse.data || []);
+      } else {
+        setError(messagesResponse.error?.message || 'Error al cargar mensajes');
+      }
+      
+      if (convResponse.success) {
+        setConversation(convResponse.data);
+      }
+      
+      // Mark as read
+      chatService.markAsRead(conversationId);
+    } catch (err) {
+      console.error('Error fetching messages:', err);
+      setError('Error de conexión');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [conversationId, currentUserId]);
+
+  // Initial load
   useEffect(() => {
-    // Scroll to bottom on mount
-    setTimeout(() => {
-      flatListRef.current?.scrollToEnd({ animated: false });
-    }, 100);
-  }, []);
+    fetchMessages();
+  }, [fetchMessages]);
+
+  // Refresh when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchMessages(false);
+    }, [fetchMessages])
+  );
+
+  // Polling for new messages every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchMessages(false);
+    }, 5000);
+    
+    return () => clearInterval(interval);
+  }, [fetchMessages]);
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [messages.length]);
 
   const getInitials = (name: string) => {
     return name
@@ -93,11 +152,11 @@ export const ChatScreen: React.FC<Props> = ({ route, navigation }) => {
     setShowQuickReplies(false);
     setIsSending(true);
 
-    // Create new message with 'sending' status
-    const newMessage: Message = {
-      id: `msg-${Date.now()}`,
+    // Create optimistic message
+    const optimisticMessage: Message = {
+      id: `temp-${Date.now()}`,
       conversationId,
-      senderId: CURRENT_USER_ID,
+      senderId: currentUserId,
       senderName: 'Tú',
       content: messageText,
       type: 'text',
@@ -105,58 +164,53 @@ export const ChatScreen: React.FC<Props> = ({ route, navigation }) => {
       timestamp: new Date().toISOString(),
     };
 
-    setMessages((prev) => [...prev, newMessage]);
+    // Add optimistic message
+    setMessages((prev) => [...prev, optimisticMessage]);
 
     // Scroll to bottom
     setTimeout(() => {
       flatListRef.current?.scrollToEnd({ animated: true });
     }, 100);
 
-    // Simulate sending delay
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    // Update message status to 'sent'
-    setMessages((prev) =>
-      prev.map((msg) => (msg.id === newMessage.id ? { ...msg, status: 'sent' } : msg))
-    );
-
-    // Simulate delivery after another delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    setMessages((prev) =>
-      prev.map((msg) => (msg.id === newMessage.id ? { ...msg, status: 'delivered' } : msg))
-    );
-
-    setIsSending(false);
-
-    // Simulate auto-reply for demo purposes (30% chance)
-    if (Math.random() > 0.7) {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      const autoReplies = [
-        '¡Perfecto! Lo tengo en cuenta.',
-        '¡Gracias por el mensaje!',
-        'De acuerdo, nos vemos pronto.',
-        '👍',
-      ];
-
-      const replyMessage: Message = {
-        id: `msg-${Date.now()}`,
-        conversationId,
-        senderId: participantId,
-        senderName: participantName,
-        content: autoReplies[Math.floor(Math.random() * autoReplies.length)],
-        type: 'text',
-        status: 'delivered',
-        timestamp: new Date().toISOString(),
-      };
-
-      setMessages((prev) => [...prev, replyMessage]);
-
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
+    try {
+      const response = await chatService.sendMessage(conversationId, messageText, currentUserId);
+      
+      if (response.success && response.data) {
+        // Replace optimistic message with real one
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === optimisticMessage.id ? response.data : msg
+          )
+        );
+      } else {
+        // Mark as failed
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === optimisticMessage.id ? { ...msg, status: 'failed' } : msg
+          )
+        );
+        Alert.alert('Error', response.error?.message || 'No se pudo enviar el mensaje');
+      }
+    } catch (err) {
+      console.error('Error sending message:', err);
+      // Mark as failed
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === optimisticMessage.id ? { ...msg, status: 'failed' } : msg
+        )
+      );
+      Alert.alert('Error', 'Error de conexión al enviar el mensaje');
+    } finally {
+      setIsSending(false);
     }
+  };
+
+  const handleRetryMessage = async (failedMessage: Message) => {
+    // Remove the failed message
+    setMessages((prev) => prev.filter((msg) => msg.id !== failedMessage.id));
+    
+    // Set the input and let user send again
+    setInputText(failedMessage.content);
   };
 
   const handleQuickReply = (reply: string) => {
@@ -165,14 +219,38 @@ export const ChatScreen: React.FC<Props> = ({ route, navigation }) => {
   };
 
   const handleViewProfile = () => {
-    navigation.navigate('GuideDetail', { guideId: participantId });
+    if (conversation?.participantType === 'guide') {
+      navigation.navigate('GuideDetail', { guideId: participantId });
+    }
   };
 
   const renderMessage = ({ item: message, index }: { item: Message; index: number }) => {
-    const isOwnMessage = message.senderId === CURRENT_USER_ID;
+    // Determine if message is from current user
+    // Compare as strings to handle type mismatches (number vs string IDs)
+    const senderIdStr = String(message.senderId || '').trim();
+    const currentUserIdStr = String(currentUserId || '').trim();
+    const participantIdStr = String(participantId || '').trim();
+    
+    // Message is from the OTHER person if senderId matches participantId
+    // Otherwise, it's our own message
+    const isFromParticipant = senderIdStr === participantIdStr;
+    const isOwnMessage = !isFromParticipant;
+    
     const prevMessage = index > 0 ? messages[index - 1] : undefined;
     const showDateDivider = shouldShowDateDivider(message, prevMessage);
     const statusConfig = MESSAGE_STATUS_CONFIG[message.status];
+    
+    // Debug log for first message
+    if (index === 0) {
+      console.log('🔍 Message debug:', { 
+        senderId: senderIdStr, 
+        currentUserId: currentUserIdStr, 
+        participantId: participantIdStr,
+        senderName: message.senderName,
+        isFromParticipant,
+        isOwn: isOwnMessage 
+      });
+    }
 
     return (
       <View>
@@ -194,11 +272,14 @@ export const ChatScreen: React.FC<Props> = ({ route, navigation }) => {
             </View>
           )}
 
-          <View
+          <TouchableOpacity
             style={[
               styles.messageBubble,
               isOwnMessage ? styles.ownMessageBubble : styles.otherMessageBubble,
+              message.status === 'failed' && styles.failedMessageBubble,
             ]}
+            onPress={message.status === 'failed' ? () => handleRetryMessage(message) : undefined}
+            activeOpacity={message.status === 'failed' ? 0.7 : 1}
           >
             <Text
               style={[
@@ -231,11 +312,42 @@ export const ChatScreen: React.FC<Props> = ({ route, navigation }) => {
                 </Text>
               )}
             </View>
-          </View>
+
+            {message.status === 'failed' && (
+              <Text style={styles.retryHint}>Toca para reintentar</Text>
+            )}
+          </TouchableOpacity>
         </View>
       </View>
     );
   };
+
+  const renderLoadingState = () => (
+    <View style={styles.loadingContainer}>
+      <ActivityIndicator size="large" color={Colors.primary} />
+      <Text style={styles.loadingText}>Cargando mensajes...</Text>
+    </View>
+  );
+
+  const renderErrorState = () => (
+    <View style={styles.loadingContainer}>
+      <Text style={styles.errorIcon}>⚠️</Text>
+      <Text style={styles.errorText}>{error}</Text>
+      <TouchableOpacity style={styles.retryButton} onPress={() => fetchMessages()}>
+        <Text style={styles.retryButtonText}>Reintentar</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderEmptyState = () => (
+    <View style={styles.emptyContainer}>
+      <Text style={styles.emptyIcon}>💬</Text>
+      <Text style={styles.emptyTitle}>Inicia la conversación</Text>
+      <Text style={styles.emptyText}>
+        Envía un mensaje para comenzar a chatear con {participantName}
+      </Text>
+    </View>
+  );
 
   const insets = useSafeAreaInsets();
 
@@ -247,8 +359,15 @@ export const ChatScreen: React.FC<Props> = ({ route, navigation }) => {
           <Ionicons name="chevron-back" size={24} color={Colors.text} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.headerContent} onPress={handleViewProfile}>
-          <View style={styles.headerAvatar}>
+        <TouchableOpacity 
+          style={styles.headerContent} 
+          onPress={handleViewProfile}
+          disabled={conversation?.participantType !== 'guide'}
+        >
+          <View style={[
+            styles.headerAvatar,
+            conversation?.participantType === 'guide' && styles.guideHeaderAvatar
+          ]}>
             <Text style={styles.headerAvatarText}>{getInitials(participantName)}</Text>
             {conversation?.isOnline && <View style={styles.headerOnlineBadge} />}
           </View>
@@ -263,7 +382,7 @@ export const ChatScreen: React.FC<Props> = ({ route, navigation }) => {
               )}
             </View>
             <Text style={styles.headerStatus}>
-              {conversation?.isOnline ? 'En línea' : 'Última vez hoy'}
+              {conversation?.isOnline ? 'En línea' : 'Última vez recientemente'}
             </Text>
           </View>
         </TouchableOpacity>
@@ -289,18 +408,32 @@ export const ChatScreen: React.FC<Props> = ({ route, navigation }) => {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         {/* Messages List */}
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          renderItem={renderMessage}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.messagesList}
-          showsVerticalScrollIndicator={false}
-          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
-        />
+        {isLoading ? (
+          renderLoadingState()
+        ) : error ? (
+          renderErrorState()
+        ) : (
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            renderItem={renderMessage}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={[
+              styles.messagesList,
+              messages.length === 0 && styles.messagesListEmpty,
+            ]}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={renderEmptyState}
+            onContentSizeChange={() => {
+              if (messages.length > 0) {
+                flatListRef.current?.scrollToEnd({ animated: false });
+              }
+            }}
+          />
+        )}
 
         {/* Quick Replies */}
-        {showQuickReplies && messages.length > 0 && (
+        {showQuickReplies && messages.length === 0 && !isLoading && (
           <View style={styles.quickRepliesContainer}>
             <FlatList
               horizontal
@@ -343,7 +476,11 @@ export const ChatScreen: React.FC<Props> = ({ route, navigation }) => {
             onPress={handleSendMessage}
             disabled={!inputText.trim() || isSending}
           >
-            <Text style={styles.sendIcon}>➤</Text>
+            {isSending ? (
+              <ActivityIndicator size="small" color={Colors.textInverse} />
+            ) : (
+              <Text style={styles.sendIcon}>➤</Text>
+            )}
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -374,11 +511,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  backIcon: {
-    fontSize: 32,
-    color: Colors.primary,
-    marginTop: -4,
-  },
   headerContent: {
     flex: 1,
     flexDirection: 'row',
@@ -393,6 +525,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: Spacing.sm,
     position: 'relative',
+  },
+  guideHeaderAvatar: {
+    backgroundColor: Colors.secondary,
   },
   headerAvatarText: {
     ...Typography.label,
@@ -438,16 +573,6 @@ const styles = StyleSheet.create({
     ...Typography.bodySmall,
     color: Colors.textSecondary,
   },
-  menuButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  menuIcon: {
-    fontSize: 20,
-    color: Colors.text,
-  },
   bookingBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -480,6 +605,60 @@ const styles = StyleSheet.create({
   messagesList: {
     padding: Spacing.md,
     paddingBottom: Spacing.lg,
+  },
+  messagesListEmpty: {
+    flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.xl,
+  },
+  loadingText: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    marginTop: Spacing.md,
+  },
+  errorIcon: {
+    fontSize: 48,
+    marginBottom: Spacing.md,
+  },
+  errorText: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  retryButton: {
+    marginTop: Spacing.lg,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: 12,
+  },
+  retryButtonText: {
+    ...Typography.labelLarge,
+    color: Colors.textInverse,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.xl,
+  },
+  emptyIcon: {
+    fontSize: 64,
+    marginBottom: Spacing.md,
+  },
+  emptyTitle: {
+    ...Typography.h4,
+    color: Colors.text,
+    marginBottom: Spacing.xs,
+  },
+  emptyText: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    textAlign: 'center',
   },
   dateDivider: {
     alignItems: 'center',
@@ -530,6 +709,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderBottomLeftRadius: 4,
   },
+  failedMessageBubble: {
+    backgroundColor: Colors.error + '80',
+  },
   messageText: {
     ...Typography.body,
     lineHeight: 20,
@@ -565,7 +747,13 @@ const styles = StyleSheet.create({
     color: Colors.textInverse,
   },
   messageStatusFailed: {
-    color: Colors.error,
+    color: Colors.textInverse,
+  },
+  retryHint: {
+    ...Typography.caption,
+    color: Colors.textInverse,
+    fontStyle: 'italic',
+    marginTop: 4,
   },
   quickRepliesContainer: {
     borderTopWidth: 1,

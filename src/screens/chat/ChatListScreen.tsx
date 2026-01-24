@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,19 +7,71 @@ import {
   TouchableOpacity,
   TextInput,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Colors, Spacing, Typography } from '../../theme';
 import { MinimalHeader } from '../../components';
-import { MOCK_CONVERSATIONS } from '../../constants/chatData';
+import { chatService } from '../../services';
+import { useAuth } from '../../context';
 import type { RootStackScreenProps, Conversation } from '../../types';
 
 type Props = RootStackScreenProps<'ChatList'>;
 
 export const ChatListScreen: React.FC<Props> = ({ navigation }) => {
+  const { user } = useAuth();
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredConversations = MOCK_CONVERSATIONS.filter(
+  // Fetch conversations from API
+  const fetchConversations = useCallback(async (showLoading = true) => {
+    if (!user?.id) return;
+    
+    if (showLoading) setIsLoading(true);
+    setError(null);
+    
+    try {
+      const response = await chatService.getConversations(user.id);
+      
+      if (response.success) {
+        setConversations(response.data || []);
+      } else {
+        setError(response.error?.message || 'Error al cargar conversaciones');
+      }
+    } catch (err) {
+      console.error('Error fetching conversations:', err);
+      setError('Error de conexión');
+    } finally {
+      setIsLoading(false);
+      setRefreshing(false);
+    }
+  }, [user?.id]);
+
+  // Initial load
+  useEffect(() => {
+    fetchConversations();
+  }, [fetchConversations]);
+
+  // Refresh when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchConversations(false);
+    }, [fetchConversations])
+  );
+
+  // Polling for new messages every 10 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchConversations(false);
+    }, 10000);
+    
+    return () => clearInterval(interval);
+  }, [fetchConversations]);
+
+  const filteredConversations = conversations.filter(
     (conv) =>
       conv.participantName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       conv.relatedTourTitle?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -54,12 +106,15 @@ export const ChatListScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    // TODO: Implement actual refresh
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setRefreshing(false);
+    await fetchConversations(false);
   };
 
-  const handleConversationPress = (conversation: Conversation) => {
+  const handleConversationPress = async (conversation: Conversation) => {
+    // Mark as read when opening
+    if (conversation.unreadCount > 0) {
+      chatService.markAsRead(conversation.id);
+    }
+    
     navigation.navigate('Chat', {
       conversationId: conversation.id,
       participantName: conversation.participantName,
@@ -78,7 +133,7 @@ export const ChatListScreen: React.FC<Props> = ({ navigation }) => {
       >
         {/* Avatar */}
         <View style={styles.avatarContainer}>
-          <View style={styles.avatar}>
+          <View style={[styles.avatar, conversation.participantType === 'guide' && styles.guideAvatar]}>
             <Text style={styles.avatarText}>{getInitials(conversation.participantName)}</Text>
           </View>
           {conversation.isOnline && <View style={styles.onlineBadge} />}
@@ -133,12 +188,30 @@ export const ChatListScreen: React.FC<Props> = ({ navigation }) => {
       <Text style={styles.emptyText}>
         {searchQuery
           ? 'No se encontraron conversaciones con ese término'
-          : 'Cuando contactes con un guía, tus conversaciones aparecerán aquí'}
+          : 'Cuando contactes con un guía o administrador, tus conversaciones aparecerán aquí'}
       </Text>
     </View>
   );
 
-  const totalUnread = MOCK_CONVERSATIONS.reduce((acc, conv) => acc + conv.unreadCount, 0);
+  const renderLoadingState = () => (
+    <View style={styles.loadingContainer}>
+      <ActivityIndicator size="large" color={Colors.primary} />
+      <Text style={styles.loadingText}>Cargando conversaciones...</Text>
+    </View>
+  );
+
+  const renderErrorState = () => (
+    <View style={styles.emptyContainer}>
+      <Text style={styles.emptyIcon}>⚠️</Text>
+      <Text style={styles.emptyTitle}>Error al cargar</Text>
+      <Text style={styles.emptyText}>{error}</Text>
+      <TouchableOpacity style={styles.retryButton} onPress={() => fetchConversations()}>
+        <Text style={styles.retryButtonText}>Reintentar</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const totalUnread = conversations.reduce((acc, conv) => acc + conv.unreadCount, 0);
 
   return (
     <View style={styles.container}>
@@ -173,23 +246,29 @@ export const ChatListScreen: React.FC<Props> = ({ navigation }) => {
         </View>
       </View>
 
-      {/* Conversations List */}
-      <FlatList
-        data={filteredConversations}
-        renderItem={renderConversation}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor={Colors.primary}
-          />
-        }
-        ListEmptyComponent={renderEmptyState}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-      />
+      {/* Content */}
+      {isLoading ? (
+        renderLoadingState()
+      ) : error ? (
+        renderErrorState()
+      ) : (
+        <FlatList
+          data={filteredConversations}
+          renderItem={renderConversation}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={Colors.primary}
+            />
+          }
+          ListEmptyComponent={renderEmptyState}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+        />
+      )}
     </View>
   );
 };
@@ -198,21 +277,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-  },
-  backButton: {
-    padding: Spacing.xs,
-    marginRight: Spacing.sm,
-  },
-  headerTitle: {
-    ...Typography.h2,
-    color: Colors.text,
-    flex: 1,
   },
   totalUnreadBadge: {
     backgroundColor: Colors.primary,
@@ -274,6 +338,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  guideAvatar: {
+    backgroundColor: Colors.secondary,
   },
   avatarText: {
     ...Typography.labelLarge,
@@ -387,5 +454,27 @@ const styles = StyleSheet.create({
     ...Typography.body,
     color: Colors.textSecondary,
     textAlign: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.xl,
+  },
+  loadingText: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    marginTop: Spacing.md,
+  },
+  retryButton: {
+    marginTop: Spacing.lg,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: 12,
+  },
+  retryButtonText: {
+    ...Typography.labelLarge,
+    color: Colors.textInverse,
   },
 });

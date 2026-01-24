@@ -69,14 +69,7 @@ export type {
 
 // Chat Service
 export { chatService } from './chatService';
-export type {
-  Conversation,
-  Message,
-  MessageType,
-  CreateConversationRequest,
-  SendMessageRequest,
-  UpdateMessageRequest,
-} from './chatService';
+export type { CreateConversationRequest, SendMessageRequest } from './chatService';
 
 // Files Service
 export { filesService } from './filesService';

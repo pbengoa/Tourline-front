@@ -348,9 +348,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
                 <Text style={styles.searchPlaceholder}>¿A dónde quieres ir?</Text>
                 <Text style={styles.searchHint}>Guías, tours, destinos...</Text>
               </View>
-              <View style={styles.filterButton}>
-                <Text style={styles.filterIcon}>⚡</Text>
-              </View>
             </TouchableOpacity>
           </Animated.View>
         </SafeAreaView>
@@ -527,13 +524,13 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
                         <Text style={styles.favoriteEmoji}>🏔️</Text>
                       </View>
                     )}
+                    <View style={styles.favoriteHeart}>
+                      <Text style={styles.favoriteHeartIcon}>❤️</Text>
+                    </View>
                     <LinearGradient
                       colors={['transparent', 'rgba(0,0,0,0.85)']}
                       style={styles.favoriteGradient}
                     >
-                      <View style={styles.favoriteHeart}>
-                        <Text style={styles.favoriteHeartIcon}>❤️</Text>
-                      </View>
                       <View style={styles.favoriteInfo}>
                         <Text style={styles.favoriteTitle} numberOfLines={2}>{fav.title}</Text>
                         <View style={styles.favoriteMeta}>
@@ -1251,14 +1248,14 @@ const styles = StyleSheet.create({
   // Favorites
   favoritesContainer: {
     paddingHorizontal: Spacing.lg,
-    gap: Spacing.md,
+    gap: Spacing.xs,
   },
   favoriteCard: {
-    width: 160,
-    height: 200,
+    width: 200,
+    height: 240,
     borderRadius: 18,
     overflow: 'hidden',
-    marginRight: Spacing.md,
+    marginRight: Spacing.sm,
   },
   favoriteImage: {
     width: '100%',
@@ -1279,12 +1276,14 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: 140,
-    justifyContent: 'space-between',
-    padding: Spacing.sm,
+    height: 160,
+    justifyContent: 'flex-end',
+    padding: Spacing.md,
   },
   favoriteHeart: {
-    alignSelf: 'flex-end',
+    position: 'absolute',
+    top: Spacing.md,
+    right: Spacing.md,
     backgroundColor: 'rgba(0,0,0,0.4)',
     borderRadius: 20,
     padding: 6,
