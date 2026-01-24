@@ -19,7 +19,7 @@ interface AuthContextData {
     password: string,
     role?: UserRole,
     companyName?: string
-  ) => Promise<void>;
+  ) => Promise<User | null>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -102,7 +102,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       password: string,
       role: UserRole = 'tourist',
       companyName?: string
-    ) => {
+    ): Promise<User | null> => {
       try {
         const response = await authService.register({
           firstName,
@@ -114,7 +114,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         });
 
         if (response.success) {
-          setUser(response.data.user);
+          const registeredUser = response.data.user;
+
+          // Only auto-login if email is already verified
+          // Otherwise, let the UI handle verification flow
+          if (registeredUser.emailVerified) {
+            setUser(registeredUser);
+          }
+
+          return registeredUser;
         } else {
           throw new Error('Error al crear cuenta');
         }
@@ -138,11 +146,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const resetPassword = useCallback(async (email: string) => {
     try {
-      // Note: The backend doesn't have a forgot password endpoint yet
-      // This is a placeholder that can be implemented later
-      console.log('Reset password requested for:', email);
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await authService.forgotPassword(email);
     } catch (error) {
       console.error('Reset password error:', error);
       throw new Error(getErrorMessage(error));

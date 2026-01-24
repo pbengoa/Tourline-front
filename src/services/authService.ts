@@ -95,6 +95,25 @@ export interface ChangePasswordRequest {
   newPassword: string;
 }
 
+export interface VerifyEmailRequest {
+  token?: string;  // For link-based verification
+  code?: string;   // For code-based verification
+  email?: string;  // Email to verify
+}
+
+export interface ResendVerificationRequest {
+  email: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  password: string;
+}
+
 // Transform user from backend format
 const transformUser = (backendUser: any): User => {
   console.log('🔄 Transforming user from backend:', JSON.stringify(backendUser, null, 2));
@@ -291,5 +310,112 @@ export const authService = {
   // Check if user is tourist
   isTourist(user: User | null): boolean {
     return user?.role === 'tourist';
+  },
+
+  // ============ EMAIL VERIFICATION ============
+
+  /**
+   * Verify email with token or code
+   * POST /api/auth/verify-email
+   */
+  async verifyEmail(data: VerifyEmailRequest): Promise<ApiResponse<{ message: string; user?: User }>> {
+    try {
+      console.log('📧 Verifying email...');
+      const response = await api.post<ApiResponse<{ message: string; user?: User }>>(
+        '/auth/verify-email',
+        data
+      );
+
+      if (response.data.success && response.data.data.user) {
+        // Update stored user with verified status
+        const storedUser = await this.getStoredUser();
+        if (storedUser) {
+          const updatedUser = { ...storedUser, emailVerified: true };
+          await AsyncStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
+        }
+        console.log('✅ Email verified successfully');
+      }
+
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Email verification failed:', error?.response?.data || error.message);
+      const message = error?.response?.data?.error?.message || 'Error al verificar email';
+      throw new Error(message);
+    }
+  },
+
+  /**
+   * Resend verification email
+   * POST /api/auth/resend-verification
+   */
+  async resendVerification(email: string): Promise<ApiResponse<{ message: string }>> {
+    try {
+      console.log('📤 Resending verification email to:', email);
+      const response = await api.post<ApiResponse<{ message: string }>>(
+        '/auth/resend-verification',
+        { email }
+      );
+      console.log('✅ Verification email sent');
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Failed to resend verification:', error?.response?.data || error.message);
+      const message = error?.response?.data?.error?.message || 'Error al reenviar verificación';
+      throw new Error(message);
+    }
+  },
+
+  // ============ PASSWORD RESET ============
+
+  /**
+   * Request password reset
+   * POST /api/auth/forgot-password
+   */
+  async forgotPassword(email: string): Promise<ApiResponse<{ message: string }>> {
+    try {
+      console.log('🔑 Requesting password reset for:', email);
+      const response = await api.post<ApiResponse<{ message: string }>>(
+        '/auth/forgot-password',
+        { email }
+      );
+      console.log('✅ Password reset email sent');
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Forgot password failed:', error?.response?.data || error.message);
+      const message = error?.response?.data?.error?.message || 'Error al solicitar recuperación';
+      throw new Error(message);
+    }
+  },
+
+  /**
+   * Reset password with token
+   * POST /api/auth/reset-password
+   */
+  async resetPassword(data: ResetPasswordRequest): Promise<ApiResponse<{ message: string }>> {
+    try {
+      console.log('🔐 Resetting password...');
+      const response = await api.post<ApiResponse<{ message: string }>>(
+        '/auth/reset-password',
+        data
+      );
+      console.log('✅ Password reset successful');
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Password reset failed:', error?.response?.data || error.message);
+      const message = error?.response?.data?.error?.message || 'Error al restablecer contraseña';
+      throw new Error(message);
+    }
+  },
+
+  /**
+   * Check if email is verified for a user
+   */
+  async checkEmailVerified(): Promise<boolean> {
+    try {
+      const user = await this.getMe();
+      return user.data?.emailVerified ?? false;
+    } catch {
+      const storedUser = await this.getStoredUser();
+      return storedUser?.emailVerified ?? false;
+    }
   },
 };

@@ -18,6 +18,8 @@ export type AuthStackParamList = {
   Login: undefined;
   Register: undefined;
   ForgotPassword: undefined;
+  EmailVerification: { email: string };
+  ResetPassword: { token: string; email?: string };
 };
 
 /**

@@ -89,9 +89,14 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
 
     setLoading(true);
     try {
-      await signUp(firstName, lastName, email, password);
-      // On success, the auth context will update isAuthenticated
-      // and AppNavigator will automatically show the main app
+      const result = await signUp(firstName, lastName, email, password);
+      
+      // Check if email verification is required
+      // If user.emailVerified is false, navigate to verification screen
+      if (result && !result.emailVerified) {
+        navigation.navigate('EmailVerification', { email: email.toLowerCase().trim() });
+      }
+      // Otherwise, the auth context will handle navigation to main app
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Error al crear cuenta';
       Alert.alert('Error', message);
