@@ -18,7 +18,7 @@ import { Colors, Spacing, Typography } from '../theme';
 import { TourCard, CategoryPill } from '../components';
 import { CATEGORIES } from '../constants/mockData';
 import { useFavorites } from '../hooks/useFavorites';
-import { useAuth } from '../context';
+import { useAuth, useNotifications } from '../context';
 import { toursService, ApiTour, bannersService, regionsService } from '../services';
 import type { Banner } from '../services/bannersService';
 import type { Region } from '../services/regionsService';
@@ -34,6 +34,7 @@ type Props = MainTabScreenProps<'Home'>;
 
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const { user } = useAuth();
+  const { unreadCount } = useNotifications();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const scrollY = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -324,11 +325,21 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
                 <Text style={styles.greeting}>{getGreeting()},</Text>
                 <Text style={styles.userName}>{userName} 👋</Text>
               </View>
-              <TouchableOpacity style={styles.notificationButton} activeOpacity={0.8}>
+              <TouchableOpacity 
+                style={styles.notificationButton} 
+                activeOpacity={0.8}
+                onPress={() => navigation.navigate('NotificationsList')}
+              >
                 <View style={styles.notificationIconContainer}>
                   <Text style={styles.bellIcon}>🔔</Text>
                 </View>
-                <View style={styles.notificationDot} />
+                {unreadCount > 0 && (
+                  <View style={styles.notificationBadge}>
+                    <Text style={styles.notificationBadgeText}>
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </Text>
+                  </View>
+                )}
               </TouchableOpacity>
             </View>
 
@@ -832,16 +843,25 @@ const styles = StyleSheet.create({
   bellIcon: {
     fontSize: 22,
   },
-  notificationDot: {
+  notificationBadge: {
     position: 'absolute',
-    top: 10,
-    right: 10,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: Colors.secondary,
+    top: 6,
+    right: 6,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: Colors.error,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
     borderWidth: 2,
     borderColor: Colors.primary,
+  },
+  notificationBadgeText: {
+    ...Typography.caption,
+    fontSize: 10,
+    color: Colors.textInverse,
+    fontWeight: '700',
   },
   tagline: {
     ...Typography.bodyLarge,

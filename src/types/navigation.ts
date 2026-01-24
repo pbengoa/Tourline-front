@@ -61,6 +61,8 @@ export type RootStackParamList = {
   };
   // Profile
   EditProfile: undefined;
+  // Notifications
+  NotificationsList: undefined;
 };
 
 /**
@@ -93,6 +95,14 @@ export type AdminStackParamList = {
   GuideForm: { guideId?: string };
   BookingDetail: { bookingId: string };
   CompanySettings: undefined;
+  AdminSettings: undefined; // Settings screen accessible from quick actions
+  // Chat screens for admin
+  ChatList: undefined;
+  Chat: {
+    conversationId: string;
+    participantName: string;
+    participantId: string;
+  };
 };
 
 /**

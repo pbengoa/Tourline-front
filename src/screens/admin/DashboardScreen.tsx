@@ -214,13 +214,18 @@ export const DashboardScreen: React.FC<Props> = ({ navigation }) => {
                 <Text style={styles.companyBadgeText}>{data.company.name}</Text>
               </View>
             </View>
-            {(data.company.logo || data.company.logoUrl) ? (
-              <Image source={{ uri: data.company.logo || data.company.logoUrl }} style={styles.companyLogo} />
-            ) : (
-              <View style={styles.companyLogoPlaceholder}>
-                <Text style={styles.companyLogoText}>{data.company.name.charAt(0)}</Text>
-              </View>
-            )}
+            <View style={styles.headerRight}>
+              <TouchableOpacity
+                style={styles.messagesButton}
+                onPress={() => navigation.navigate('ChatList' as never)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.messagesIcon}>💬</Text>
+                <View style={styles.messagesBadge}>
+                  <Text style={styles.messagesBadgeText}>3</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Revenue Card */}
@@ -538,7 +543,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     marginBottom: Spacing.lg,
   },
-  headerLeft: {},
+  headerLeft: {
+    flex: 1,
+  },
+  headerRight: {
+    alignItems: 'flex-end',
+    justifyContent: 'flex-start',
+  },
   greeting: {
     ...Typography.body,
     color: 'rgba(255,255,255,0.8)',
@@ -560,6 +571,38 @@ const styles = StyleSheet.create({
     ...Typography.caption,
     color: Colors.textInverse,
     fontWeight: '600',
+  },
+  messagesButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  messagesIcon: {
+    fontSize: 22,
+  },
+  messagesBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: Colors.error,
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+  },
+  messagesBadgeText: {
+    ...Typography.caption,
+    color: Colors.textInverse,
+    fontSize: 10,
+    fontWeight: '700',
   },
   companyLogo: {
     width: 56,

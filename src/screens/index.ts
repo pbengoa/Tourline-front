@@ -7,6 +7,11 @@ export { DetailsScreen } from './DetailsScreen';
 export { GuideDetailScreen } from './GuideDetailScreen';
 export { FavoritesScreen } from './FavoritesScreen';
 export { CompanyDetailScreen } from './CompanyDetailScreen';
+export { NotificationsScreen } from './NotificationsScreen';
+
+// Error handling screens
+export { ErrorScreen, InlineError, EmptyState } from './ErrorScreen';
+export type { ErrorType } from './ErrorScreen';
 
 // Auth screens
 export { LoginScreen, RegisterScreen, ForgotPasswordScreen } from './auth';

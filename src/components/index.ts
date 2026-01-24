@@ -28,3 +28,7 @@ export type { AvailabilitySchedule, TimeSlot } from './AvailabilityPicker';
 
 // Branding
 export { Logo, LogoIconSimple } from './Logo';
+
+// Error Handling Components
+export { ErrorBoundary } from './ErrorBoundary';
+export { OfflineBanner } from './OfflineBanner';

@@ -1,7 +1,7 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { MainTabNavigator } from './MainTabNavigator';
-import { DetailsScreen, GuideDetailScreen, FavoritesScreen, CompanyDetailScreen, EditProfileScreen } from '../screens';
+import { DetailsScreen, GuideDetailScreen, FavoritesScreen, CompanyDetailScreen, EditProfileScreen, NotificationsScreen } from '../screens';
 import {
   BookingScreen,
   BookingConfirmationScreen,
@@ -84,6 +84,8 @@ export const RootNavigator: React.FC = () => {
       <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: false }} />
       {/* Profile */}
       <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ headerShown: false }} />
+      {/* Notifications */}
+      <Stack.Screen name="NotificationsList" component={NotificationsScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 };

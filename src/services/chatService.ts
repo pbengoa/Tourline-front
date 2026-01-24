@@ -50,28 +50,58 @@ export interface SendMessageRequest {
 
 // Transform backend message to frontend format
 const transformMessage = (msg: any, currentUserId: string): Message => {
+  if (!msg || typeof msg !== 'object') {
+    console.error('❌ Invalid message object:', msg);
+    throw new Error('Invalid message object');
+  }
+  
   // Handle different field names from backend
-  const senderId = msg.senderId || msg.sender_id || msg.sender?.id || '';
-  const isOwn = senderId === currentUserId;
+  const senderId = String(msg.senderId || msg.sender_id || msg.sender?.id || '');
+  const currentUserIdStr = String(currentUserId || '');
+  const isOwn = senderId === currentUserIdStr;
   
-  const senderName = isOwn 
-    ? 'Tú' 
-    : msg.sender 
-      ? `${msg.sender.firstName || msg.sender.first_name || ''} ${msg.sender.lastName || msg.sender.last_name || ''}`.trim() || msg.sender.name || 'Usuario'
-      : msg.senderName || 'Usuario';
+  // Build sender name from various possible formats
+  let senderName = 'Usuario';
+  if (isOwn) {
+    senderName = 'Tú';
+  } else if (msg.sender) {
+    const firstName = msg.sender.firstName || msg.sender.first_name || '';
+    const lastName = msg.sender.lastName || msg.sender.last_name || '';
+    senderName = `${firstName} ${lastName}`.trim() || msg.sender.name || msg.sender.email || 'Usuario';
+  } else if (msg.senderName) {
+    senderName = msg.senderName;
+  }
   
-  console.log(`📝 Message transform - senderId: ${senderId}, currentUserId: ${currentUserId}, isOwn: ${isOwn}`);
+  // Get content - handle different field names
+  const content = String(msg.content || msg.text || msg.message || '');
+  
+  // Get message type - normalize to lowercase
+  const rawType = msg.type || 'text';
+  const type = (typeof rawType === 'string' ? rawType.toLowerCase() : 'text') as MessageType;
+  
+  // Determine status
+  let status: 'sending' | 'sent' | 'delivered' | 'read' | 'failed' = 'delivered';
+  if (msg.isRead || msg.is_read) {
+    status = 'read';
+  } else if (msg.status) {
+    status = msg.status;
+  }
+  
+  // Get timestamp
+  const timestamp = msg.createdAt || msg.created_at || msg.timestamp || new Date().toISOString();
+  
+  console.log(`📝 Message transform - id: ${msg.id}, senderId: ${senderId}, currentUserId: ${currentUserIdStr}, isOwn: ${isOwn}, content: ${content.substring(0, 30)}...`);
   
   return {
-    id: msg.id,
-    conversationId: msg.conversationId || msg.conversation_id || '',
+    id: String(msg.id),
+    conversationId: String(msg.conversationId || msg.conversation_id || ''),
     senderId,
     senderName,
-    senderAvatar: msg.sender?.avatar || msg.sender?.avatarUrl,
-    content: msg.content || msg.text || msg.message || '',
-    type: (msg.type?.toLowerCase() as MessageType) || 'text',
-    status: msg.isRead || msg.is_read ? 'read' : 'delivered',
-    timestamp: msg.createdAt || msg.created_at || msg.timestamp || new Date().toISOString(),
+    senderAvatar: msg.sender?.avatar || msg.sender?.avatarUrl || msg.senderAvatar,
+    content,
+    type,
+    status,
+    timestamp,
   };
 };
 
@@ -307,22 +337,64 @@ export const chatService = {
     type: 'TEXT' | 'IMAGE' | 'FILE' = 'TEXT'
   ): Promise<ApiResponse<Message>> {
     try {
-      const response = await api.post<ApiResponse<BackendMessage>>(
+      const response = await api.post<any>(
         `/chat/conversations/${conversationId}/messages`,
         { content, type }
       );
       
-      if (response.data.success && response.data.data) {
-        return {
-          success: true,
-          data: transformMessage(response.data.data, currentUserId),
-        };
+      console.log('📤 Send message response:', JSON.stringify(response.data, null, 2));
+      
+      // Handle different response formats
+      let messageData: any = null;
+      
+      // Format 1: { success: true, data: { message data } }
+      if (response.data?.success && response.data?.data) {
+        messageData = response.data.data;
+      }
+      // Format 2: Direct message object
+      else if (response.data?.id && response.data?.content) {
+        messageData = response.data;
+      }
+      // Format 3: { data: { message data } } without success
+      else if (response.data?.data?.id) {
+        messageData = response.data.data;
+      }
+      // Format 4: { message: { message data } }
+      else if (response.data?.message?.id) {
+        messageData = response.data.message;
       }
       
+      if (messageData) {
+        try {
+          const transformedMessage = transformMessage(messageData, currentUserId);
+          return {
+            success: true,
+            data: transformedMessage,
+          };
+        } catch (transformError) {
+          console.error('❌ Error transforming sent message:', transformError, messageData);
+          // Return a basic message structure to avoid render errors
+          return {
+            success: true,
+            data: {
+              id: String(messageData.id || Date.now()),
+              conversationId,
+              senderId: currentUserId,
+              senderName: 'Tú',
+              content: content,
+              type: 'text',
+              status: 'sent',
+              timestamp: new Date().toISOString(),
+            },
+          };
+        }
+      }
+      
+      console.error('❌ Unexpected response format:', response.data);
       return {
         success: false,
         data: null as any,
-        error: { message: 'Error al enviar mensaje' },
+        error: { message: 'Formato de respuesta inesperado' },
       };
     } catch (error: any) {
       console.error('Error sending message:', error);

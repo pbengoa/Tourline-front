@@ -37,7 +37,8 @@
         "googleMaps": {
           "apiKey": ""
         }
-      }
+      },
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -48,7 +49,28 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Tourline necesita acceso a tu ubicación para mostrarte guías y actividades cercanas."
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#2D5A45",
+          "sounds": [],
+          "mode": "production"
+        }
       ]
-    ]
+    ],
+    "notification": {
+      "icon": "./assets/icon.png",
+      "color": "#2D5A45",
+      "androidMode": "default",
+      "androidCollapsedTitle": "Tourline"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "8b811191-ef6b-4543-ba8a-d2969cb8971e"
+      }
+    },
+    "owner": "tourline"
   }
 }

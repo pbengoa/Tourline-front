@@ -12,6 +12,7 @@ import {
   TourFormScreen,
   TourPreviewScreen,
 } from '../screens/admin';
+import { ChatListScreen, ChatScreen } from '../screens/chat';
 import type { AdminTabParamList, AdminStackParamList } from '../types';
 
 const Tab = createBottomTabNavigator<AdminTabParamList>();
@@ -97,6 +98,9 @@ export const AdminNavigator: React.FC = () => {
       <Stack.Screen name="AdminMain" component={AdminTabs} />
       <Stack.Screen name="TourPreview" component={TourPreviewScreen} />
       <Stack.Screen name="TourForm" component={TourFormScreen} />
+      <Stack.Screen name="AdminSettings" component={AdminSettingsScreen} />
+      <Stack.Screen name="ChatList" component={ChatListScreen} />
+      <Stack.Screen name="Chat" component={ChatScreen} />
     </Stack.Navigator>
   );
 };

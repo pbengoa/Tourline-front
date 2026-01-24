@@ -175,18 +175,33 @@ export const ChatScreen: React.FC<Props> = ({ route, navigation }) => {
     try {
       const response = await chatService.sendMessage(conversationId, messageText, currentUserId);
       
-      if (response.success && response.data) {
-        // Replace optimistic message with real one
+      console.log('📤 ChatScreen received response:', response);
+      
+      if (response.success && response.data && typeof response.data === 'object' && response.data.id) {
+        // Validate the message has required fields before replacing
+        const validMessage: Message = {
+          id: String(response.data.id),
+          conversationId: response.data.conversationId || conversationId,
+          senderId: response.data.senderId || currentUserId,
+          senderName: response.data.senderName || 'Tú',
+          content: response.data.content || messageText,
+          type: response.data.type || 'text',
+          status: response.data.status || 'sent',
+          timestamp: response.data.timestamp || new Date().toISOString(),
+          senderAvatar: response.data.senderAvatar,
+        };
+        
+        // Replace optimistic message with validated message
         setMessages((prev) =>
           prev.map((msg) =>
-            msg.id === optimisticMessage.id ? response.data : msg
+            msg.id === optimisticMessage.id ? validMessage : msg
           )
         );
       } else {
         // Mark as failed
         setMessages((prev) =>
           prev.map((msg) =>
-            msg.id === optimisticMessage.id ? { ...msg, status: 'failed' } : msg
+            msg.id === optimisticMessage.id ? { ...msg, status: 'failed' as const } : msg
           )
         );
         Alert.alert('Error', response.error?.message || 'No se pudo enviar el mensaje');
@@ -196,7 +211,7 @@ export const ChatScreen: React.FC<Props> = ({ route, navigation }) => {
       // Mark as failed
       setMessages((prev) =>
         prev.map((msg) =>
-          msg.id === optimisticMessage.id ? { ...msg, status: 'failed' } : msg
+          msg.id === optimisticMessage.id ? { ...msg, status: 'failed' as const } : msg
         )
       );
       Alert.alert('Error', 'Error de conexión al enviar el mensaje');
@@ -225,6 +240,17 @@ export const ChatScreen: React.FC<Props> = ({ route, navigation }) => {
   };
 
   const renderMessage = ({ item: message, index }: { item: Message; index: number }) => {
+    // Safety check - ensure message is a valid object with required properties
+    if (!message || typeof message !== 'object' || !message.id) {
+      console.error('❌ Invalid message object in render:', message);
+      return null;
+    }
+    
+    // Ensure content is a string (prevent rendering objects)
+    const messageContent = typeof message.content === 'string' 
+      ? message.content 
+      : String(message.content || '');
+    
     // Determine if message is from current user
     // Compare as strings to handle type mismatches (number vs string IDs)
     const senderIdStr = String(message.senderId || '').trim();
@@ -238,7 +264,12 @@ export const ChatScreen: React.FC<Props> = ({ route, navigation }) => {
     
     const prevMessage = index > 0 ? messages[index - 1] : undefined;
     const showDateDivider = shouldShowDateDivider(message, prevMessage);
-    const statusConfig = MESSAGE_STATUS_CONFIG[message.status];
+    const statusConfig = MESSAGE_STATUS_CONFIG[message.status || 'sent'];
+    
+    // Get safe sender name
+    const safeSenderName = typeof message.senderName === 'string' 
+      ? message.senderName 
+      : 'Usuario';
     
     // Debug log for first message
     if (index === 0) {
@@ -246,7 +277,8 @@ export const ChatScreen: React.FC<Props> = ({ route, navigation }) => {
         senderId: senderIdStr, 
         currentUserId: currentUserIdStr, 
         participantId: participantIdStr,
-        senderName: message.senderName,
+        senderName: safeSenderName,
+        content: messageContent.substring(0, 30),
         isFromParticipant,
         isOwn: isOwnMessage 
       });
@@ -268,7 +300,7 @@ export const ChatScreen: React.FC<Props> = ({ route, navigation }) => {
         >
           {!isOwnMessage && (
             <View style={styles.messageAvatar}>
-              <Text style={styles.messageAvatarText}>{getInitials(message.senderName)}</Text>
+              <Text style={styles.messageAvatarText}>{getInitials(safeSenderName)}</Text>
             </View>
           )}
 
@@ -287,7 +319,7 @@ export const ChatScreen: React.FC<Props> = ({ route, navigation }) => {
                 isOwnMessage ? styles.ownMessageText : styles.otherMessageText,
               ]}
             >
-              {message.content}
+              {messageContent}
             </Text>
 
             <View style={styles.messageFooter}>

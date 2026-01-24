@@ -15,7 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, Typography } from '../theme';
-import { useAuth } from '../context';
+import { useAuth, useNotifications } from '../context';
 import { useFavoritesContext } from '../contexts/FavoritesContext';
 import type { MainTabScreenProps, RootStackParamList } from '../types';
 
@@ -30,13 +30,13 @@ const BASE_QUICK_ACTIONS = [
   { id: 'history', icon: '🕐', label: 'Historial', color: Colors.warning },
 ];
 
-const MENU_SECTIONS = [
+const BASE_MENU_SECTIONS = [
   {
     title: 'Mi cuenta',
     items: [
       { id: 'edit-profile', icon: '👤', label: 'Editar Perfil' },
       { id: 'payments', icon: '💳', label: 'Métodos de Pago' },
-      { id: 'notifications', icon: '🔔', label: 'Notificaciones', badge: 5 },
+      { id: 'notifications', icon: '🔔', label: 'Notificaciones' },
     ],
   },
   {
@@ -61,6 +61,7 @@ const MENU_SECTIONS = [
 export const ProfileScreen: React.FC<Props> = () => {
   const { user, signOut } = useAuth();
   const { favoritesCount } = useFavoritesContext();
+  const { unreadCount } = useNotifications();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -73,6 +74,19 @@ export const ProfileScreen: React.FC<Props> = () => {
         : action
     ),
     [favoritesCount]
+  );
+
+  // Menu sections with dynamic notifications badge
+  const MENU_SECTIONS = useMemo(() =>
+    BASE_MENU_SECTIONS.map(section => ({
+      ...section,
+      items: section.items.map(item =>
+        item.id === 'notifications' && unreadCount > 0
+          ? { ...item, badge: unreadCount }
+          : item
+      ),
+    })),
+    [unreadCount]
   );
 
   // Animation on mount
@@ -130,7 +144,7 @@ export const ProfileScreen: React.FC<Props> = () => {
         Alert.alert('Métodos de Pago', 'Esta función estará disponible pronto');
         break;
       case 'notifications':
-        Alert.alert('Notificaciones', 'Esta función estará disponible pronto');
+        navigation.navigate('NotificationsList');
         break;
       case 'help':
         Alert.alert('Centro de Ayuda', 'Esta función estará disponible pronto');
