@@ -17,9 +17,13 @@ export interface BookingDateSlot {
 export type AuthStackParamList = {
   Login: undefined;
   Register: undefined;
+  AccountTypeSelect: undefined;
+  ProviderRegister: { type: 'individual' | 'company' };
   ForgotPassword: undefined;
   EmailVerification: { email: string };
-  ResetPassword: { token: string; email?: string };
+  ResetPassword: { token: string; email?: string }; // Deprecated - usar ResetPasswordCode
+  ResetPasswordCode: { email: string };
+  ProviderPendingApproval: { providerType: 'individual' | 'company'; email: string };
 };
 
 /**

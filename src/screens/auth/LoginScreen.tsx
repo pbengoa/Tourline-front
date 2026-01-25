@@ -191,7 +191,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
           {/* Footer */}
           <View style={styles.footer}>
             <Text style={styles.footerText}>¿Nuevo explorador? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+            <TouchableOpacity onPress={() => navigation.navigate('AccountTypeSelect')}>
               <Text style={styles.footerLink}>Únete ahora</Text>
             </TouchableOpacity>
           </View>

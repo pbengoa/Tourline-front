@@ -265,8 +265,9 @@ export function usePushNotifications(): UsePushNotificationsReturn {
   }, []);
 
   useEffect(() => {
-    // Register for push notifications on mount
-    registerForPushNotifications();
+    // DON'T register automatically on mount - let NotificationsContext handle it after login
+    // This prevents 401 errors when trying to register without authentication
+    // registerForPushNotifications();
 
     // Listen for incoming notifications (when app is in foreground)
     notificationListener.current = Notifications.addNotificationReceivedListener(
@@ -296,7 +297,7 @@ export function usePushNotifications(): UsePushNotificationsReturn {
         responseListener.current.remove();
       }
     };
-  }, [registerForPushNotifications]);
+  }, []);
 
   return {
     expoPushToken,

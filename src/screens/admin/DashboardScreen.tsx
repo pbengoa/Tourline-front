@@ -210,9 +210,11 @@ export const DashboardScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.headerLeft}>
               <Text style={styles.greeting}>{getGreeting()},</Text>
               <Text style={styles.userName}>{user?.firstName} 👋</Text>
-              <View style={styles.companyBadge}>
-                <Text style={styles.companyBadgeText}>{data.company.name}</Text>
-              </View>
+              {data?.company?.name && (
+                <View style={styles.companyBadge}>
+                  <Text style={styles.companyBadgeText}>{data.company.name}</Text>
+                </View>
+              )}
             </View>
             <View style={styles.headerRight}>
               <TouchableOpacity
@@ -361,7 +363,7 @@ export const DashboardScreen: React.FC<Props> = ({ navigation }) => {
                       {booking.tour.title}
                     </Text>
             <Text style={styles.bookingUser}>
-              👤 {booking.user.name} • {booking.participants || booking.groupSize} personas
+              👤 {booking.user?.name || 'Usuario'} • {booking.participants || booking.groupSize} personas
             </Text>
                   </View>
                 </View>

@@ -12,6 +12,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing, Typography } from '../../theme';
 import { Button } from '../../components';
+import { authService } from '../../services';
+import { parseError } from '../../utils/errorMessages';
 import type { AuthStackScreenProps } from '../../types';
 
 type Props = AuthStackScreenProps<'ForgotPassword'>;
@@ -40,11 +42,12 @@ export const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
 
     setLoading(true);
     try {
-      // TODO: Implement actual password reset logic
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      setEmailSent(true);
-    } catch (err) {
-      Alert.alert('Error', 'No se pudo enviar el correo. Intenta de nuevo.');
+      await authService.forgotPassword(email.toLowerCase().trim());
+      // Navegar directamente a la pantalla de código
+      navigation.navigate('ResetPasswordCode', { email: email.toLowerCase().trim() });
+    } catch (err: any) {
+      const parsedError = parseError(err);
+      Alert.alert(parsedError.title, parsedError.message);
     } finally {
       setLoading(false);
     }
@@ -53,10 +56,11 @@ export const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
   const handleResendEmail = async () => {
     setLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await authService.forgotPassword(email.toLowerCase().trim());
       Alert.alert('Enviado', 'Se ha reenviado el correo de recuperación');
-    } catch (err) {
-      Alert.alert('Error', 'No se pudo reenviar el correo');
+    } catch (err: any) {
+      const parsedError = parseError(err);
+      Alert.alert(parsedError.title, parsedError.message);
     } finally {
       setLoading(false);
     }

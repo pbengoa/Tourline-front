@@ -59,7 +59,7 @@ const BASE_MENU_SECTIONS = [
 ];
 
 export const ProfileScreen: React.FC<Props> = () => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, userRole, isAdmin, isProvider, isGuide, isTourist } = useAuth();
   const { favoritesCount } = useFavoritesContext();
   const { unreadCount } = useNotifications();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -241,6 +241,18 @@ export const ProfileScreen: React.FC<Props> = () => {
             </View>
             <Text style={styles.userEmail}>{user?.email || 'usuario@tourline.com'}</Text>
           </Animated.View>
+
+          {/* 🐛 DEBUG INFO - TEMPORAL */}
+          <View style={styles.debugContainer}>
+            <Text style={styles.debugTitle}>🐛 DEBUG INFO (temporal)</Text>
+            <Text style={styles.debugText}>Role: {userRole || 'null'}</Text>
+            <Text style={styles.debugText}>isAdmin: {isAdmin ? '✅' : '❌'}</Text>
+            <Text style={styles.debugText}>isProvider: {isProvider ? '✅' : '❌'}</Text>
+            <Text style={styles.debugText}>isGuide: {isGuide ? '✅' : '❌'}</Text>
+            <Text style={styles.debugText}>isTourist: {isTourist ? '✅' : '❌'}</Text>
+            <Text style={styles.debugText}>User ID: {user?.id || 'null'}</Text>
+            <Text style={styles.debugText}>Email Verified: {user?.emailVerified ? '✅' : '❌'}</Text>
+          </View>
 
           {/* Stats Card */}
           <Animated.View
@@ -696,5 +708,26 @@ const styles = StyleSheet.create({
     ...Typography.caption,
     color: Colors.textTertiary,
     marginTop: 4,
+  },
+  // 🐛 DEBUG STYLES - TEMPORAL
+  debugContainer: {
+    backgroundColor: '#FFF3CD',
+    padding: Spacing.md,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.md,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#FFC107',
+  },
+  debugTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    color: '#856404',
+  },
+  debugText: {
+    fontSize: 12,
+    color: '#856404',
+    marginBottom: 4,
   },
 });

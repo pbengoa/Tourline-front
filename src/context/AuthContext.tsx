@@ -5,11 +5,15 @@ interface AuthContextData {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  // Email verification
+  isEmailVerified: boolean;
+  needsEmailVerification: boolean;
   // Role checks
   userRole: UserRole | null;
   isAdmin: boolean;
   isGuide: boolean;
   isTourist: boolean;
+  isProvider: boolean;
   // Auth methods
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (
@@ -23,6 +27,7 @@ interface AuthContextData {
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   refreshUser: () => Promise<void>;
+  resendVerificationEmail: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
@@ -36,10 +41,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   // Derived role states
-  const userRole = useMemo(() => user?.role || null, [user]);
-  const isAdmin = useMemo(() => authService.isAdmin(user), [user]);
-  const isGuide = useMemo(() => authService.isGuide(user), [user]);
-  const isTourist = useMemo(() => authService.isTourist(user), [user]);
+  const userRole = useMemo(() => {
+    const role = user?.role || null;
+    console.log('🎭 AuthContext - userRole calculated:', role);
+    return role;
+  }, [user]);
+
+  const isAdmin = useMemo(() => {
+    const result = authService.isAdmin(user);
+    console.log('🔐 AuthContext - isAdmin:', result);
+    return result;
+  }, [user]);
+
+  const isGuide = useMemo(() => {
+    const result = authService.isGuide(user);
+    console.log('🧑‍🏫 AuthContext - isGuide:', result);
+    return result;
+  }, [user]);
+
+  const isTourist = useMemo(() => {
+    const result = authService.isTourist(user);
+    console.log('🧳 AuthContext - isTourist:', result);
+    return result;
+  }, [user]);
+
+  const isProvider = useMemo(() => {
+    const result = user?.role === 'provider';
+    console.log('🏢 AuthContext - isProvider:', result, '(user.role:', user?.role, ')');
+    return result;
+  }, [user]);
+
+  // Email verification status
+  const isEmailVerified = useMemo(() => user?.emailVerified ?? false, [user]);
+  const needsEmailVerification = useMemo(() => !!user && !user.emailVerified, [user]);
 
   // Check for existing session on mount
   useEffect(() => {
@@ -81,9 +115,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.log('🔑 Login successful!');
         console.log('👤 User data:', JSON.stringify(response.data.user, null, 2));
         console.log('🎭 Role:', response.data.user.role);
-        const isAdminRole =
-          response.data.user.role === 'admin' || response.data.user.role === 'super_admin';
-        console.log('🔐 Is Admin?:', isAdminRole);
+        console.log('🏢 Is Provider?:', response.data.user.role === 'provider');
+        console.log('🧑‍🏫 Is Guide?:', response.data.user.role === 'guide');
+        console.log('🔐 Is Admin?:', response.data.user.role === 'admin');
+        console.log('🧳 Is Tourist?:', response.data.user.role === 'tourist');
         setUser(response.data.user);
       } else {
         throw new Error('Error al iniciar sesión');
@@ -164,21 +199,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
+  const resendVerificationEmail = useCallback(async () => {
+    if (!user?.email) {
+      throw new Error('No hay email para verificar');
+    }
+    try {
+      await authService.resendVerification(user.email);
+    } catch (error) {
+      console.error('Resend verification error:', error);
+      throw new Error(getErrorMessage(error));
+    }
+  }, [user?.email]);
+
   return (
     <AuthContext.Provider
       value={{
         user,
         isLoading,
         isAuthenticated: !!user,
+        isEmailVerified,
+        needsEmailVerification,
         userRole,
         isAdmin,
         isGuide,
         isTourist,
+        isProvider,
         signIn,
         signUp,
         signOut,
         resetPassword,
         refreshUser,
+        resendVerificationEmail,
       }}
     >
       {children}

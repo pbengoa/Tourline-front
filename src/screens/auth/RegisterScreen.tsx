@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing, Typography } from '../../theme';
 import { Button } from '../../components';
 import { useAuth } from '../../context';
+import { parseError } from '../../utils/errorMessages';
 import type { AuthStackScreenProps } from '../../types';
 
 type Props = AuthStackScreenProps<'Register'>;
@@ -97,9 +98,34 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
         navigation.navigate('EmailVerification', { email: email.toLowerCase().trim() });
       }
       // Otherwise, the auth context will handle navigation to main app
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Error al crear cuenta';
-      Alert.alert('Error', message);
+    } catch (error: any) {
+      const parsedError = parseError(error);
+      
+      // Check if action is needed for email already exists
+      if (parsedError.action === 'login_or_verify') {
+        Alert.alert(
+          parsedError.title,
+          parsedError.message,
+          [
+            {
+              text: 'Iniciar sesión',
+              onPress: () => navigation.navigate('Login'),
+            },
+            {
+              text: 'Verificar email',
+              onPress: () => navigation.navigate('EmailVerification', { 
+                email: email.toLowerCase().trim() 
+              }),
+            },
+            {
+              text: 'Cancelar',
+              style: 'cancel',
+            },
+          ]
+        );
+      } else {
+        Alert.alert(parsedError.title, parsedError.message);
+      }
     } finally {
       setLoading(false);
     }

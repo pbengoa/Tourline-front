@@ -14,7 +14,19 @@ export { ErrorScreen, InlineError, EmptyState } from './ErrorScreen';
 export type { ErrorType } from './ErrorScreen';
 
 // Auth screens
-export { LoginScreen, RegisterScreen, ForgotPasswordScreen } from './auth';
+export {
+  LoginScreen,
+  RegisterScreen,
+  ForgotPasswordScreen,
+  EmailVerificationScreen,
+  EmailVerificationRequiredScreen,
+  AccountTypeSelectScreen,
+  ProviderRegisterScreen,
+  ProviderPendingApprovalScreen,
+} from './auth';
+
+// Provider screens
+export { DocumentUploadScreen, VerificationStatusScreen } from './provider';
 
 // Booking screens
 export {

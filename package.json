@@ -15,7 +15,13 @@
     "test": "npx jest",
     "test:watch": "npx jest --watch",
     "test:coverage": "npx jest --coverage",
-    "test:ci": "npx jest --ci --coverage --watchAll=false"
+    "test:ci": "npx jest --ci --coverage --watchAll=false",
+    "test:e2e": "maestro test .maestro/",
+    "test:e2e:login": "maestro test .maestro/login-flow.yaml",
+    "test:e2e:register": "maestro test .maestro/register-and-verify.yaml",
+    "test:e2e:reset": "maestro test .maestro/password-reset.yaml",
+    "test:e2e:booking": "maestro test .maestro/booking-flow.yaml",
+    "test:e2e:provider": "maestro test .maestro/provider-registration.yaml"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",
@@ -27,6 +33,7 @@
     "expo": "^54.0.31",
     "expo-constants": "~18.0.13",
     "expo-device": "~8.0.10",
+    "expo-document-picker": "~14.0.8",
     "expo-file-system": "~19.0.21",
     "expo-image": "~3.0.11",
     "expo-image-manipulator": "~14.0.8",

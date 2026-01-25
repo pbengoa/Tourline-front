@@ -139,3 +139,6 @@ export type {
 
 // Cache Service (Performance)
 export { cacheService, CacheDuration } from './cacheService';
+
+// Provider Service (Individual & Company providers)
+export { providerService } from './providerService';

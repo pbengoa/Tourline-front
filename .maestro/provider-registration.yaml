@@ -1,0 +1,39 @@
+appId: host.exp.Exponent
+---
+# Test: Registro de proveedor (guía independiente)
+- launchApp
+- tapOn: "Únete ahora"
+
+# Account type select
+- assertVisible: "¿Cómo quieres usar Tourline?"
+- tapOn: "Guía Independiente"
+
+# Provider registration form
+- assertVisible: "Registro de Guía"
+- tapOn: "Nombre"
+- inputText: "María"
+- tapOn: "Apellidos"
+- inputText: "González"
+- tapOn: "Correo"
+- inputText: "maria.guide@example.com"
+- tapOn: "Teléfono"
+- inputText: "+56912345678"
+- tapOn: "Ciudad"
+- inputText: "Valparaíso"
+- scroll
+- tapOn: "RUT/RFC"
+- inputText: "12345678-9"
+- tapOn: "Contraseña"
+- inputText: "Guide1234"
+- scroll
+- tapOn: "Registrarme como guía"
+
+# Email verification
+- assertVisible: "Ingresa el código"
+- assertVisible: "maria.guide@example.com"
+# ... ingresar código (simulado)
+
+# Provider pending approval
+- assertVisible: "Tu solicitud está en revisión"
+- assertVisible: "24-48 horas"
+- assertVisible: "¿Qué sigue?"

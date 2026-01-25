@@ -1,16 +1,33 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HomeScreen, SearchScreen, ProfileScreen } from '../screens';
-import { Colors, Spacing } from '../theme';
+import { Colors, Typography } from '../theme';
 import type { MainTabParamList } from '../types';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
-const { width } = Dimensions.get('window');
 
-// Custom Tab Bar Icons with SVG-like paths using Views
-const TabIcon: React.FC<{
+interface TabIconProps {
+  icon: string;
+  focused: boolean;
+  badge?: number;
+}
+
+const TabIcon: React.FC<TabIconProps> = ({ icon, focused, badge }) => (
+  <View style={styles.tabIconContainer}>
+    <View style={[styles.iconBg, focused && styles.iconBgActive]}>
+      <Text style={[styles.tabIcon, focused && styles.tabIconActive]}>{icon}</Text>
+    </View>
+    {badge !== undefined && badge > 0 && (
+      <View style={styles.badge}>
+        <Text style={styles.badgeText}>{badge > 9 ? '9+' : badge}</Text>
+      </View>
+    )}
+  </View>
+);
+
+// Keeping old icon component for reference but not using it
+const _OldTabIcon: React.FC<{
   name: keyof MainTabParamList;
   focused: boolean;
 }> = ({ name, focused }) => {
@@ -52,205 +69,108 @@ const TabIcon: React.FC<{
   return null;
 };
 
-// Custom Tab Bar Component
-const CustomTabBar: React.FC<{
-  state: any;
-  descriptors: any;
-  navigation: any;
-}> = ({ state, descriptors, navigation }) => {
-  const insets = useSafeAreaInsets();
-
-  return (
-    <View style={[styles.tabBarContainer, { paddingBottom: Math.max(insets.bottom, 8) }]}>
-      <View style={styles.tabBar}>
-        {state.routes.map((route: any, index: number) => {
-          const { options } = descriptors[route.key];
-          const isFocused = state.index === index;
-
-          const label =
-            route.name === 'Home'
-              ? 'Inicio'
-              : route.name === 'Search'
-                ? 'Explorar'
-                : 'Perfil';
-
-          const onPress = () => {
-            const event = navigation.emit({
-              type: 'tabPress',
-              target: route.key,
-              canPreventDefault: true,
-            });
-
-            if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate(route.name);
-            }
-          };
-
-          return (
-            <TouchableOpacity
-              key={route.key}
-              accessibilityRole="button"
-              accessibilityState={isFocused ? { selected: true } : {}}
-              accessibilityLabel={options.tabBarAccessibilityLabel}
-              onPress={onPress}
-              style={styles.tabItem}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.tabContent, isFocused && styles.tabContentFocused]}>
-                <TabIcon name={route.name} focused={isFocused} />
-                <Text style={[styles.tabLabel, isFocused && styles.tabLabelFocused]}>
-                  {label}
-                </Text>
-              </View>
-              {isFocused && <View style={styles.activeIndicator} />}
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-    </View>
-  );
-};
-
 export const MainTabNavigator: React.FC = () => {
   return (
     <Tab.Navigator
-      tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{
         headerShown: false,
+        tabBarStyle: styles.tabBar,
+        tabBarActiveTintColor: Colors.primary,
+        tabBarInactiveTintColor: Colors.textTertiary,
+        tabBarLabelStyle: styles.tabLabel,
       }}
     >
-      <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Search" component={SearchScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
+      <Tab.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{
+          tabBarLabel: 'Inicio',
+          tabBarIcon: ({ focused }) => <TabIcon icon="🏠" focused={focused} />,
+        }}
+      />
+      <Tab.Screen
+        name="Search"
+        component={SearchScreen}
+        options={{
+          tabBarLabel: 'Explorar',
+          tabBarIcon: ({ focused }) => <TabIcon icon="🔍" focused={focused} />,
+        }}
+      />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{
+          tabBarLabel: 'Perfil',
+          tabBarIcon: ({ focused }) => <TabIcon icon="👤" focused={focused} />,
+        }}
+      />
     </Tab.Navigator>
   );
 };
 
 const styles = StyleSheet.create({
-  tabBarContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
-    backgroundColor: 'transparent',
-  },
   tabBar: {
-    flexDirection: 'row',
-    backgroundColor: Colors.surface,
-    borderRadius: 28,
-    paddingVertical: 8,
-    paddingHorizontal: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
-    elevation: 12,
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
-  },
-  tabItem: {
-    flex: 1,
-    alignItems: 'center',
-    position: 'relative',
-  },
-  tabContent: {
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 20 : 12,
+    left: 12,
+    right: 12,
+    height: 65,
+    backgroundColor: Colors.card,
     borderRadius: 20,
-  },
-  tabContentFocused: {
-    backgroundColor: Colors.primaryMuted,
+    borderTopWidth: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+    paddingBottom: Platform.OS === 'ios' ? 0 : 5,
+    paddingTop: 5,
   },
   tabLabel: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: Colors.textTertiary,
-    marginTop: 4,
-    letterSpacing: 0.2,
+    fontSize: 10,
+    fontWeight: '600',
+    marginTop: 2,
   },
-  tabLabelFocused: {
-    color: Colors.primary,
-    fontWeight: '700',
-  },
-  activeIndicator: {
-    position: 'absolute',
-    bottom: -2,
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Colors.primary,
-  },
-
-  // Icon styles
-  iconContainer: {
-    width: 24,
-    height: 24,
+  tabIconContainer: {
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
   },
-
-  // Home icon
-  homeRoof: {
-    width: 0,
-    height: 0,
-    borderLeftWidth: 12,
-    borderRightWidth: 12,
-    borderBottomWidth: 10,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    marginBottom: -2,
+  iconBg: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
   },
-  homeBase: {
-    width: 16,
-    height: 12,
-    borderBottomLeftRadius: 3,
-    borderBottomRightRadius: 3,
-  },
-  homeWindow: {
-    position: 'absolute',
-    bottom: 2,
-    width: 5,
-    height: 6,
+  iconBgActive: {
     backgroundColor: Colors.primaryMuted,
-    borderRadius: 1,
   },
-
-  // Compass icon
-  compassOuter: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
+  tabIcon: {
+    fontSize: 22,
   },
-  compassNeedle: {
-    width: 2,
-    height: 14,
-    borderRadius: 1,
-    transform: [{ rotate: '45deg' }],
+  tabIconActive: {
+    fontSize: 22,
   },
-  compassCenter: {
+  badge: {
     position: 'absolute',
-    width: 4,
-    height: 4,
-    borderRadius: 2,
+    top: -2,
+    right: -6,
+    backgroundColor: Colors.error,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 3,
+    borderWidth: 2,
+    borderColor: Colors.card,
   },
-
-  // Profile icon
-  profileHead: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginBottom: 2,
-  },
-  profileBody: {
-    width: 18,
-    height: 10,
-    borderTopLeftRadius: 9,
-    borderTopRightRadius: 9,
+  badgeText: {
+    ...Typography.caption,
+    color: Colors.textInverse,
+    fontSize: 9,
+    fontWeight: '700',
   },
 });

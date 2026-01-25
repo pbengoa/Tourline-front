@@ -1,0 +1,42 @@
+appId: host.exp.Exponent
+---
+# Test: Flujo completo de booking
+- launchApp
+- tapOn: "Iniciar sesión"
+- inputText: "test@example.com"
+- hideKeyboard
+- tapOn: "Contraseña"
+- inputText: "Test1234"
+- tapOn: "Iniciar sesión"
+
+# Home screen
+- assertVisible: "Explorar Tours"
+- scroll  # Scroll down para ver tours
+
+# Seleccionar un tour
+- tapOn:
+    text: "Viña del Mar"  # O el nombre de un tour
+- assertVisible: "Reservar"
+
+# Pantalla de detalle
+- tapOn: "Reservar"
+
+# Booking screen
+- assertVisible: "Selecciona fecha"
+- tapOn: "15"  # Día 15 del mes
+- tapOn: "Continuar"
+
+# Confirmation screen
+- assertVisible: "Confirmar reserva"
+- assertVisible: "Total:"
+- scroll  # Ver términos
+- tapOn: "Confirmar y pagar"
+
+# Payment screen (si Stripe está configurado)
+- assertVisible: "Información de pago"
+# ... agregar pasos de pago cuando esté implementado
+
+# Success
+- assertVisible: "¡Reserva confirmada!"
+- tapOn: "Ver mi reserva"
+- assertVisible: "Mis Reservas"

@@ -1,0 +1,42 @@
+appId: host.exp.Exponent
+---
+# Test: Registro y verificación de email
+- launchApp
+- tapOn: "Únete ahora"
+- tapOn: "Turista"
+- inputText: 
+    text: "Juan"
+- tapOn: "Apellidos"
+- inputText: "Pérez"
+- tapOn: "Correo"
+- inputText: "juan.test@example.com"
+- tapOn: "Contraseña"
+- inputText: "Test1234"
+- tapOn: "Crear cuenta"
+
+# Pantalla de verificación
+- assertVisible: "Ingresa el código"
+- assertVisible: "juan.test@example.com"
+
+# Simular ingreso de código (tendrías que obtenerlo del email)
+- tapOn:
+    point: "25%,50%"  # Primera caja
+- inputText: "1"
+- tapOn:
+    point: "35%,50%"  # Segunda caja
+- inputText: "2"
+- tapOn:
+    point: "45%,50%"  # Tercera caja
+- inputText: "3"
+- tapOn:
+    point: "55%,50%"  # Cuarta caja
+- inputText: "4"
+- tapOn:
+    point: "65%,50%"  # Quinta caja
+- inputText: "5"
+- tapOn:
+    point: "75%,50%"  # Sexta caja
+- inputText: "6"
+
+# Verificar que navegó correctamente
+- assertVisible: "Iniciar sesión"

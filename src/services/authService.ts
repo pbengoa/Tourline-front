@@ -1,8 +1,9 @@
 import { api, ApiResponse, TOKEN_KEY, USER_KEY } from './api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getErrorMessage, formatErrorForLog } from '../utils/errorMessages';
 
 // User Role type
-export type UserRole = 'tourist' | 'guide' | 'admin' | 'super_admin';
+export type UserRole = 'tourist' | 'guide' | 'admin' | 'provider';
 
 // Map backend roles to frontend roles
 const mapBackendRole = (backendRole: string): UserRole => {
@@ -12,13 +13,13 @@ const mapBackendRole = (backendRole: string): UserRole => {
     TOURIST: 'tourist',
     GUIDE: 'guide',
     ADMIN: 'admin',
-    SUPER_ADMIN: 'super_admin',
+    PROVIDER: 'provider',
     // Also handle lowercase
     user: 'tourist',
     tourist: 'tourist',
     guide: 'guide',
     admin: 'admin',
-    super_admin: 'super_admin',
+    provider: 'provider',
   };
   const mappedRole = roleMap[backendRole] || 'tourist';
   console.log('🎭 Mapped role:', mappedRole);
@@ -110,8 +111,10 @@ export interface ForgotPasswordRequest {
 }
 
 export interface ResetPasswordRequest {
-  token: string;
-  password: string;
+  token?: string;  // Deprecated - usar code
+  code?: string;   // Código de 6 dígitos
+  email?: string;  // Email asociado
+  newPassword: string;
 }
 
 // Transform user from backend format
@@ -225,9 +228,8 @@ export const authService = {
 
       return response.data;
     } catch (error: any) {
-      console.log('❌ Registration failed:', error?.response?.data || error.message);
-      const message = error?.response?.data?.error?.message || 'Error al registrar usuario';
-      throw new Error(message);
+      console.error('❌ Registration failed:', formatErrorForLog(error));
+      throw new Error(getErrorMessage(error));
     }
   },
 
@@ -248,9 +250,8 @@ export const authService = {
 
       return response.data;
     } catch (error: any) {
-      console.log('❌ Login failed:', error?.response?.data || error.message);
-      const message = error?.response?.data?.error?.message || 'Credenciales incorrectas';
-      throw new Error(message);
+      console.error('❌ Login failed:', formatErrorForLog(error));
+      throw new Error(getErrorMessage(error));
     }
   },
 
@@ -299,7 +300,7 @@ export const authService = {
 
   // Check if user has admin role
   isAdmin(user: User | null): boolean {
-    return user?.role === 'admin' || user?.role === 'super_admin';
+    return user?.role === 'admin';
   },
 
   // Check if user has guide role
@@ -338,9 +339,8 @@ export const authService = {
 
       return response.data;
     } catch (error: any) {
-      console.error('❌ Email verification failed:', error?.response?.data || error.message);
-      const message = error?.response?.data?.error?.message || 'Error al verificar email';
-      throw new Error(message);
+      console.error('❌ Email verification failed:', formatErrorForLog(error));
+      throw new Error(getErrorMessage(error));
     }
   },
 
@@ -358,9 +358,8 @@ export const authService = {
       console.log('✅ Verification email sent');
       return response.data;
     } catch (error: any) {
-      console.error('❌ Failed to resend verification:', error?.response?.data || error.message);
-      const message = error?.response?.data?.error?.message || 'Error al reenviar verificación';
-      throw new Error(message);
+      console.error('❌ Failed to resend verification:', formatErrorForLog(error));
+      throw new Error(getErrorMessage(error));
     }
   },
 
@@ -380,14 +379,32 @@ export const authService = {
       console.log('✅ Password reset email sent');
       return response.data;
     } catch (error: any) {
-      console.error('❌ Forgot password failed:', error?.response?.data || error.message);
-      const message = error?.response?.data?.error?.message || 'Error al solicitar recuperación';
-      throw new Error(message);
+      console.error('❌ Forgot password failed:', formatErrorForLog(error));
+      throw new Error(getErrorMessage(error));
     }
   },
 
   /**
-   * Reset password with token
+   * Verify reset code (optional - validates code before password change)
+   * POST /api/auth/verify-reset-code
+   */
+  async verifyResetCode(email: string, code: string): Promise<ApiResponse<{ valid: boolean }>> {
+    try {
+      console.log('🔍 Verifying reset code...');
+      const response = await api.post<ApiResponse<{ valid: boolean }>>(
+        '/auth/verify-reset-code',
+        { email, code }
+      );
+      console.log('✅ Reset code verified');
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Reset code verification failed:', formatErrorForLog(error));
+      throw new Error(getErrorMessage(error));
+    }
+  },
+
+  /**
+   * Reset password with code or token
    * POST /api/auth/reset-password
    */
   async resetPassword(data: ResetPasswordRequest): Promise<ApiResponse<{ message: string }>> {
@@ -400,9 +417,8 @@ export const authService = {
       console.log('✅ Password reset successful');
       return response.data;
     } catch (error: any) {
-      console.error('❌ Password reset failed:', error?.response?.data || error.message);
-      const message = error?.response?.data?.error?.message || 'Error al restablecer contraseña';
-      throw new Error(message);
+      console.error('❌ Password reset failed:', formatErrorForLog(error));
+      throw new Error(getErrorMessage(error));
     }
   },
 

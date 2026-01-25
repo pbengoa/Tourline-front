@@ -1,5 +1,5 @@
 // User roles
-export type UserRole = 'tourist' | 'guide' | 'admin' | 'super_admin';
+export type UserRole = 'tourist' | 'guide' | 'admin' | 'provider';
 
 // User interface
 export interface User {

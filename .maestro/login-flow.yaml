@@ -1,0 +1,11 @@
+appId: host.exp.Exponent
+---
+# Test: Login exitoso
+- launchApp
+- tapOn: "Iniciar sesión"
+- tapOn: "Correo electrónico"
+- inputText: "test@example.com"
+- tapOn: "Contraseña"
+- inputText: "Test1234"
+- tapOn: "Iniciar sesión"
+- assertVisible: "Explorar Tours"  # Verificar que llegó a home

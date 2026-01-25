@@ -242,14 +242,6 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({ ch
       refreshNotifications();
     }
   }, [receivedNotification, refreshNotifications]);
-
-  // Initial load
-  useEffect(() => {
-    console.log('🔔 NotificationsProvider useEffect - Initial load');
-    console.log('🔔 expoPushToken:', expoPushToken);
-    console.log('🔔 isRegistered:', isRegistered);
-    refreshNotifications();
-  }, []);
   
   // Log when token changes
   useEffect(() => {
@@ -258,14 +250,16 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({ ch
     }
   }, [expoPushToken]);
 
-  // Re-register push token when user logs in
+  // Register push token and load notifications when user logs in
   useEffect(() => {
-    if (user && expoPushToken) {
-      console.log('👤 User logged in, re-registering push token...');
-      // Re-register the token now that we have auth
+    if (user?.id) {
+      console.log('👤 User logged in, registering push token and loading notifications...');
+      // Register the token now that we have authentication
       registerForPushNotifications();
+      // Load notifications now that we're authenticated
+      refreshNotifications();
     }
-  }, [user?.id]); // Only when user ID changes (login/logout)
+  }, [user?.id, registerForPushNotifications, refreshNotifications]); // Only when user ID changes (login/logout)
 
   return (
     <NotificationsContext.Provider

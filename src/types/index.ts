@@ -23,3 +23,23 @@ export type { Message, Conversation, MessageStatus, MessageType, ChatState } fro
 export { MESSAGE_STATUS_CONFIG } from './chat';
 
 export type { User, UserRole, Company, AuthResponse, LoginRequest, RegisterRequest } from './user';
+
+export type {
+  Provider,
+  ProviderType,
+  ProviderStatus,
+  ProviderRegistration,
+  IndividualProviderRegistration,
+  CompanyProviderRegistration,
+  ProviderRegistrationResponse,
+  GuideProfile,
+  VerificationDocument,
+  DocumentType,
+} from './provider';
+
+export {
+  PROVIDER_STATUS_CONFIG,
+  DOCUMENT_TYPE_LABELS,
+  REQUIRED_DOCUMENTS,
+  RECOMMENDED_DOCUMENTS,
+} from './provider';

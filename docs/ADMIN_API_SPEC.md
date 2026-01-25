@@ -484,15 +484,15 @@ Marca notificación como leída.
 
 Todos los endpoints admin requieren:
 1. Token JWT válido en header `Authorization: Bearer {token}`
-2. Usuario con rol `ADMIN` o `SUPER_ADMIN`
-3. Usuario debe pertenecer a la empresa (excepto SUPER_ADMIN)
+2. Usuario con rol `ADMIN`
+3. Admin puede ver TODO el sistema (todas las empresas/proveedores)
 
 **Middleware sugerido:**
 ```typescript
 const adminMiddleware = async (req, res, next) => {
   const user = req.user; // Del JWT
   
-  if (!['ADMIN', 'SUPER_ADMIN'].includes(user.role)) {
+  if (user.role !== 'ADMIN') {
     return res.status(403).json({ error: 'Acceso denegado' });
   }
   

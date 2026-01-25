@@ -4,10 +4,23 @@ import { useAuth } from '../context';
 import { AuthNavigator } from './AuthNavigator';
 import { RootNavigator } from './RootNavigator';
 import { AdminNavigator } from './AdminNavigator';
+import { GuideNavigator } from './GuideNavigator';
+import { ProviderNavigator } from './ProviderNavigator';
+import { EmailVerificationRequiredScreen } from '../screens/auth';
 import { Colors } from '../theme';
 
 export const AppNavigator: React.FC = () => {
-  const { isLoading, isAuthenticated, isAdmin } = useAuth();
+  const { isLoading, isAuthenticated, isEmailVerified, isAdmin, isGuide, isProvider, user, userRole } = useAuth();
+
+  // Debug: Log navigation decision
+  console.log('🔀 AppNavigator - Navigation Decision:', {
+    isAuthenticated,
+    isEmailVerified,
+    userRole,
+    isAdmin,
+    isProvider,
+    isGuide,
+  });
 
   // Show loading screen while checking auth state
   if (isLoading) {
@@ -20,15 +33,34 @@ export const AppNavigator: React.FC = () => {
 
   // Not authenticated - show auth screens
   if (!isAuthenticated) {
+    console.log('➡️  Showing: AuthNavigator');
     return <AuthNavigator />;
   }
 
-  // Authenticated - check role and show appropriate navigator
+  // Authenticated but email not verified - show verification required screen
+  if (!isEmailVerified) {
+    console.log('➡️  Showing: EmailVerificationRequired');
+    return <EmailVerificationRequiredScreen />;
+  }
+
+  // Authenticated and verified - check role and show appropriate navigator
   if (isAdmin) {
+    console.log('➡️  Showing: AdminNavigator (role: admin)');
     return <AdminNavigator />;
   }
 
-  // Default: tourist/guide - show main app
+  if (isProvider) {
+    console.log('➡️  Showing: ProviderNavigator (role: provider)');
+    return <ProviderNavigator />;
+  }
+
+  if (isGuide) {
+    console.log('➡️  Showing: GuideNavigator (role: guide)');
+    return <GuideNavigator />;
+  }
+
+  // Default: tourist - show main app
+  console.log('➡️  Showing: RootNavigator (role: tourist - default)');
   return <RootNavigator />;
 };
 
