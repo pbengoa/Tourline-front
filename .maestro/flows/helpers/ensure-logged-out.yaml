@@ -1,0 +1,16 @@
+appId: host.exp.Exponent
+---
+# 🚪 Helper: Ensure Logged Out
+# Hace logout solo si hay una sesión activa
+
+- waitForAnimationToEnd
+
+- runFlow:
+    when:
+      visible: "Perfil"
+    commands:
+      - tapOn: "Perfil"
+      - waitForAnimationToEnd
+      - scroll
+      - tapOn: "Cerrar sesión"
+      - waitForAnimationToEnd

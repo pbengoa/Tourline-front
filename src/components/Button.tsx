@@ -25,6 +25,7 @@ interface ButtonProps {
   iconPosition?: 'left' | 'right';
   style?: ViewStyle;
   textStyle?: TextStyle;
+  testID?: string;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -39,6 +40,7 @@ export const Button: React.FC<ButtonProps> = ({
   iconPosition = 'left',
   style,
   textStyle,
+  testID,
 }) => {
   const isDisabled = disabled || loading;
 
@@ -74,6 +76,7 @@ export const Button: React.FC<ButtonProps> = ({
 
   return (
     <TouchableOpacity
+      testID={testID}
       style={[
         styles.base,
         styles[variant],

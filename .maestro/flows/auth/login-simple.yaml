@@ -1,0 +1,27 @@
+appId: host.exp.Exponent
+---
+# 🔐 Test: Login Flow (Simple Version)
+
+- launchApp
+- waitForAnimationToEnd
+- waitForAnimationToEnd
+- waitForAnimationToEnd
+
+# Completar formulario (asumiendo que ya estamos en login)
+- tapOn: 
+    id: "email-input"
+- inputText: "user@tourline.com"
+
+- tapOn:
+    id: "password-input"
+- inputText: "user123456"
+
+# Hacer login
+- tapOn: "Iniciar Aventura"
+- waitForAnimationToEnd
+- waitForAnimationToEnd
+
+# Verificar que estamos en Home
+- assertVisible: "Inicio"
+- assertVisible: "Explorar"
+- assertVisible: "Perfil"

@@ -1,0 +1,24 @@
+appId: host.exp.Exponent
+---
+# 🔐 Test: Login Flow (Manual - app ya abierta)
+# IMPORTANTE: Debes tener la app abierta Y en la pantalla de login antes de correr esto
+
+# NO lanzamos la app, asumimos que ya está abierta
+
+# Completar formulario
+- tapOn: 
+    id: "email-input"
+- inputText: "user@tourline.com"
+
+- tapOn:
+    id: "password-input"
+- inputText: "User123456"
+
+# Hacer login
+- tapOn: "Iniciar Aventura"
+- waitForAnimationToEnd
+
+# Verificar que estamos en Home
+- assertVisible: "Inicio"
+- assertVisible: "Explorar"
+- assertVisible: "Perfil"

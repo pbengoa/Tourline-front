@@ -1,0 +1,38 @@
+appId: host.exp.Exponent
+---
+# 📝 Test: Register Flow
+
+# NO usamos launchApp con Expo Go
+- waitForAnimationToEnd
+
+# Asegurarnos de que no hay sesión activa
+- runFlow: helpers/ensure-logged-out.yaml
+
+# Ir a registro
+- tapOn: "¿No tienes cuenta?"
+- waitForAnimationToEnd
+- tapOn: "Crear cuenta"
+
+# Llenar formulario
+- tapOn:
+    text: "Nombre completo"
+- inputText: "Test User"
+
+- tapOn:
+    text: "Email"
+- inputText: "newuser@test.com"
+
+- tapOn:
+    text: "Contraseña"
+- inputText: "Test123456!"
+
+- tapOn:
+    text: "Confirmar contraseña"
+- inputText: "Test123456!"
+
+# Registrarse
+- tapOn: "Crear cuenta"
+- waitForAnimationToEnd
+
+# Verificar pantalla de verificación
+- assertVisible: "Verifica tu email"

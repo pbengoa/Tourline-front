@@ -1,0 +1,38 @@
+appId: host.exp.Exponent
+---
+# 🏖️ Test: Browse Tours as Tourist
+
+- launchApp
+# Login primero
+- tapOn:
+    text: "Email"
+- inputText: "${TOURIST_EMAIL}"
+- tapOn:
+    text: "Contraseña"
+- inputText: "${TOURIST_PASSWORD}"
+- tapOn: "Iniciar sesión"
+- waitForAnimationToEnd
+
+# Verificar Home
+- assertVisible: "Tours Destacados"
+- assertVisible: "Explorar por categoría"
+
+# Scroll para ver más tours
+- scroll
+
+# Verificar que hay tours
+- assertVisible: "Ver tour"
+
+# Ir a Explorar
+- tapOn: "Explorar"
+- assertVisible: "Buscar tours"
+- assertVisible: "Tours"
+- assertVisible: "Empresas"
+
+# Buscar tour
+- tapOn: "Buscar tours"
+- inputText: "Trekking"
+- waitForAnimationToEnd
+
+# Verificar resultados
+- assertVisible: "tours"

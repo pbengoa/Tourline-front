@@ -1,0 +1,71 @@
+appId: host.exp.Exponent
+---
+# 🔐 Test: Login Flow
+# Para Expo Go: Asegúrate de que la app esté corriendo y en la pantalla de login
+
+# NO usamos launchApp con Expo Go porque cierra la sesión de desarrollo
+# En su lugar, solo esperamos a que la UI esté lista
+
+- waitForAnimationToEnd
+
+# Verificar que estamos en la pantalla de login
+- assertVisible: "¡Bienvenido!"
+
+# Completar formulario
+- tapOn: 
+    id: "email-input"
+- inputText: "user@tourline.com"
+
+- tapOn:
+    id: "password-input"
+- inputText: "User123456"
+
+# Cerrar el teclado
+- hideKeyboard
+
+# Hacer login
+- tapOn:
+    id: "login-button"
+
+# Esperar a que procese el login
+- waitForAnimationToEnd
+- waitForAnimationToEnd
+
+# Cerrar diálogo de notificaciones (buscar OK en cualquier idioma)
+- runFlow:
+    when:
+      visible:
+        text: "OK"
+        index: 0
+    commands:
+      - tapOn: 
+          text: "OK"
+          index: 0
+      - waitForAnimationToEnd
+
+# Esperar un poco más
+- waitForAnimationToEnd
+
+# Manejar diálogo de guardar contraseña iOS
+- runFlow:
+    when:
+      visible: "Ahora no"
+    commands:
+      - tapOn: "Ahora no"
+      - waitForAnimationToEnd
+      - waitForAnimationToEnd
+
+# Esperar a que todo se estabilice
+- waitForAnimationToEnd
+- waitForAnimationToEnd
+- waitForAnimationToEnd
+
+# Verificar que estamos en Home (buscar por texto primero, es más confiable)
+- extendedWaitUntil:
+    visible: "Inicio"
+    timeout: 10000
+
+# Verificar que las tabs están visibles
+- assertVisible: "Inicio"
+- assertVisible: "Explorar"
+- assertVisible: "Perfil"

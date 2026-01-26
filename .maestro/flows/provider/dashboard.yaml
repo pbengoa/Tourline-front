@@ -1,0 +1,29 @@
+appId: host.exp.Exponent
+---
+# 🏢 Test: Provider Dashboard
+
+- launchApp
+# Login como provider
+- tapOn:
+    text: "Email"
+- inputText: "${PROVIDER_EMAIL}"
+- tapOn:
+    text: "Contraseña"
+- inputText: "${PROVIDER_PASSWORD}"
+- tapOn: "Iniciar sesión"
+- waitForAnimationToEnd
+
+# Verificar dashboard de provider
+- assertVisible: "Dashboard"
+- assertVisible: "Tours activos"
+- assertVisible: "Reservas"
+- assertVisible: "Ingresos"
+
+# Verificar navegación de provider
+- assertVisible: "Tours"
+- assertVisible: "Reservas"
+- assertVisible: "Estadísticas"
+
+# Ir a Tours
+- tapOn: "Tours"
+- assertVisible: "Crear tour"

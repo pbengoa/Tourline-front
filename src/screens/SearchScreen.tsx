@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Dimensions,
   Animated,
+  Platform,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -323,9 +324,21 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
 
     // Debug: log markers info
     console.log(`🗺️ Map markers: ${markers.length} of ${transformedTours.length} tours`);
+    console.log('🗺️ Markers coordinates:', markers.map(m => ({
+      id: m.id,
+      lat: m.coordinate.latitude,
+      lng: m.coordinate.longitude,
+      title: m.item.title.substring(0, 30)
+    })));
+    
     if (markers.length === 0 && transformedTours.length > 0) {
       console.log('⚠️ Tours without coordinates:');
-      transformedTours.forEach((t) => console.log(`  - ${t.title}: "${t.location}"`));
+      transformedTours.forEach((t) => {
+        const backendCoords = tourCoordinatesMap[t.id];
+        console.log(`  - ${t.title}:`);
+        console.log(`    location: "${t.location}"`);
+        console.log(`    backend coords: ${backendCoords ? `${backendCoords.lat}, ${backendCoords.lng}` : 'NO'}`);
+      });
     }
     
     return markers;
@@ -417,7 +430,11 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
         initialRegion={DEFAULT_MAP_REGION}
         showsUserLocation
         showsMyLocationButton={false}
-        onMapReady={() => setTimeout(fitToMarkers, 500)}
+        onMapReady={() => {
+          console.log('🗺️ Map is ready, platform:', Platform.OS);
+          console.log('🗺️ Markers to render:', mapMarkers.length);
+          setTimeout(fitToMarkers, 500);
+        }}
         onPress={() => setSelectedMapItem(null)}
       >
         {mapMarkers.map((marker) => {
@@ -435,19 +452,11 @@ export const SearchScreen: React.FC<Props> = ({ navigation }) => {
                 setSelectedMapItem(tour);
               }}
             >
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() => {
-                  console.log('🗺️ TouchableOpacity pressed:', marker.id);
-                  setSelectedMapItem(tour);
-                }}
-              >
-                <View style={[styles.priceMarker, isSelected && styles.priceMarkerSelected]}>
-                  <Text style={[styles.priceMarkerText, isSelected && styles.priceMarkerTextSelected]}>
-                    {formatPrice(tour.price, tour.currency)}
-                  </Text>
-                </View>
-              </TouchableOpacity>
+              <View style={[styles.priceMarker, isSelected && styles.priceMarkerSelected]}>
+                <Text style={[styles.priceMarkerText, isSelected && styles.priceMarkerTextSelected]}>
+                  {formatPrice(tour.price, tour.currency)}
+                </Text>
+              </View>
             </Marker>
           );
         })}
@@ -1039,19 +1048,20 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: Colors.card,
+    borderColor: Colors.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.2,
     shadowRadius: 5,
     elevation: 5,
-    minWidth: 60,
+    width: 90,
+    height: 36,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   priceMarkerSelected: { 
     backgroundColor: Colors.primary, 
     borderColor: Colors.primary,
-    transform: [{ scale: 1.1 }],
   },
   priceMarkerText: { 
     ...Typography.label, 
@@ -1059,28 +1069,31 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 13,
   },
-  priceMarkerTextSelected: { color: '#fff' },
+  priceMarkerTextSelected: { 
+    color: '#fff',
+  },
 
   // Selected Card
   // =============================================
-  // SELECTED CARD - TOUR (Diseño Hero Inmersivo)
+  // SELECTED CARD - TOUR (Diseño Profesional Mejorado)
   // =============================================
   selectedCard: {
     position: 'absolute',
-    bottom: 100,
+    bottom: 24,
     left: 16,
     right: 16,
-    borderRadius: 20,
+    borderRadius: 24,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 12,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 16,
+    backgroundColor: '#FFFFFF',
   },
   selectedTourCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
     overflow: 'hidden',
   },
   selectedHeroContainer: {
@@ -1106,7 +1119,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: 100,
+    height: 90,
   },
   selectedBadgesRow: {
     position: 'absolute',
@@ -1118,54 +1131,69 @@ const styles = StyleSheet.create({
   selectedFeaturedBadge: {
     backgroundColor: Colors.secondary,
     paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
+    paddingVertical: 6,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   selectedFeaturedText: {
     ...Typography.labelSmall,
     color: '#fff',
     fontWeight: '700',
+    fontSize: 11,
   },
   selectedDurationBadge: {
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(0,0,0,0.65)',
     paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
+    paddingVertical: 6,
+    borderRadius: 12,
   },
   selectedDurationText: {
     ...Typography.labelSmall,
     color: '#fff',
+    fontSize: 11,
+    fontWeight: '600',
   },
   selectedCloseBtn: {
     position: 'absolute',
     top: 12,
     right: 12,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 3,
   },
   selectedCloseBtnText: {
     color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
   },
   selectedHeroInfo: {
     position: 'absolute',
-    bottom: 12,
-    left: 12,
-    right: 12,
+    bottom: 14,
+    left: 16,
+    right: 16,
   },
   selectedHeroTitle: {
     ...Typography.h4,
     color: '#fff',
-    fontWeight: '700',
+    fontWeight: '800',
     marginBottom: 6,
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
+    fontSize: 18,
+    lineHeight: 24,
+    textShadowColor: 'rgba(0,0,0,0.7)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
   },
   selectedHeroMeta: {
     flexDirection: 'row',
@@ -1174,69 +1202,86 @@ const styles = StyleSheet.create({
   },
   selectedHeroLocation: {
     ...Typography.labelSmall,
-    color: 'rgba(255,255,255,0.9)',
+    color: 'rgba(255,255,255,0.95)',
+    fontSize: 13,
+    fontWeight: '600',
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   selectedHeroRating: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
   },
   selectedHeroStar: {
-    fontSize: 12,
+    fontSize: 13,
     marginRight: 4,
   },
   selectedHeroRatingText: {
     ...Typography.labelSmall,
     color: '#fff',
-    fontWeight: '700',
+    fontWeight: '800',
+    fontSize: 13,
   },
   selectedHeroReviews: {
     ...Typography.caption,
-    color: 'rgba(255,255,255,0.8)',
-    marginLeft: 2,
+    color: 'rgba(255,255,255,0.9)',
+    marginLeft: 3,
+    fontSize: 12,
   },
   selectedFooter: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 14,
-    backgroundColor: Colors.surface,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#FFFFFF',
   },
   selectedPriceBox: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
   },
   selectedPriceAmount: {
     ...Typography.h3,
     color: Colors.primary,
     fontWeight: '800',
+    fontSize: 24,
+    lineHeight: 28,
   },
   selectedPriceUnit: {
     ...Typography.bodySmall,
     color: Colors.textSecondary,
-    marginLeft: 4,
+    marginTop: 2,
+    fontSize: 12,
   },
   selectedCTAButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.primary,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 16,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 6,
   },
   selectedCTAText: {
     ...Typography.labelLarge,
     color: '#fff',
-    fontWeight: '600',
+    fontWeight: '700',
+    fontSize: 15,
   },
   selectedCTAArrow: {
     color: '#fff',
-    fontSize: 16,
-    marginLeft: 6,
-    fontWeight: '600',
+    fontSize: 18,
+    marginLeft: 8,
+    fontWeight: '700',
   },
 
   // =============================================

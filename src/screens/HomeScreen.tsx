@@ -280,7 +280,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <View testID="home-screen" style={styles.container}>
       {/* Animated Hero Background */}
       <Animated.View style={[styles.heroContainer, { opacity: headerOpacity }]}>
         <LinearGradient

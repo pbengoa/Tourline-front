@@ -1,33 +1,13 @@
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { HomeScreen, SearchScreen, ProfileScreen } from '../screens';
-import { Colors, Typography } from '../theme';
+import { Colors } from '../theme';
 import type { MainTabParamList } from '../types';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
-interface TabIconProps {
-  icon: string;
-  focused: boolean;
-  badge?: number;
-}
-
-const TabIcon: React.FC<TabIconProps> = ({ icon, focused, badge }) => (
-  <View style={styles.tabIconContainer}>
-    <View style={[styles.iconBg, focused && styles.iconBgActive]}>
-      <Text style={[styles.tabIcon, focused && styles.tabIconActive]}>{icon}</Text>
-    </View>
-    {badge !== undefined && badge > 0 && (
-      <View style={styles.badge}>
-        <Text style={styles.badgeText}>{badge > 9 ? '9+' : badge}</Text>
-      </View>
-    )}
-  </View>
-);
-
-// Keeping old icon component for reference but not using it
-const _OldTabIcon: React.FC<{
+const TabIcon: React.FC<{
   name: keyof MainTabParamList;
   focused: boolean;
 }> = ({ name, focused }) => {
@@ -76,8 +56,9 @@ export const MainTabNavigator: React.FC = () => {
         headerShown: false,
         tabBarStyle: styles.tabBar,
         tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.textTertiary,
+        tabBarInactiveTintColor: '#8E8E93',
         tabBarLabelStyle: styles.tabLabel,
+        tabBarItemStyle: styles.tabItem,
       }}
     >
       <Tab.Screen
@@ -85,7 +66,11 @@ export const MainTabNavigator: React.FC = () => {
         component={HomeScreen}
         options={{
           tabBarLabel: 'Inicio',
-          tabBarIcon: ({ focused }) => <TabIcon icon="🏠" focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <View style={[styles.tabIconWrapper, focused && styles.tabIconWrapperActive]}>
+              <TabIcon name="Home" focused={focused} />
+            </View>
+          ),
         }}
       />
       <Tab.Screen
@@ -93,7 +78,11 @@ export const MainTabNavigator: React.FC = () => {
         component={SearchScreen}
         options={{
           tabBarLabel: 'Explorar',
-          tabBarIcon: ({ focused }) => <TabIcon icon="🔍" focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <View style={[styles.tabIconWrapper, focused && styles.tabIconWrapperActive]}>
+              <TabIcon name="Search" focused={focused} />
+            </View>
+          ),
         }}
       />
       <Tab.Screen
@@ -101,7 +90,11 @@ export const MainTabNavigator: React.FC = () => {
         component={ProfileScreen}
         options={{
           tabBarLabel: 'Perfil',
-          tabBarIcon: ({ focused }) => <TabIcon icon="👤" focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <View style={[styles.tabIconWrapper, focused && styles.tabIconWrapperActive]}>
+              <TabIcon name="Profile" focused={focused} />
+            </View>
+          ),
         }}
       />
     </Tab.Navigator>
@@ -110,67 +103,98 @@ export const MainTabNavigator: React.FC = () => {
 
 const styles = StyleSheet.create({
   tabBar: {
-    position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 20 : 12,
-    left: 12,
-    right: 12,
-    height: 65,
-    backgroundColor: Colors.card,
-    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
     borderTopWidth: 0,
+    height: 80,
+    paddingBottom: 15,
+    paddingTop: 10,
+    paddingHorizontal: 20,
+    elevation: 0,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 8,
-    paddingBottom: Platform.OS === 'ios' ? 0 : 5,
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 10,
+  },
+  tabItem: {
     paddingTop: 5,
   },
   tabLabel: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '600',
-    marginTop: 2,
+    marginTop: 6,
   },
-  tabIconContainer: {
+  tabIconWrapper: {
+    width: 60,
+    height: 50,
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
-  },
-  iconBg: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderRadius: 16,
     backgroundColor: 'transparent',
   },
-  iconBgActive: {
-    backgroundColor: Colors.primaryMuted,
+  tabIconWrapperActive: {
+    backgroundColor: '#E8F0ED',
   },
-  tabIcon: {
-    fontSize: 22,
-  },
-  tabIconActive: {
-    fontSize: 22,
-  },
-  badge: {
-    position: 'absolute',
-    top: -2,
-    right: -6,
-    backgroundColor: Colors.error,
-    minWidth: 16,
-    height: 16,
-    borderRadius: 8,
-    justifyContent: 'center',
+  iconContainer: {
+    width: 26,
+    height: 26,
     alignItems: 'center',
-    paddingHorizontal: 3,
-    borderWidth: 2,
-    borderColor: Colors.card,
+    justifyContent: 'center',
   },
-  badgeText: {
-    ...Typography.caption,
-    color: Colors.textInverse,
-    fontSize: 9,
-    fontWeight: '700',
+  // Home Icon Styles
+  homeRoof: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 11,
+    borderRightWidth: 11,
+    borderBottomWidth: 9,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    marginBottom: 2,
+  },
+  homeBase: {
+    width: 16,
+    height: 13,
+    borderRadius: 2,
+  },
+  homeWindow: {
+    position: 'absolute',
+    width: 5,
+    height: 5,
+    backgroundColor: '#E8F0ED',
+    bottom: 2,
+    borderRadius: 1,
+  },
+  // Search/Compass Icon Styles
+  compassOuter: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  compassNeedle: {
+    width: 2,
+    height: 9,
+    borderRadius: 1,
+    position: 'absolute',
+  },
+  compassCenter: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+  },
+  // Profile Icon Styles
+  profileHead: {
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
+    marginBottom: 2,
+  },
+  profileBody: {
+    width: 16,
+    height: 11,
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
   },
 });

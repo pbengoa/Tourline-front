@@ -96,6 +96,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
               <View style={[styles.inputContainer, errors.email && styles.inputError]}>
                 <Text style={styles.inputIcon}>📧</Text>
                 <TextInput
+                  testID="email-input"
                   style={styles.input}
                   placeholder="tu@email.com"
                   placeholderTextColor={Colors.textTertiary}
@@ -118,6 +119,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
               <View style={[styles.inputContainer, errors.password && styles.inputError]}>
                 <Text style={styles.inputIcon}>🔐</Text>
                 <TextInput
+                  testID="password-input"
                   style={styles.input}
                   placeholder="••••••••"
                   placeholderTextColor={Colors.textTertiary}
@@ -150,6 +152,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
             {/* Login Button */}
             <Button
+              testID="login-button"
               title="Iniciar Aventura"
               onPress={handleLogin}
               loading={loading}

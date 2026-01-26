@@ -92,6 +92,16 @@ export type AdminTabParamList = {
 };
 
 /**
+ * Provider tab navigator param list
+ */
+export type ProviderTabParamList = {
+  ProviderAgenda: undefined;
+  ProviderExplore: undefined;
+  ProviderStats: undefined;
+  Profile: undefined;
+};
+
+/**
  * Admin stack param list (for nested navigation)
  */
 export type AdminStackParamList = {

@@ -1,0 +1,9 @@
+appId: host.exp.Exponent
+---
+# 🚪 Helper: Logout
+
+- tapOn: "Perfil"
+- waitForAnimationToEnd
+- scroll
+- tapOn: "Cerrar sesión"
+- waitForAnimationToEnd

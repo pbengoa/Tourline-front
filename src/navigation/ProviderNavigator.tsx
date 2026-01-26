@@ -6,8 +6,10 @@ import { Colors, Typography } from '../theme';
 import { ProfileScreen } from '../screens';
 import { ChatListScreen, ChatScreen } from '../screens/chat';
 import { DashboardScreen, AdminToursScreen, AdminGuidesScreen } from '../screens/admin';
+import { ProviderAgendaScreen, ProviderExploreScreen, ProviderStatsScreen } from '../screens/provider';
+import type { ProviderTabParamList } from '../types';
 
-const Tab = createBottomTabNavigator();
+const Tab = createBottomTabNavigator<ProviderTabParamList>();
 const Stack = createNativeStackNavigator();
 
 interface TabIconProps {
@@ -40,43 +42,33 @@ const ProviderTabs: React.FC = () => {
         tabBarLabelStyle: styles.tabLabel,
       }}
     >
-      {/* Dashboard con estadísticas */}
+      {/* Agenda - Pantalla principal */}
       <Tab.Screen
-        name="Dashboard"
-        component={DashboardScreen}
+        name="ProviderAgenda"
+        component={ProviderAgendaScreen}
         options={{
-          tabBarLabel: 'Inicio',
+          tabBarLabel: 'Agenda',
+          tabBarIcon: ({ focused }) => <TabIcon icon="📅" focused={focused} />,
+        }}
+      />
+
+      {/* Explorar - Tours y Guías */}
+      <Tab.Screen
+        name="ProviderExplore"
+        component={ProviderExploreScreen}
+        options={{
+          tabBarLabel: 'Buscar',
+          tabBarIcon: ({ focused }) => <TabIcon icon="🔍" focused={focused} />,
+        }}
+      />
+
+      {/* Estadísticas */}
+      <Tab.Screen
+        name="ProviderStats"
+        component={ProviderStatsScreen}
+        options={{
+          tabBarLabel: 'Stats',
           tabBarIcon: ({ focused }) => <TabIcon icon="📊" focused={focused} />,
-        }}
-      />
-
-      {/* Gestión de Tours */}
-      <Tab.Screen
-        name="AdminTours"
-        component={AdminToursScreen}
-        options={{
-          tabBarLabel: 'Tours',
-          tabBarIcon: ({ focused }) => <TabIcon icon="🗺️" focused={focused} />,
-        }}
-      />
-
-      {/* Gestión de Guías (solo para empresas) */}
-      <Tab.Screen
-        name="AdminGuides"
-        component={AdminGuidesScreen}
-        options={{
-          tabBarLabel: 'Guías',
-          tabBarIcon: ({ focused }) => <TabIcon icon="👥" focused={focused} />,
-        }}
-      />
-
-      {/* Mensajes con clientes */}
-      <Tab.Screen
-        name="ChatList"
-        component={ChatListScreen}
-        options={{
-          tabBarLabel: 'Mensajes',
-          tabBarIcon: ({ focused }) => <TabIcon icon="💬" focused={focused} />,
         }}
       />
 

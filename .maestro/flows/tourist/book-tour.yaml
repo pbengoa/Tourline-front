@@ -1,0 +1,45 @@
+appId: host.exp.Exponent
+---
+# 🎫 Test: Book a Tour
+
+- launchApp
+# Login
+- tapOn:
+    text: "Email"
+- inputText: "${TOURIST_EMAIL}"
+- tapOn:
+    text: "Contraseña"
+- inputText: "${TOURIST_PASSWORD}"
+- tapOn: "Iniciar sesión"
+- waitForAnimationToEnd
+
+# Click en primer tour
+- tapOn: "Ver tour"
+- waitForAnimationToEnd
+
+# Iniciar reserva
+- tapOn: "Reservar"
+- waitForAnimationToEnd
+
+# Verificar pantalla de reserva
+- assertVisible: "Confirmar reserva"
+- assertVisible: "Selecciona fecha"
+- assertVisible: "Número de personas"
+
+# Seleccionar fecha (click en el primer día disponible)
+- tapOn: "Selecciona fecha"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0  # Primera fecha disponible
+- waitForAnimationToEnd
+
+# Seleccionar personas
+- tapOn: "2"  # 2 personas
+
+# Continuar
+- tapOn: "Continuar"
+- waitForAnimationToEnd
+
+# Verificar resumen
+- assertVisible: "Total"
+- assertVisible: "Confirmar y pagar"

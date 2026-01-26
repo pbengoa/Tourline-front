@@ -1,0 +1,33 @@
+appId: host.exp.Exponent
+---
+# 🎯 Master Test Suite - Ejecuta todos los flujos principales
+# IMPORTANTE: Para Expo Go, NO uses launchApp al inicio
+
+# ===========================================
+# AUTHENTICATION FLOWS
+# ===========================================
+- runFlow: auth/login.yaml
+
+# Logout después del login
+- runFlow: helpers/logout.yaml
+
+# No corremos register ni forgot-password por ahora porque pueden fallar
+# si las pantallas no están completas
+# - runFlow: auth/register.yaml
+# - runFlow: auth/forgot-password.yaml
+
+# ===========================================
+# TOURIST FLOWS (después de hacer login nuevamente)
+# ===========================================
+# - runFlow: auth/login.yaml
+# - runFlow: tourist/browse-tours.yaml
+# - runFlow: tourist/view-tour-detail.yaml
+# - runFlow: tourist/book-tour.yaml
+
+# ===========================================
+# PROVIDER FLOWS  
+# ===========================================
+# - runFlow: provider/dashboard.yaml
+
+# Limpiar estado
+- clearState

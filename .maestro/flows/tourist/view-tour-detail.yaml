@@ -1,0 +1,32 @@
+appId: host.exp.Exponent
+---
+# 👁️ Test: View Tour Detail
+
+- launchApp
+# Login
+- tapOn:
+    text: "Email"
+- inputText: "${TOURIST_EMAIL}"
+- tapOn:
+    text: "Contraseña"
+- inputText: "${TOURIST_PASSWORD}"
+- tapOn: "Iniciar sesión"
+- waitForAnimationToEnd
+
+# Click en primer tour
+- tapOn: "Ver tour"
+- waitForAnimationToEnd
+
+# Verificar detalle del tour
+- assertVisible: "Reservar"
+- assertVisible: "por persona"
+- assertVisible: "Qué incluye"
+- assertVisible: "Requisitos"
+
+# Scroll para ver más info
+- scroll
+- assertVisible: "Sobre la empresa"
+
+# Volver
+- back
+- assertVisible: "Tours Destacados"
